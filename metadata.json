@@ -1,0 +1,6 @@
+{
+  "name": "Herve_eShop",
+  "description": "Catalogue d'ordinateurs d'importation haut de gamme au Cameroun, gestion de stock en temps réel, devis personnalisables en direct et espace de suivi client.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
