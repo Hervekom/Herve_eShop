@@ -1,0 +1,672 @@
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+
+const DB_FILE = path.join(process.cwd(), 'server_db.json');
+
+// Define data interfaces
+export interface AdminUser {
+  id: string;
+  email: string;
+  passwordHash: string; // Sha256 hash
+  role: 'Super Admin' | 'Admin' | 'Editor';
+  name: string;
+  status: 'Actif' | 'Désactivé';
+  createdAt: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userRole: string;
+  action: string; // e.g. "Create Product", "Edit Category"
+  entityId: string;
+  entityType: string;
+  oldValues?: string;
+  newValues?: string;
+  createdAt: string;
+}
+
+export interface SiteCMS {
+  siteName: string;
+  logoText: string;
+  announcementText: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  footerText: string;
+  welcomeText: string;
+  aboutText: string;
+  mission: string;
+  vision: string;
+  values: string;
+  faq: { q: string; a: string }[];
+  termsOfUse: string;
+  privacyPolicy: string;
+  returnPolicy: string;
+  legalMentions: string;
+}
+
+export interface ContactCMS {
+  primaryPhone: string;
+  secondaryPhone: string;
+  whatsAppPhone: string;
+  email: string;
+  address: string;
+  googleMapsIframe: string;
+  gpsCoordinates: string;
+  openingHours: string;
+}
+
+export interface SocialCMS {
+  facebook: { url: string; active: boolean };
+  instagram: { url: string; active: boolean };
+  tiktok: { url: string; active: boolean };
+  linkedin: { url: string; active: boolean };
+  youtube: { url: string; active: boolean };
+  twitter: { url: string; active: boolean };
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  icon: string;
+  displayOrder: number;
+  status: 'Actif' | 'Inactif';
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+  clientCity: string;
+  laptopId: string;
+  laptopBrand: string;
+  laptopModel: string;
+  basePrice: number;
+  finalPrice: number;
+  customizations: {
+    ramUpgrade: string;
+    storageUpgrade: string;
+    osOption: string;
+    accessories: string[];
+  };
+  additionalNotes: string;
+  status: 'Demande reçue' | 'Devis validé' | 'En préparation' | 'Prêt pour livraison' | 'Livré' | 'Refusé';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  totalSpent: number;
+  ordersCount: number;
+  createdAt: string;
+}
+
+export interface DBBanner {
+  id: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  link: string;
+  type: 'Homepage Banner' | 'Promo Banner' | 'Announcement Banner';
+  status: 'Actif' | 'Inactif';
+  scheduleStart?: string;
+  scheduleEnd?: string;
+}
+
+export interface DBBuyingGuide {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: string;
+  specs: {
+    cpu: string;
+    ram: string;
+    storage: string;
+    gpu: string;
+    battery: string;
+  };
+  advantages: string[];
+  keyAdvice: string;
+  suitableFor: string[];
+  recommendedModels: string;
+}
+
+export interface DBBlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  image: string;
+  category: string;
+  status: 'Brouillon' | 'Publié' | 'Planifié';
+  seoTitle: string;
+  seoDesc: string;
+  seoKeywords: string;
+  createdAt: string;
+  publishedAt?: string;
+}
+
+export interface DBNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'danger';
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface CustomerUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  passwordHash: string; // Sha256 hash
+  createdAt: string;
+}
+
+export interface DatabaseSchema {
+  products: any[];
+  categories: Category[];
+  orders: Order[];
+  customers: Customer[];
+  siteCMS: SiteCMS;
+  contactCMS: ContactCMS;
+  socialCMS: SocialCMS;
+  banners: DBBanner[];
+  buyingGuides: DBBuyingGuide[];
+  blogPosts: DBBlogPost[];
+  notifications: DBNotification[];
+  activityLogs: ActivityLog[];
+  adminUsers: AdminUser[];
+  users?: CustomerUser[]; // Use optional for seamless backward compatibility
+  visitorCount: number;
+}
+
+// Helpers
+export function hashPassword(password: string): string {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+// Default Data Seeders
+const DEFAULT_SITE_CMS: SiteCMS = {
+  siteName: "Herve_eShop",
+  logoText: "Herve_eShop",
+  announcementText: "Nouveaux arrivages d'ordinateurs MacBook, Dell & ThinkPad importés d'Amérique ! Akwa Showroom Ouvert 🇨🇲",
+  heroTitle: "L'excellence des Notebooks Importés au Cameroun",
+  heroSubtitle: "Hervé sélectionne pour vous les meilleurs ordinateurs professionnels certifiés d'Europe et d'USA.",
+  footerText: "L'excellence du matériel informatique haut de gamme de seconde main importé au Cameroun. Traçabilité, configuration sur-mesure et SAV d'exception.",
+  welcomeText: "Bienvenue chez Herve_eShop, votre partenaire technologique professionnel à Douala & Yaoundé.",
+  aboutText: "Herve_eShop est le leader camerounais de la distribution d'ordinateurs portables haut de gamme reconditionnées et d'importation directe des USA et d'Europe.",
+  mission: "Rendre l'informatique haut de gamme accessible à tous les professionnels, étudiants et entreprises du Cameroun à un prix juste.",
+  vision: "Devenir la référence absolue d'e-commerce et de distribution high-tech d'Afrique Centrale.",
+  values: "Transactions sécurisées, Authenticité garantie, Écoute client permanente, Qualité testée en atelier.",
+  faq: [
+    { q: "Outillez-vous vos clients d'une facture certifiée ?", a: "Oui, chaque achat s'accompagne d'un reçu/facture officiel d'Herve_eShop valant preuve de propriété et date de début de garantie." },
+    { q: "Quelles sont les durées de garantie d'Herve_eShop ?", a: "Tous nos équipements bénéficient d'une garantie technique allant de 3 à 12 mois avec remplacement gratuit des pièces défectueuses." },
+    { q: "Livrez-vous dans d'autres villes du Cameroun ?", a: "Absolument. Nous expédions dans tout le Cameroun (Yaoundé, Bafoussam, Garoua, Kribi, etc.) via agences partenaires sécurisées sous 24 à 48 heures." }
+  ],
+  termsOfUse: "Conditions Générales d'Utilisation : L'utilisation de notre catalogue en ligne et la passation de commandes impliquent l'entière acceptation de nos conditions de vente et de service technique après-vente.",
+  privacyPolicy: "Politique de Confidentialité : Nous protégeons rigoureusement vos données personnelles. Vos coordonnées, adresses de livraison et emails de devis ne sont jamais partagés à des fins mercantiles.",
+  returnPolicy: "Politique de Retour : Tout matériel présentant un défaut d'atelier non mentionné peut faire l'objet d'un retour et échange dans un délai de 7 jours francs après retrait ou livraison.",
+  legalMentions: "Herve_eShop Sarl • Immatriculé à Douala, Cameroun. Siège Social : Akwa • Direction Technique : Hervé."
+};
+
+const DEFAULT_CONTACT_CMS: ContactCMS = {
+  primaryPhone: "+237 699 00 11 22",
+  secondaryPhone: "+237 677 88 99 00",
+  whatsAppPhone: "237699001122",
+  email: "contact@herve-eshop.cm",
+  address: "Akwa, Face Boulangerie Zépol (Showroom principal), Douala, Cameroun",
+  googleMapsIframe: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3979.8037380963137!2d9.696111111111111!3d4.0500!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1061128df0000001%3A0xed00000000000000!2sAkwa%20Douala!5e0!3m2!1sfr!2scm!4v1622550000000!5m2!1sfr!2scm",
+  gpsCoordinates: "4.0500° N, 9.6961° E",
+  openingHours: "Lundi - Samedi : 8h30 - 19h30 | Dimanche : Fermé"
+};
+
+const DEFAULT_SOCIAL_CMS: SocialCMS = {
+  facebook: { url: "https://facebook.com/herve_eshop", active: true },
+  instagram: { url: "https://instagram.com/herve_eshop", active: true },
+  tiktok: { url: "https://tiktok.com/@herve_eshop", active: true },
+  linkedin: { url: "https://linkedin.com/company/herve-eshop", active: true },
+  youtube: { url: "https://youtube.com/c/herve_eshop", active: false },
+  twitter: { url: "https://twitter.com/herve_eshop", active: false }
+};
+
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat-ub', name: 'Ultrabook', description: 'Portables fins d\'exception, légers et grande autonomie', image: '', icon: 'Laptop', displayOrder: 1, status: 'Actif' },
+  { id: 'cat-bt', name: 'Bureautique', description: 'Fiabilité professionnelle à toute épreuve', image: '', icon: 'Briefcase', displayOrder: 2, status: 'Actif' },
+  { id: 'cat-gm', name: 'Gaming', description: 'Calcul intensif, 3D, gaming et création graphique', image: '', icon: 'Gamepad2', displayOrder: 3, status: 'Actif' }
+];
+
+const DEFAULT_PRODUCTS = [
+  {
+    id: 'macm3-01',
+    brand: 'Apple',
+    model: 'MacBook Pro 14"',
+    processor: 'Apple M3 Pro (11-Core CPU, 14-Core GPU)',
+    ram: '18GB Unified',
+    storage: '512GB SSD SuperFast',
+    screenSize: '14.2" Liquid Retina XDR',
+    condition: 'Comme neuf',
+    source: 'USA',
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1000',
+    price: 1350000,
+    stockQuantity: 4,
+    status: 'Disponible',
+    description: 'Une bête de course pour les créateurs de contenu et développeurs. Importé directement de la Silicon Valley, état esthétique et de batterie exceptionnel (100% de santé).',
+    category: 'Ultrabook',
+    shortDescription: 'Monstre de puissance Apple Silicon M3 pour développeurs exigeants.',
+    subCategory: 'Pro',
+    sku: 'AAPL-M3P-14',
+    oldPrice: 1500000,
+    isFeatured: true,
+    isPopular: true,
+    isRecommended: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'xps15-02',
+    brand: 'Dell',
+    model: 'XPS 15 9530',
+    processor: 'Intel Core i7-13700H (14 Cores, up to 5.0 GHz)',
+    ram: '32GB DDR5',
+    storage: '1TB NVMe PCIe Gen4',
+    screenSize: '15.6" OLED 3.5K Tactile',
+    condition: 'Comme neuf',
+    source: 'Europe',
+    image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&q=80&w=1000',
+    price: 1100000,
+    stockQuantity: 3,
+    status: 'Disponible',
+    description: 'L\'excellence des PC Windows sous son meilleur jour. Écran OLED immersif à couper le souffle, idéal pour la retouche photo professionnelle et les cadres exécutifs.',
+    category: 'Ultrabook',
+    shortDescription: 'L\'ultrabook par excellence de Dell pour ingénieurs et cadres.',
+    subCategory: 'XPS Premium',
+    sku: 'DELL-XPS95-OLED',
+    oldPrice: 1250000,
+    isFeatured: true,
+    isPopular: true,
+    isRecommended: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 't14-03',
+    brand: 'Lenovo',
+    model: 'ThinkPad T14 Gen 4',
+    processor: 'AMD Ryzen 7 Pro 7840U (8 Cores, 16 Threads)',
+    ram: '32GB LPDDR5',
+    storage: '512GB SSD NVMe',
+    screenSize: '14.0" WUXGA IPS Anti-reflets',
+    condition: 'Excellent',
+    source: 'USA',
+    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&q=80&w=1000',
+    price: 750000,
+    stockQuantity: 6,
+    status: 'Disponible',
+    description: 'La référence absolue en matière de durabilité professionnelle. Performance graphique Radeon intégrée exceptionnelle, clavier légendaire ultra-confortable et autonomie record.',
+    category: 'Bureautique',
+    shortDescription: 'La robustesse légendaire ThinkPad alliée au processeur ultra-efficace AMD Ryzen.',
+    subCategory: 'Business T Series',
+    sku: 'LNV-TPT14-G4',
+    oldPrice: 820000,
+    isFeatured: false,
+    isPopular: true,
+    isRecommended: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'elite-04',
+    brand: 'HP',
+    model: 'EliteBook 840 G9',
+    processor: 'Intel Core i5-1245U vPro',
+    ram: '16GB DDR5',
+    storage: '512GB NVMe SSD',
+    screenSize: '14.0" WUXGA IPS Matte',
+    condition: 'Très bon état',
+    source: 'Europe',
+    image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&q=80&w=1000',
+    price: 490000,
+    stockQuantity: 2,
+    status: 'Disponible',
+    description: 'Châssis entièrement en aluminium brossé ultra-léger et sécurisé. Parfait pour les déplacements commerciaux, la bureautique avancée et l\'enseignement supérieur.',
+    category: 'Bureautique',
+    shortDescription: 'Châssis haute sécurité et robustesse aluminium pour professionnels ou étudiants.',
+    subCategory: 'Business Elite',
+    sku: 'HP-ELITE840-G9',
+    oldPrice: 550000,
+    isFeatured: false,
+    isPopular: false,
+    isRecommended: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'rog-05',
+    brand: 'Asus',
+    model: 'ROG Zephyrus G14',
+    processor: 'AMD Ryzen 9 7940HS / RTX 4060 8GB',
+    ram: '16GB DDR5 Dual Channel',
+    storage: '1TB SSD Gen4',
+    screenSize: '14.0" QHD+ 165Hz ROG Nebula',
+    condition: 'Comme neuf',
+    source: 'Asia',
+    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&q=80&w=1000',
+    price: 1250000,
+    stockQuantity: 1,
+    status: 'Arrivage imminent',
+    description: 'L\'un des meilleurs ordinateurs portables de jeu et de création ultra-portables au monde. Importé d\'Asie, écran Nebula certifié Pantone d\'une fluidité absolue.',
+    category: 'Gaming',
+    shortDescription: 'Puissance graphique et de calcul d\'exception dans un format ultra-portable de 14 pouces.',
+    subCategory: 'Gaming / Création',
+    sku: 'ASUS-ROG-G14',
+    oldPrice: 1350000,
+    isFeatured: true,
+    isPopular: false,
+    isRecommended: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
+const DEFAULT_GUIDES: DBBuyingGuide[] = [
+  {
+    id: 'ultrabook',
+    title: 'Mobilité & Autonomie (Ultrabook)',
+    subtitle: 'La combinaison ultime entre finesse, légèreté et endurance.',
+    icon: 'Laptop',
+    specs: {
+      cpu: 'Intel Core i5 / i7 (Série U/G) ou Apple Silicon M1 / M2',
+      ram: '8 Go ou 16 Go LPDDR4X / LPDDR5',
+      storage: '256 Go à 512 Go SSD NVMe haute vitesse',
+      gpu: 'Intel Iris Xe, AMD Radeon Vega ou Apple GPU (intégré)',
+      battery: '8h à 14h en utilisation réelle'
+    },
+    advantages: [
+      'Poids plume (< 1.4 kg) et châssis en aluminium raffiné',
+      'Excellente autonomie pour travailler sereinement sans chargeur',
+      'Écran haute définition ultra-lumineux et antireflet',
+      'Démarrage instantané et parfaite discrétion (silencieux)'
+    ],
+    keyAdvice: "Privilégiez absolument la qualité du châssis (Dell XPS, MacBook Air, ThinkPad X1 Carbon) et un minimum de 16 Go de RAM soudée si vous souhaitez garder la machine plus de 4 ans sans ralentissement.",
+    suitableFor: ['Étudiants & Enseignants', 'Cadres & Commerciaux nomades', 'Rédacteurs & Community Managers', 'Consultants & Grand Public'],
+    recommendedModels: 'Dell XPS 13, MacBook Air M1/M2, HP EliteBook 840, Lenovo ThinkPad X1'
+  },
+  {
+    id: 'bureautique',
+    title: 'Bureautique & Télétravail',
+    subtitle: 'Fiabilité à long terme, confort de frappe et excellent rapport qualité/prix.',
+    icon: 'Briefcase',
+    specs: {
+      cpu: 'Intel Core i5 / AMD Ryzen 5',
+      ram: '16 Go DDR4 (extensible ou dual-channel)',
+      storage: '512 Go SSD NVMe PCIe',
+      gpu: 'Intel UHD Graphics ou AMD Radeon (robuste)',
+      battery: '5h à 8h d\'autonomie'
+    },
+    advantages: [
+      'Clavier ergonomique haut de gamme pour les longues sessions de saisie',
+      'Connectique complète (USB-A, HDMI, RJ45) pour éviter les adaptateurs',
+      'Grande robustesse de fabrication de gamme professionnelle (MIL-SPEC)',
+      'Maintenance et remplacement des composants aisés (RAM/Disque)'
+    ],
+    keyAdvice: "Une machine pro de seconde main certifiée (séries HP ProBook/EliteBook ou Lenovo ThinkPad T) offrira une durabilité de frappe et un refroidissement largement supérieurs à un ordinateur neuf grand public au même tarif.",
+    suitableFor: ['Secrétariat & Administration', 'Comptables & Analystes financiers', 'Enseignants & Écrivains', 'PME & Télétravailleurs'],
+    recommendedModels: 'Lenovo ThinkPad T14 / L14, HP ProBook 440, Dell Latitude 5430'
+  },
+  {
+    id: 'gaming',
+    title: 'Création & Graphisme (Gaming)',
+    subtitle: 'Puissance graphique brute et calcul intensif pour les créatifs et joueurs exigents.',
+    icon: 'Gamepad2',
+    specs: {
+      cpu: 'Intel Core i7 / i9 (Série H) ou AMD Ryzen 7 / 9 (Série H)',
+      ram: '16 Go à 32 Go DDR5 (haute fréquence)',
+      storage: '512 Go à 2 To SSD NVMe (PCIe Gen 4)',
+      gpu: 'NVIDIA GeForce RTX 3065/4060/4070 ou AMD Radeon RX dédié',
+      battery: '3h à 5h (consommation graphique élevée)'
+    },
+    advantages: [
+      'Carte graphique dédiée pour l\'accélération 3D, le montage et le jeu',
+      'Système de refroidissement actif haute performance à double ventilateur',
+      'Écran à taux de rafraîchissement élevé (120Hz, 144Hz+) pour une fluidité absolue',
+      'Extensibilité maximale pour rajouter de la mémoire ou des disques durs'
+    ],
+    keyAdvice: "Pour le montage vidéo 4K, le rendu 3D (Blender/AutoCAD) ou le Gaming, la carte graphique dédiée (dGPU) est obligatoire. Un modèle avec RTX 3060 ou supérieur vous garantira l'accélération matérielle indispensable.",
+    suitableFor: ['Monteurs Vidéo & Motion Designers', 'Architectes & Ingénieurs 3D', 'Développeurs de jeux & IA', 'Hardcore Gamers du Cameroun'],
+    recommendedModels: 'ASUS ROG Zephyrus, Dell G15 / Alienware, HP OMEN, Lenovo Legion 5'
+  }
+];
+
+const DEFAULT_BLOGS: DBBlogPost[] = [
+  {
+    id: 'blog-01',
+    title: 'Comment tester la batterie d\'un ordinateur d\'occasion avant achat au Cameroun ?',
+    slug: 'tester-batterie-ordinateur-occasion',
+    content: "L\'autonomie est le critère numéro un pour tout utilisateur nomade à Douala ou Yaoundé, où les délestages électriques surviennent. Voici la méthode complète recommandée par Hervé :\n\n1. **Utilisez PowerShell sous Windows** : Ouvrez une invite et tapez `powercfg /batteryreport`. Cela va générer un fichier HTML très précis affichant la capacité d'origine (Design Capacity) et la capacité maximale actuelle à charge pleine (Full Charge Capacity). Un ratio supérieur à 80% est considéré comme bon !\n\n2. **Sous macOS** : Allez dans le Menu Apple > À propos de ce Mac > Rapport système > Alimentation. Observez le 'Nombre de cycles' et la 'Santé de la batterie'. Sous les 500 cycles et au-dessus de 85%, la batterie résistera à vos journées entières.\n\nChez Herve_eShop, toutes nos machines importées subissent un traitement d'audit de batterie strict en atelier, garantissant des autonomies exceptionnelles conformes à vos besoins.",
+    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&q=80&w=1000',
+    category: 'Conseils',
+    status: 'Publié',
+    seoTitle: 'Tester Batterie PC Occasion Cameroun | Herve_eShop',
+    seoDesc: 'Guide complet pour vérifier la santé d\'une batterie sur ordinateur portable d\'occasion. Génération de rapports sous Windows et Mac.',
+    seoKeywords: 'batterie pc occasion, cameroun, herve eshop, powercfg batteryreport',
+    createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+    publishedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString()
+  }
+];
+
+const DEFAULT_BANNERS: DBBanner[] = [
+  {
+    id: 'banner-01',
+    title: 'Offre Spéciale Rentrée 🎓',
+    subtitle: '10% de réduction immédiate sur tous nos modèles de la catégorie Bureautique pour les étudiants de Douala et Yaoundé.',
+    image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&q=80&w=1000',
+    link: '#catalogue',
+    type: 'Homepage Banner',
+    status: 'Actif'
+  },
+  {
+    id: 'banner-02',
+    title: 'Arrivage Exceptionnel USA! 🚀',
+    subtitle: 'Importations directes de MacBook Pro M3, HP EliteBook G9, Dell XPS, avec chargeurs d\'origine.',
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1000',
+    link: '#catalogue',
+    type: 'Announcement Banner',
+    status: 'Actif'
+  }
+];
+
+const DEFAULT_ADMINS: AdminUser[] = [
+  {
+    id: 'adm-01',
+    email: 'superadmin@herve.cm',
+    passwordHash: hashPassword('p@ssword123'),
+    role: 'Super Admin',
+    name: 'Hervé SuperAdmin',
+    status: 'Actif',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'adm-02',
+    email: 'admin@herve.cm',
+    passwordHash: hashPassword('p@ssword123'),
+    role: 'Admin',
+    name: 'Yannick Administrateur',
+    status: 'Actif',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'adm-03',
+    email: 'editor@herve.cm',
+    passwordHash: hashPassword('p@ssword123'),
+    role: 'Editor',
+    name: 'Marc Rédacteur',
+    status: 'Actif',
+    createdAt: new Date().toISOString()
+  }
+];
+
+// Initial pre-populated sample quote
+const DEFAULT_ORDERS: Order[] = [
+  {
+    id: 'DEV-5A90',
+    orderNumber: 'CMD-15421',
+    clientName: 'Jean-Pierre Ngué',
+    clientPhone: '+237 677 88 99 00',
+    clientEmail: 'jean.pierre@gmail.com',
+    clientCity: 'Yaoundé',
+    laptopId: 'macm3-01',
+    laptopBrand: 'Apple',
+    laptopModel: 'MacBook Pro 14"',
+    basePrice: 1350000,
+    finalPrice: 1410000,
+    customizations: {
+      ramUpgrade: '32GB',
+      storageUpgrade: 'Aucun',
+      osOption: 'Windows d\'origine / macOS natif',
+      accessories: []
+    },
+    additionalNotes: 'Besoin d\'un clavier AZERTY si possible. Merci Hervé !',
+    status: 'En préparation',
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString()
+  }
+];
+
+const DEFAULT_CUSTOMERS: Customer[] = [
+  {
+    id: 'cust-01',
+    name: 'Jean-Pierre Ngué',
+    email: 'jean.pierre@gmail.com',
+    phone: '+237 677 88 99 00',
+    city: 'Yaoundé',
+    totalSpent: 1410000,
+    ordersCount: 1,
+    createdAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+  }
+];
+
+const DEFAULT_NOTIFICATIONS: DBNotification[] = [
+  {
+    id: 'notif-1',
+    title: 'Nouveau Devis Soumis ! 📥',
+    message: 'Jean-Pierre Ngué (Yaoundé) a soumis une demande de devis pour un MacBook Pro 14" (1.41M FCFA).',
+    type: 'success',
+    isRead: false,
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString()
+  },
+  {
+    id: 'notif-2',
+    title: 'Alerte Stock Critique ⚠️',
+    message: 'Le modèle Asus ROG Zephyrus G14 est descendu à 1 seule unité en stock.',
+    type: 'warning',
+    isRead: false,
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString()
+  }
+];
+
+// Instantiates DB
+export function initDB(): DatabaseSchema {
+  if (!fs.existsSync(DB_FILE)) {
+    const data: DatabaseSchema = {
+      products: DEFAULT_PRODUCTS,
+      categories: DEFAULT_CATEGORIES,
+      orders: DEFAULT_ORDERS,
+      customers: DEFAULT_CUSTOMERS,
+      siteCMS: DEFAULT_SITE_CMS,
+      contactCMS: DEFAULT_CONTACT_CMS,
+      socialCMS: DEFAULT_SOCIAL_CMS,
+      banners: DEFAULT_BANNERS,
+      buyingGuides: DEFAULT_GUIDES,
+      blogPosts: DEFAULT_BLOGS,
+      notifications: DEFAULT_NOTIFICATIONS,
+      activityLogs: [
+        {
+          id: 'log-01',
+          userId: 'system',
+          userEmail: 'system@herve.cm',
+          userRole: 'System',
+          action: 'Initialisation de la base de données',
+          entityId: 'database',
+          entityType: 'System',
+          createdAt: new Date().toISOString()
+        }
+      ],
+      adminUsers: DEFAULT_ADMINS,
+      users: [],
+      visitorCount: 1248
+    };
+    saveDB(data);
+    return data;
+  }
+  try {
+    const content = fs.readFileSync(DB_FILE, 'utf-8');
+    const db = JSON.parse(content) as DatabaseSchema;
+    if (!db.users) {
+      db.users = [];
+      saveDB(db);
+    }
+    return db;
+  } catch (err) {
+    console.error("DB corruption detected, recreating...", err);
+    const data: DatabaseSchema = {
+      products: DEFAULT_PRODUCTS,
+      categories: DEFAULT_CATEGORIES,
+      orders: DEFAULT_ORDERS,
+      customers: DEFAULT_CUSTOMERS,
+      siteCMS: DEFAULT_SITE_CMS,
+      contactCMS: DEFAULT_CONTACT_CMS,
+      socialCMS: DEFAULT_SOCIAL_CMS,
+      banners: DEFAULT_BANNERS,
+      buyingGuides: DEFAULT_GUIDES,
+      blogPosts: DEFAULT_BLOGS,
+      notifications: DEFAULT_NOTIFICATIONS,
+      activityLogs: [],
+      adminUsers: DEFAULT_ADMINS,
+      users: [],
+      visitorCount: 1248
+    };
+    saveDB(data);
+    return data;
+  }
+}
+
+export function saveDB(data: DatabaseSchema) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+// Log actions
+export function logActivity(userId: string, email: string, role: string, action: string, entityId: string, entityType: string, oldVal?: any, newVal?: any) {
+  const db = initDB();
+  const log: ActivityLog = {
+    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    userId,
+    userEmail: email,
+    userRole: role,
+    action,
+    entityId,
+    entityType,
+    oldValues: oldVal ? JSON.stringify(oldVal) : undefined,
+    newValues: newVal ? JSON.stringify(newVal) : undefined,
+    createdAt: new Date().toISOString()
+  };
+  db.activityLogs.unshift(log);
+  // Keep last 1000 logs
+  if (db.activityLogs.length > 1000) {
+    db.activityLogs.pop();
+  }
+  saveDB(db);
+}

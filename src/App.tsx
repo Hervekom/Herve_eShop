@@ -11,70 +11,38 @@ import BackToTopButton from './components/BackToTopButton';
 import HerveLogo from './components/HerveLogo';
 import QuoteRequestModal from './components/QuoteRequestModal';
 import LaptopDetailModal from './components/LaptopDetailModal';
-import { INITIAL_LAPTOPS } from './data';
+import CustomerAccountModal from './components/CustomerAccountModal';
+import AdminPanel from './components/admin/AdminPanel';
+import API from './lib/api';
 import { Laptop, QuoteRequest, RealtimeNotification, QuoteStatus, LaptopStatus } from './types';
 
 export default function App() {
+  const [laptops, setLaptops] = useState<Laptop[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // --- Core Persistent State Hookup ---
-  const [laptops, setLaptops] = useState<Laptop[]>(() => {
-    const saved = localStorage.getItem('herve_eshop_laptops');
-    return saved ? JSON.parse(saved) : INITIAL_LAPTOPS;
-  });
-
-  const [quotes, setQuotes] = useState<QuoteRequest[]>(() => {
-    const saved = localStorage.getItem('herve_eshop_quotes');
-    if (saved) return JSON.parse(saved);
-    
-    // Pre-populate with one realistic example quote for instant tracking testing
-    const sampleQuote: QuoteRequest = {
-      id: 'DEV-5A90',
-      laptopId: 'macm3-01',
-      laptopBrand: 'Apple',
-      laptopModel: 'MacBook Pro 14"',
-      basePrice: 1350000,
-      finalPrice: 1410000, // upgraded with 32GB RAM
-      clientName: 'Jean-Pierre Ngué',
-      clientEmail: 'jean.pierre@gmail.com',
-      clientPhone: '+237 677 88 99 00',
-      clientCity: 'Yaoundé',
-      customizations: {
-        ramUpgrade: '32GB',
-        storageUpgrade: 'Aucun',
-        osOption: 'Windows d\'origine / macOS natif',
-        accessories: []
-      },
-      additionalNotes: 'Besoin d\'un clavier AZERTY si possible. Merci Hervé !',
-      status: 'En préparation',
-      createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(), // 3 hours ago
-      updatedAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString()  // 1 hour ago
-    };
-    return [sampleQuote];
-  });
-
-  const [notifications, setNotifications] = useState<RealtimeNotification[]>(() => {
-    const saved = localStorage.getItem('herve_eshop_notifications');
-    if (saved) return JSON.parse(saved);
-    
-    // Prepopulate 1 sample notification
-    const sampleNotification: RealtimeNotification = {
-      id: 'notif-01',
-      quoteId: 'DEV-5A90',
-      clientEmail: 'jean.pierre@gmail.com',
-      title: 'Devis #DEV-5A90 mis à jour',
-      message: 'Herve_eShop: Le statut de votre configuration MacBook Pro M3 a été mis à jour : "En préparation d\'atelier".',
-      status: 'En préparation',
-      timestamp: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
-      isRead: false
-    };
-    return [sampleNotification];
-  });
+  const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
+  const [notifications, setNotifications] = useState<RealtimeNotification[]>([]);
 
   // UI Active State Tab selectors
-  const [role, setRole] = useState<'client' | 'admin'>('client');
+  const [role, setRole] = useState<'client' | 'admin'>(() => {
+    return window.location.pathname === '/admin' ? 'admin' : 'client';
+  });
   const [activeTab, setActiveTab] = useState<string>('catalogue');
   const [searchValue, setSearchValue] = useState<string>('');
   const [selectedLaptopForQuote, setSelectedLaptopForQuote] = useState<Laptop | null>(null);
   const [selectedLaptopForDetails, setSelectedLaptopForDetails] = useState<Laptop | null>(null);
+
+  // --- Customer / User Account State ---
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [activeCustomerUser, setActiveCustomerUser] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem('herve_eshop_customer_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Active floating live alert simulation state
   const [activeToast, setActiveToast] = useState<{ id: string; title: string; message: string; type: string } | null>(null);
@@ -84,6 +52,63 @@ export default function App() {
     const saved = localStorage.getItem('herve_eshop_favourites');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Load from real server on mount
+  const loadServerData = async () => {
+    try {
+      setLoading(true);
+      const res = await API.getLaptops();
+      setLaptops(res);
+
+      const hasAdminToken = localStorage.getItem('herve_eshop_admin_token');
+      if (hasAdminToken) {
+        try {
+          const oRes = await API.getOrders();
+          // convert Order[] format to QuoteRequest[] on the client side
+          const converted = oRes.map((o: any) => ({
+            id: o.id,
+            laptopId: o.laptopId,
+            laptopBrand: o.laptopBrand,
+            laptopModel: o.laptopModel,
+            basePrice: o.basePrice,
+            finalPrice: o.finalPrice,
+            clientName: o.clientName,
+            clientEmail: o.clientEmail,
+            clientPhone: o.clientPhone,
+            clientCity: o.clientCity,
+            customizations: o.customizations,
+            additionalNotes: o.additionalNotes,
+            status: o.status,
+            createdAt: o.createdAt,
+            updatedAt: o.updatedAt
+          }));
+          setQuotes(converted);
+        } catch (oErr) {
+          console.error('Failed to parse orders payload', oErr);
+        }
+      }
+    } catch (err) {
+      console.error('Database connection failed', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadServerData();
+
+    // Listen for manual URL path modifications or hash updates
+    const handleLocationChange = () => {
+      if (window.location.pathname === '/admin') {
+        setRole('admin');
+      } else {
+        setRole('client');
+      }
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('herve_eshop_favourites', JSON.stringify(favouriteIds));
@@ -103,19 +128,6 @@ export default function App() {
       return nextFavs;
     });
   };
-
-  // Sync to local storage
-  useEffect(() => {
-    localStorage.setItem('herve_eshop_laptops', JSON.stringify(laptops));
-  }, [laptops]);
-
-  useEffect(() => {
-    localStorage.setItem('herve_eshop_quotes', JSON.stringify(quotes));
-  }, [quotes]);
-
-  useEffect(() => {
-    localStorage.setItem('herve_eshop_notifications', JSON.stringify(notifications));
-  }, [notifications]);
 
   // Utility to fire custom UI Toast alerts instantly 
   const triggerToastAlert = (title: string, message: string, type: string = 'info') => {
@@ -139,155 +151,51 @@ export default function App() {
   };
 
   // Submit client customized quote request
-  const handleSubmitQuote = (newQuote: QuoteRequest) => {
-    // Add quote
-    setQuotes((prev) => [...prev, newQuote]);
-    
-    // Subtract stock quantity by 1 for immediate feedback (if stock > 0)
-    setLaptops((prev) => 
-      prev.map((l) => {
-        if (l.id === newQuote.laptopId) {
-          const freshQuantity = Math.max(0, l.stockQuantity - 1);
-          return {
-            ...l,
-            stockQuantity: freshQuantity,
-            status: freshQuantity === 0 ? 'Rupture' : l.status
-          };
-        }
-        return l;
-      })
-    );
+  const handleSubmitQuote = async (newQuote: QuoteRequest) => {
+    try {
+      // Map customized QuoteRequest to DB order shape
+      await API.createOrder({
+        id: newQuote.id,
+        clientName: newQuote.clientName,
+        clientPhone: newQuote.clientPhone,
+        clientEmail: newQuote.clientEmail,
+        clientCity: newQuote.clientCity,
+        laptopId: newQuote.laptopId,
+        laptopBrand: newQuote.laptopBrand,
+        laptopModel: newQuote.laptopModel,
+        basePrice: newQuote.basePrice,
+        finalPrice: newQuote.finalPrice,
+        customizations: newQuote.customizations,
+        additionalNotes: newQuote.additionalNotes || '',
+        status: 'Demande reçue'
+      });
 
-    // Create confirmation system notification
-    const newNotif: RealtimeNotification = {
-      id: `notif-${Date.now()}`,
-      quoteId: newQuote.id,
-      clientEmail: newQuote.clientEmail,
-      title: 'Demande de devis enregistrée ! 📥',
-      message: `Votre demande pour le ${newQuote.laptopBrand} ${newQuote.laptopModel} (${formatPrice(newQuote.finalPrice)}) est reçue par Hervé.`,
-      status: 'Demande reçue',
-      timestamp: new Date().toISOString(),
-      isRead: false
-    };
+      // Reload fresh state from DB (stock subtract, orders history, state values)
+      await loadServerData();
 
-    setNotifications((prev) => [newNotif, ...prev]);
-    setSelectedLaptopForQuote(null);
+      // Create confirmation system notification
+      const newNotif: RealtimeNotification = {
+        id: `notif-${Date.now()}`,
+        quoteId: newQuote.id,
+        clientEmail: newQuote.clientEmail,
+        title: 'Demande de devis enregistrée ! 📥',
+        message: `Votre demande pour le ${newQuote.laptopBrand} ${newQuote.laptopModel} (${formatPrice(newQuote.finalPrice)}) est reçue par Hervé.`,
+        status: 'Demande reçue',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
 
-    // Prompt user on screen
-    triggerToastAlert(
-      'Demande validée ! 📬',
-      `Le devis #${newQuote.id} a été généré. Nous vous redirigeons vers votre espace de suivi...`
-    );
+      setNotifications((prev) => [newNotif, ...prev]);
+      setSelectedLaptopForQuote(null);
 
-    // Toast alert triggers a clean minimalist confirmation
-  };
-
-  // --- Handlers for Administrator Stock Control ---
-
-  const handleAddLaptop = (newLaptop: Laptop) => {
-    setLaptops((prev) => [...prev, newLaptop]);
-    triggerToastAlert(
-      'Stock Ajouté ! 💻',
-      `Le modèle ${newLaptop.brand} ${newLaptop.model} est maintenant visible sur le catalogue.`
-    );
-  };
-
-  const handleUpdateLaptopStock = (id: string, newStock: number) => {
-    setLaptops((prev) => 
-      prev.map((l) => {
-        if (l.id === id) {
-          let updatedStatus: LaptopStatus = l.status;
-          if (newStock === 0) {
-            updatedStatus = 'Rupture';
-          } else if (l.status === 'Rupture') {
-            updatedStatus = 'Disponible';
-          }
-          return {
-            ...l,
-            stockQuantity: newStock,
-            status: updatedStatus
-          };
-        }
-        return l;
-      })
-    );
-  };
-
-  const handleUpdateLaptopPrice = (id: string, newPrice: number) => {
-    setLaptops((prev) => 
-      prev.map((l) => (l.id === id ? { ...l, price: newPrice } : l))
-    );
-  };
-
-  const handleUpdateLaptopStatus = (id: string, newStatus: LaptopStatus) => {
-    setLaptops((prev) => 
-      prev.map((l) => {
-        if (l.id === id) {
-          // If status is "Disponible" but stock is 0, reset stock to 1 to be logical
-          const updatedStock = (newStatus === 'Disponible' && l.stockQuantity === 0) ? 1 : l.stockQuantity;
-          return { ...l, status: newStatus, stockQuantity: updatedStock };
-        }
-        return l;
-      })
-    );
-  };
-
-  const handleDeleteLaptop = (id: string) => {
-    setLaptops((prev) => prev.filter((l) => l.id !== id));
-    triggerToastAlert(
-      'Matériel Supprimé',
-      'L\'ordinateur a été complètement retiré du catalogue publique.'
-    );
-  };
-
-  // Core Real-time status update mechanism
-  const handleUpdateQuoteStatus = (quoteId: string, newStatus: QuoteStatus) => {
-    setQuotes((prev) => 
-      prev.map((q) => {
-        if (q.id === quoteId) {
-          return {
-            ...q,
-            status: newStatus,
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return q;
-      })
-    );
-
-    // Find quote object details for custom message text
-    const targetQuote = quotes.find(q => q.id === quoteId);
-    if (!targetQuote) return;
-
-    // Build notification for user tracking
-    const newNotif: RealtimeNotification = {
-      id: `notif-${Date.now()}`,
-      quoteId: quoteId,
-      clientEmail: targetQuote.clientEmail,
-      title: 'Mise à jour de votre Devis ! 🔔',
-      message: `Votre commande #${quoteId} (${targetQuote.laptopBrand}) est passée au statut : "${newStatus}".`,
-      status: newStatus,
-      timestamp: new Date().toISOString(),
-      isRead: false
-    };
-
-    setNotifications((prev) => [newNotif, ...prev]);
-
-    // Active instant feedback pop-up to mimic real-time WebSockets
-    triggerToastAlert(
-      'Statut Devis Modifié en Direct ! 📲',
-      `Client: ${targetQuote.clientName} | Nouveau statut: "${newStatus}". Une notification live a été instantanément émise.`,
-      'success'
-    );
-  };
-
-  // Notification center operations
-  const handleClearNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
+      // Prompt user on screen
+      triggerToastAlert(
+        'Demande validée ! 📬',
+        `Le devis #${newQuote.id} a été généré. Nous vous redirigeons vers votre espace de suivi...`
+      );
+    } catch (err) {
+      triggerToastAlert('Échec de soumission ❌', (err as Error).message, 'danger');
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -297,12 +205,33 @@ export default function App() {
       .replace('XAF', 'FCFA');
   };
 
+  // SWITCH RENDER IF ROLE IS ADMIN
+  if (role === 'admin') {
+    return (
+      <AdminPanel 
+        onBackToPublic={() => {
+          setRole('client');
+          window.history.pushState({}, '', '/');
+        }} 
+      />
+    );
+  }  // Notification center operations
+  const handleClearNotification = (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+  };
+
   return (
     <div className="min-h-screen bg-warm-cream text-luxe-dark selection:bg-luxe-gold/30 flex flex-col justify-between antialiased">
       {/* Dynamic Header Component */}
       <Header
         onSearchChange={setSearchValue}
         searchValue={searchValue}
+        onOpenAccountModal={() => setIsAccountModalOpen(true)}
+        activeUser={activeCustomerUser}
       />
 
       {/* FLOATING REALTIME SIMULATION TOAST */}
@@ -359,6 +288,25 @@ export default function App() {
           laptop={selectedLaptopForQuote}
           onClose={handleCloseQuoteModal}
           onSubmitQuote={handleSubmitQuote}
+        />
+      )}
+
+      {/* CUSTOMER REGISTRATION / PROFILE BACKEND MODAL */}
+      {isAccountModalOpen && (
+        <CustomerAccountModal
+          onClose={() => setIsAccountModalOpen(false)}
+          onSuccess={(user) => setActiveCustomerUser(user)}
+          triggerToast={(title, message, type) => {
+            setActiveToast({
+              id: Date.now().toString(),
+              title,
+              message,
+              type: type || 'info'
+            });
+            setTimeout(() => {
+              setActiveToast(null);
+            }, 5000);
+          }}
         />
       )}
 

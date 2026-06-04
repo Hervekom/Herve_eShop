@@ -21,6 +21,24 @@ export default function QuoteRequestModal({
   const [clientCity, setClientCity] = useState('Douala');
   const [additionalNotes, setAdditionalNotes] = useState('');
 
+  // Auto-prefill client coordinates if logged in as a Customer user
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem('herve_eshop_customer_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed) {
+          if (parsed.name) setClientName(parsed.name);
+          if (parsed.email) setClientEmail(parsed.email);
+          if (parsed.phone) setClientPhone(parsed.phone);
+          if (parsed.city) setClientCity(parsed.city);
+        }
+      }
+    } catch (e) {
+      console.error('Error pre-filling client user details', e);
+    }
+  }, []);
+
   // Spec upgrades selection state
   const [ramUpgrade, setRamUpgrade] = useState<'Aucune' | '32GB' | '64GB'>('Aucune');
   const [storageUpgrade, setStorageUpgrade] = useState<'Aucun' | '1TB SSD' | '2TB SSD'>('Aucun');

@@ -1,15 +1,19 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Search, User } from 'lucide-react';
 import HerveLogo from './HerveLogo';
 
 interface HeaderProps {
   onSearchChange: (search: string) => void;
   searchValue: string;
+  onOpenAccountModal: () => void;
+  activeUser: any;
 }
 
 export default function Header({
   onSearchChange,
-  searchValue
+  searchValue,
+  onOpenAccountModal,
+  activeUser
 }: HeaderProps) {
   return (
     <header className="border-b border-warm-cream-dark bg-warm-cream/95 sticky top-0 z-40 backdrop-blur-sm shadow-xs">
@@ -63,7 +67,7 @@ export default function Header({
           </a>
         </div>
 
-        {/* Right Elements (Search filter) */}
+        {/* Right Elements (Search filter & Account) */}
         <div className="flex items-center gap-3">
           <div className="relative">
             <input
@@ -71,11 +75,23 @@ export default function Header({
               placeholder="Rechercher..."
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-8 pr-3 py-1 text-xs rounded-full bg-warm-cream-dark/50 border border-warm-cream-dark focus:outline-none focus:border-luxe-gold w-32 xs:w-40 md:w-56 font-medium text-luxe-dark placeholder-luxe-muted"
+              className="pl-8 pr-3 py-1.5 text-xs rounded-full bg-warm-cream-dark/50 border border-warm-cream-dark focus:outline-none focus:border-luxe-gold w-24 xs:w-32 md:w-48 font-medium text-luxe-dark placeholder-luxe-muted"
               id="header-search-input"
             />
-            <Search className="w-3 h-3 text-luxe-muted absolute left-2.5 top-2" />
+            <Search className="w-3.5 h-3.5 text-luxe-muted absolute left-2.5 top-2" />
           </div>
+
+          <button
+            type="button"
+            onClick={onOpenAccountModal}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-luxe-dark hover:bg-luxe-copper text-white text-[10px] md:text-xs font-bold transition-all shadow-xs cursor-pointer select-none border border-luxe-gold/20"
+            id="open-customer-account-modal-header-btn"
+          >
+            <User className="w-3.5 h-3.5 text-luxe-gold" />
+            <span className="hidden sm:inline">
+              {activeUser ? activeUser.name.split(' ')[0] : 'Mon Compte'}
+            </span>
+          </button>
         </div>
       </div>
     </header>
