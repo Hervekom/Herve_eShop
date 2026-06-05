@@ -8,8 +8,11 @@ import {
   DBBanner, DBBuyingGuide, DBBlogPost, CustomerUser
 } from './server/db';
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3001;
 
 // Increase request size limit to support Base64 image uploads
 app.use(express.json({ limit: '50mb' }));
