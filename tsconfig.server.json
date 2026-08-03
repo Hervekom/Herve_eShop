@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "module": "CommonJS",
+    "lib": [
+      "ES2022"
+    ],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noEmit": false,
+    "outDir": "./dist",
+    "allowJs": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "server.ts",
+    "src/lib/supabase.ts" // Include supabase client as it's used by server.ts
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.tsx",
+    "src/**/*.jsx"
+  ]
+}

@@ -29,7 +29,9 @@ interface PerformanceChartItem {
   orders: number;
 }
 
-export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: string) => void }) {
+type AdminTab = 'dashboard' | 'products' | 'categories' | 'orders' | 'cms' | 'blog' | 'media' | 'settings';
+
+export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: AdminTab) => void }) {
   const [metrics, setMetrics] = useState<MetricState | null>(null);
   const [chartData, setChartData] = useState<PerformanceChartItem[]>([]);
   const [popular, setPopular] = useState<PopularLaptop[]>([]);
@@ -305,7 +307,7 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: str
             </span>
           </div>
           <button
-            onClick={() => onSelectTab('logs')}
+            onClick={() => onSelectTab('settings')}
             className="text-xs text-luxe-copper hover:underline font-bold"
           >
             Voir l'historique complet &rarr;

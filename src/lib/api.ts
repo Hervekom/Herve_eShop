@@ -59,6 +59,15 @@ export function setCachedGuestUser(user: any) {
   }
 }
 
+const API_BASE_URL = ((import.meta as any).env?.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
+function buildApiUrl(endpoint: string) {
+  if (/^https?:\/\//i.test(endpoint)) {
+    return endpoint;
+  }
+  return `${API_BASE_URL}${endpoint}`;
+}
+
 // Low-level fetcher
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const token = getAuthToken();
@@ -70,7 +79,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     ...(options.headers || {})
   };
 
-  const response = await fetch(endpoint, {
+  const response = await fetch(buildApiUrl(endpoint), {
     ...options,
     headers
   });

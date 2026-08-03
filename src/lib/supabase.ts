@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '../types/supabase'; // Assuming you generate types here
+import { Database } from '../../types/supabase';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const runtimeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+const supabaseUrl = runtimeEnv?.VITE_SUPABASE_URL;
+const supabaseAnonKey = runtimeEnv?.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase URL and Anon Key are required!');

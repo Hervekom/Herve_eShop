@@ -97,11 +97,12 @@ export default function AdminBlog({
 
     try {
       // Auto-prefill SEO properties if empty
+      const categoryKeyword = formData.category?.toLowerCase() || 'laptop';
       const updatedForm = {
         ...formData,
         seoTitle: formData.seoTitle || `${formData.title} | Herve_eShop Conseils`,
         seoDesc: formData.seoDesc || formData.content?.slice(0, 150).replace(/[^a-zA-Z0-9\s]/g, '') || '',
-        seoKeywords: formData.seoKeywords || `pc d'occasion, cameroun, herve eshop, ${formData.category.toLowerCase()}`
+        seoKeywords: formData.seoKeywords || `pc d'occasion, cameroun, herve eshop, ${categoryKeyword}`
       };
 
       if (editingId) {

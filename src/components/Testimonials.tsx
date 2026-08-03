@@ -218,7 +218,9 @@ export default function Testimonials() {
                   <h4 className="font-serif font-bold text-xs text-luxe-dark flex items-center gap-1">
                     {testimonial.name}
                     {testimonial.verified && (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-luxe-orange fill-luxe-orange/10" title="Acheteur vérifié • Devis validé" />
+                      <span title="Acheteur vérifié • Devis validé">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-luxe-orange fill-luxe-orange/10" />
+                      </span>
                     )}
                   </h4>
                   <p className="text-[10px] text-luxe-muted font-medium flex justify-between items-center w-full">
