@@ -302,7 +302,7 @@ async function resolveAuthUserByIdentifier(adminDb: SupabaseLike, identifier: st
 }
 
 async function getAdminContext(db: SupabaseLike, adminDb: SupabaseLike, userId: string) {
-  const { data: roleRow } = await db.from('admin_users').select('*').eq('user_id', userId).single();
+  const { data: roleRow } = await adminDb.from('admin_users').select('*').eq('user_id', userId).single();
   if (!roleRow) return null;
   const users = await listAllAuthUsers(adminDb);
   const authUser = users.find((user: any) => user.id === userId) || null;
@@ -723,7 +723,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
     try {
       const [{ data: adminRows, error }, authUsers] = await Promise.all([
-        db.from('admin_users').select('*').order('created_at', { ascending: false }),
+        adminDb.from('admin_users').select('*').order('created_at', { ascending: false }),
         listAllAuthUsers(adminDb),
       ]);
       if (error) throw error;
@@ -770,7 +770,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (error || !data.user) {
         return res.status(400).json({ error: error?.message || 'Creation impossible.' });
       }
-      const { error: insertError } = await db.from('admin_users').insert([{
+      const { error: insertError } = await adminDb.from('admin_users').insert([{
         user_id: data.user.id,
         role: mapUiRoleToDb(role),
         permissions: {},
@@ -801,7 +801,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte.' });
     }
     try {
-      await db.from('admin_users').delete().eq('user_id', req.params.id);
+      await adminDb.from('admin_users').delete().eq('user_id', req.params.id);
       const { error } = await adminDb.auth.admin.deleteUser(req.params.id);
       if (error) return res.status(500).json({ error: error.message });
       pushAuditLog({
@@ -1259,7 +1259,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         db.from('orders').select('*'),
         db.from('blog_posts').select('*'),
         db.from('notifications').select('*'),
-        db.from('admin_users').select('*'),
+        adminDb.from('admin_users').select('*'),
       ]);
       res.json({
         laptops: laptops.data || [],
