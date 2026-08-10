@@ -2,6 +2,9 @@ import express from 'express';
 import path from 'path';
 
 type SupabaseLike = any;
+type Request = express.Request;
+type Response = express.Response;
+type NextFunction = express.NextFunction;
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
@@ -356,6 +359,8 @@ async function extractCustomerUser(req: express.Request, supabase: SupabaseLike)
 export function registerCompatRoutes(app: express.Express, supabase: SupabaseLike, supabaseAdmin: SupabaseLike) {
   const db = supabase as SupabaseLike;
   const adminDb = supabaseAdmin as SupabaseLike;
+  const requireCompatAdmin = (req: Request, res: Response, next: NextFunction) =>
+    compatAdminAuth(req, res, next, supabase, adminDb);
 
   app.get('/api/visitor-increment', async (_req, res) => {
     res.json({ success: true, count: 0 });
@@ -655,7 +660,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.get('/api/auth/me', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.get('/api/auth/me', requireCompatAdmin, async (req, res) => {
     const user = (req as any).user;
     res.json({
       id: user.id,
@@ -711,7 +716,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.get('/api/admin/users', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.get('/api/admin/users', requireCompatAdmin, async (req, res) => {
     const currentUser = (req as any).user;
     if (currentUser.dbRole !== 'super_admin') {
       return res.status(403).json({ error: 'Droits de Super Admin requis.' });
@@ -739,7 +744,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.post('/api/admin/users', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.post('/api/admin/users', requireCompatAdmin, async (req, res) => {
     const currentUser = (req as any).user;
     if (currentUser.dbRole !== 'super_admin') {
       return res.status(403).json({ error: 'Droits de Super Admin requis.' });
@@ -787,7 +792,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.delete('/api/admin/users/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/users/:id', requireCompatAdmin, async (req, res) => {
     const currentUser = (req as any).user;
     if (currentUser.dbRole !== 'super_admin') {
       return res.status(403).json({ error: 'Droits de Super Admin requis.' });
@@ -812,7 +817,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.get('/api/admin/products', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/products', requireCompatAdmin, async (_req, res) => {
     try {
       const { data, error } = await db.from('laptops').select('*').order('created_at', { ascending: false });
       if (error) throw error;
@@ -822,7 +827,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.post('/api/admin/products', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.post('/api/admin/products', requireCompatAdmin, async (req, res) => {
     const user = (req as any).user;
     if (user.dbRole === 'editor') {
       return res.status(403).json({ error: 'Les editeurs ne peuvent pas creer des produits.' });
@@ -861,7 +866,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.put('/api/admin/products/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/products/:id', requireCompatAdmin, async (req, res) => {
     const user = (req as any).user;
     if (user.dbRole === 'editor') {
       return res.status(403).json({ error: 'Les editeurs ne peuvent pas modifier des produits.' });
@@ -898,7 +903,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.delete('/api/admin/products/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/products/:id', requireCompatAdmin, async (req, res) => {
     const user = (req as any).user;
     if (user.dbRole === 'editor') {
       return res.status(403).json({ error: 'Les editeurs ne peuvent pas supprimer des produits.' });
@@ -919,7 +924,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.post('/api/admin/categories', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.post('/api/admin/categories', requireCompatAdmin, async (req, res) => {
     const user = (req as any).user;
     if (user.dbRole === 'editor') {
       return res.status(403).json({ error: 'Droits administrateur requis.' });
@@ -937,18 +942,18 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     res.json({ success: true, category });
   });
 
-  app.put('/api/admin/categories/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/categories/:id', requireCompatAdmin, async (req, res) => {
     categoriesStore = categoriesStore.map((category) => category.id === req.params.id ? { ...category, ...req.body } : category);
     const updated = categoriesStore.find((category) => category.id === req.params.id);
     res.json({ success: true, category: updated });
   });
 
-  app.delete('/api/admin/categories/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/categories/:id', requireCompatAdmin, async (req, res) => {
     categoriesStore = categoriesStore.filter((category) => category.id !== req.params.id);
     res.json({ success: true });
   });
 
-  app.get('/api/admin/orders', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/orders', requireCompatAdmin, async (_req, res) => {
     try {
       const { data, error } = await db.from('orders').select('*').order('created_at', { ascending: false });
       if (error) throw error;
@@ -958,7 +963,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.put('/api/admin/orders/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/orders/:id', requireCompatAdmin, async (req, res) => {
     const user = (req as any).user;
     try {
       const { data: current, error: fetchError } = await db.from('orders').select('*').eq('id', req.params.id).single();
@@ -991,7 +996,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.delete('/api/admin/orders/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/orders/:id', requireCompatAdmin, async (req, res) => {
     const user = (req as any).user;
     if (user.dbRole !== 'super_admin') {
       return res.status(403).json({ error: 'Seul le Super Admin peut supprimer une commande.' });
@@ -1012,7 +1017,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.get('/api/admin/customers', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/customers', requireCompatAdmin, async (_req, res) => {
     try {
       const { data, error } = await db.from('orders').select('*').order('created_at', { ascending: false });
       if (error) throw error;
@@ -1040,65 +1045,65 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.put('/api/admin/cms/site', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/cms/site', requireCompatAdmin, async (req, res) => {
     siteCMSStore = { ...siteCMSStore, ...(req.body.key ? req.body : { key: 'site_cms', ...req.body }) };
     delete (siteCMSStore as any).key;
     res.json({ success: true, cms: siteCMSStore });
   });
 
-  app.put('/api/admin/cms/contact', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/cms/contact', requireCompatAdmin, async (req, res) => {
     contactCMSStore = { ...contactCMSStore, ...(req.body.key ? req.body : { key: 'contact_cms', ...req.body }) };
     delete (contactCMSStore as any).key;
     res.json({ success: true, cms: contactCMSStore });
   });
 
-  app.put('/api/admin/cms/social', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/cms/social', requireCompatAdmin, async (req, res) => {
     socialCMSStore = { ...socialCMSStore, ...(req.body.key ? req.body : { key: 'social_cms', ...req.body }) };
     delete (socialCMSStore as any).key;
     res.json({ success: true, cms: socialCMSStore });
   });
 
-  app.get('/api/admin/banners', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/banners', requireCompatAdmin, async (_req, res) => {
     res.json(bannersStore);
   });
 
-  app.post('/api/admin/banners', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.post('/api/admin/banners', requireCompatAdmin, async (req, res) => {
     const banner = { id: `banner-${Date.now()}`, ...req.body };
     bannersStore.unshift(banner);
     res.json({ success: true, banner });
   });
 
-  app.put('/api/admin/banners/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/banners/:id', requireCompatAdmin, async (req, res) => {
     bannersStore = bannersStore.map((banner) => banner.id === req.params.id ? { ...banner, ...req.body } : banner);
     res.json({ success: true, banner: bannersStore.find((banner) => banner.id === req.params.id) });
   });
 
-  app.delete('/api/admin/banners/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/banners/:id', requireCompatAdmin, async (req, res) => {
     bannersStore = bannersStore.filter((banner) => banner.id !== req.params.id);
     res.json({ success: true });
   });
 
-  app.get('/api/admin/guides', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/guides', requireCompatAdmin, async (_req, res) => {
     res.json(guidesStore);
   });
 
-  app.post('/api/admin/guides', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.post('/api/admin/guides', requireCompatAdmin, async (req, res) => {
     const guide = { id: `guide-${Date.now()}`, ...req.body };
     guidesStore.unshift(guide);
     res.json({ success: true, guide });
   });
 
-  app.put('/api/admin/guides/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/guides/:id', requireCompatAdmin, async (req, res) => {
     guidesStore = guidesStore.map((guide) => guide.id === req.params.id ? { ...guide, ...req.body } : guide);
     res.json({ success: true, guide: guidesStore.find((guide) => guide.id === req.params.id) });
   });
 
-  app.delete('/api/admin/guides/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/guides/:id', requireCompatAdmin, async (req, res) => {
     guidesStore = guidesStore.filter((guide) => guide.id !== req.params.id);
     res.json({ success: true });
   });
 
-  app.get('/api/admin/blog', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/blog', requireCompatAdmin, async (_req, res) => {
     try {
       const { data, error } = await db.from('blog_posts').select('*').order('created_at', { ascending: false });
       if (error) throw error;
@@ -1108,7 +1113,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.post('/api/admin/blog', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.post('/api/admin/blog', requireCompatAdmin, async (req, res) => {
     try {
       const payload = req.body || {};
       const insertPayload = {
@@ -1131,7 +1136,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.put('/api/admin/blog/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.put('/api/admin/blog/:id', requireCompatAdmin, async (req, res) => {
     try {
       const payload = req.body || {};
       const updatePayload = {
@@ -1151,7 +1156,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.delete('/api/admin/blog/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/blog/:id', requireCompatAdmin, async (req, res) => {
     try {
       const { error } = await db.from('blog_posts').delete().eq('id', req.params.id);
       if (error) throw error;
@@ -1161,7 +1166,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.get('/api/admin/notifications', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/notifications', requireCompatAdmin, async (_req, res) => {
     try {
       const { data, error } = await db.from('notifications').select('*').order('created_at', { ascending: false });
       if (error) throw error;
@@ -1171,7 +1176,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.put('/api/admin/notifications/read', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.put('/api/admin/notifications/read', requireCompatAdmin, async (_req, res) => {
     try {
       await db.from('notifications').update({ is_read: true }).eq('is_read', false);
       res.json({ success: true });
@@ -1180,7 +1185,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.delete('/api/admin/notifications/:id', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/notifications/:id', requireCompatAdmin, async (req, res) => {
     try {
       await db.from('notifications').delete().eq('id', req.params.id);
       res.json({ success: true });
@@ -1189,11 +1194,11 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.get('/api/admin/logs', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/logs', requireCompatAdmin, async (_req, res) => {
     res.json(auditLogsStore);
   });
 
-  app.get('/api/admin/media', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/media', requireCompatAdmin, async (_req, res) => {
     try {
       const bucketName = 'site-assets';
       const { data, error } = await supabase.storage.from(bucketName).list('', {
@@ -1213,7 +1218,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.post('/api/admin/media/upload', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.post('/api/admin/media/upload', requireCompatAdmin, async (req, res) => {
     try {
       const { fileName, base64Data, bucketName = 'site-assets' } = req.body;
       if (!fileName || !base64Data) {
@@ -1236,7 +1241,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.delete('/api/admin/media/:filename', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (req, res) => {
+  app.delete('/api/admin/media/:filename', requireCompatAdmin, async (req, res) => {
     try {
       const bucketName = String(req.query.bucketName || 'site-assets');
       const { error } = await supabase.storage.from(bucketName).remove([req.params.filename]);
@@ -1247,7 +1252,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.get('/api/admin/backup/export', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/backup/export', requireCompatAdmin, async (_req, res) => {
     try {
       const [laptops, orders, blogPosts, notifications, admins] = await Promise.all([
         db.from('laptops').select('*'),
@@ -1275,13 +1280,13 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.post('/api/admin/backup/import', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.post('/api/admin/backup/import', requireCompatAdmin, async (_req, res) => {
     res.status(501).json({
       error: 'La restauration automatique n est pas activee pour ce mode de compatibilite.',
     });
   });
 
-  app.get('/api/admin/analytics', (req, res, next) => compatAdminAuth(req, res, next, supabase, adminDb), async (_req, res) => {
+  app.get('/api/admin/analytics', requireCompatAdmin, async (_req, res) => {
     try {
       const [laptopsRes, ordersRes] = await Promise.all([
         db.from('laptops').select('*'),
