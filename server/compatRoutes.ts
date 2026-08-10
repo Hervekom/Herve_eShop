@@ -819,7 +819,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/products', requireCompatAdmin, async (_req, res) => {
     try {
-      const { data, error } = await db.from('laptops').select('*').order('created_at', { ascending: false });
+      const { data, error } = await adminDb.from('laptops').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       res.json((data || []).map(mapLaptopRowToFrontend));
     } catch (error) {
@@ -851,7 +851,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         video_url: null,
         youtube_url: null,
       };
-      const { data, error } = await db.from('laptops').insert([insertPayload]).select().single();
+      const { data, error } = await adminDb.from('laptops').insert([insertPayload]).select().single();
       if (error) throw error;
       pushAuditLog({
         userEmail: user.email,
@@ -888,7 +888,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         is_active: payload.status ? payload.status !== 'Rupture' : undefined,
         updated_at: new Date().toISOString(),
       };
-      const { data, error } = await db.from('laptops').update(updatePayload).eq('id', req.params.id).select().single();
+      const { data, error } = await adminDb.from('laptops').update(updatePayload).eq('id', req.params.id).select().single();
       if (error) throw error;
       pushAuditLog({
         userEmail: user.email,
@@ -909,7 +909,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       return res.status(403).json({ error: 'Les editeurs ne peuvent pas supprimer des produits.' });
     }
     try {
-      const { error } = await db.from('laptops').delete().eq('id', req.params.id);
+      const { error } = await adminDb.from('laptops').delete().eq('id', req.params.id);
       if (error) throw error;
       pushAuditLog({
         userEmail: user.email,
@@ -955,7 +955,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/orders', requireCompatAdmin, async (_req, res) => {
     try {
-      const { data, error } = await db.from('orders').select('*').order('created_at', { ascending: false });
+      const { data, error } = await adminDb.from('orders').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       res.json((data || []).map(mapOrderRowToFrontend));
     } catch (error) {
@@ -966,7 +966,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   app.put('/api/admin/orders/:id', requireCompatAdmin, async (req, res) => {
     const user = (req as any).user;
     try {
-      const { data: current, error: fetchError } = await db.from('orders').select('*').eq('id', req.params.id).single();
+      const { data: current, error: fetchError } = await adminDb.from('orders').select('*').eq('id', req.params.id).single();
       if (fetchError || !current) {
         return res.status(404).json({ error: 'Commande introuvable.' });
       }
@@ -976,7 +976,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         ...item,
         finalPrice: nextTotal,
       };
-      const { data, error } = await db.from('orders').update({
+      const { data, error } = await adminDb.from('orders').update({
         status: toDbOrderStatus(req.body.status),
         total_amount: nextTotal,
         items: nextItems,
@@ -1002,7 +1002,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       return res.status(403).json({ error: 'Seul le Super Admin peut supprimer une commande.' });
     }
     try {
-      const { error } = await db.from('orders').delete().eq('id', req.params.id);
+      const { error } = await adminDb.from('orders').delete().eq('id', req.params.id);
       if (error) throw error;
       pushAuditLog({
         userEmail: user.email,
@@ -1019,7 +1019,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/customers', requireCompatAdmin, async (_req, res) => {
     try {
-      const { data, error } = await db.from('orders').select('*').order('created_at', { ascending: false });
+      const { data, error } = await adminDb.from('orders').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const grouped = new Map<string, any>();
       (data || []).forEach((row: any) => {
@@ -1105,7 +1105,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/blog', requireCompatAdmin, async (_req, res) => {
     try {
-      const { data, error } = await db.from('blog_posts').select('*').order('created_at', { ascending: false });
+      const { data, error } = await adminDb.from('blog_posts').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       res.json((data || []).map(mapBlogRowToFrontend));
     } catch (error) {
@@ -1128,7 +1128,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         date: new Date().toISOString(),
         is_published: payload.status === 'Publié',
       };
-      const { data, error } = await db.from('blog_posts').insert([insertPayload]).select().single();
+      const { data, error } = await adminDb.from('blog_posts').insert([insertPayload]).select().single();
       if (error) throw error;
       res.json({ success: true, post: mapBlogRowToFrontend(data) });
     } catch (error) {
@@ -1148,7 +1148,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         is_published: payload.status === 'Publié',
         updated_at: new Date().toISOString(),
       };
-      const { data, error } = await db.from('blog_posts').update(updatePayload).eq('id', req.params.id).select().single();
+      const { data, error } = await adminDb.from('blog_posts').update(updatePayload).eq('id', req.params.id).select().single();
       if (error) throw error;
       res.json({ success: true, post: mapBlogRowToFrontend(data) });
     } catch (error) {
@@ -1158,7 +1158,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.delete('/api/admin/blog/:id', requireCompatAdmin, async (req, res) => {
     try {
-      const { error } = await db.from('blog_posts').delete().eq('id', req.params.id);
+      const { error } = await adminDb.from('blog_posts').delete().eq('id', req.params.id);
       if (error) throw error;
       res.json({ success: true });
     } catch (error) {
@@ -1168,7 +1168,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/notifications', requireCompatAdmin, async (_req, res) => {
     try {
-      const { data, error } = await db.from('notifications').select('*').order('created_at', { ascending: false });
+      const { data, error } = await adminDb.from('notifications').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       res.json(data || []);
     } catch (error) {
@@ -1178,7 +1178,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.put('/api/admin/notifications/read', requireCompatAdmin, async (_req, res) => {
     try {
-      await db.from('notifications').update({ is_read: true }).eq('is_read', false);
+      await adminDb.from('notifications').update({ is_read: true }).eq('is_read', false);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -1187,7 +1187,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.delete('/api/admin/notifications/:id', requireCompatAdmin, async (req, res) => {
     try {
-      await db.from('notifications').delete().eq('id', req.params.id);
+      await adminDb.from('notifications').delete().eq('id', req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -1255,10 +1255,10 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   app.get('/api/admin/backup/export', requireCompatAdmin, async (_req, res) => {
     try {
       const [laptops, orders, blogPosts, notifications, admins] = await Promise.all([
-        db.from('laptops').select('*'),
-        db.from('orders').select('*'),
-        db.from('blog_posts').select('*'),
-        db.from('notifications').select('*'),
+        adminDb.from('laptops').select('*'),
+        adminDb.from('orders').select('*'),
+        adminDb.from('blog_posts').select('*'),
+        adminDb.from('notifications').select('*'),
         adminDb.from('admin_users').select('*'),
       ]);
       res.json({
@@ -1289,8 +1289,8 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   app.get('/api/admin/analytics', requireCompatAdmin, async (_req, res) => {
     try {
       const [laptopsRes, ordersRes] = await Promise.all([
-        db.from('laptops').select('*'),
-        db.from('orders').select('*'),
+        adminDb.from('laptops').select('*'),
+        adminDb.from('orders').select('*'),
       ]);
       if (laptopsRes.error) throw laptopsRes.error;
       if (ordersRes.error) throw ordersRes.error;
