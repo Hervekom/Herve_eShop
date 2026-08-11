@@ -140,6 +140,15 @@ export const API = {
     body: JSON.stringify(data)
   }),
   getQuoteTracking: (id: string) => apiFetch(`/api/client/quote/${id}`),
+  getProductReviews: (productId: string) => apiFetch(`/api/client/reviews/${encodeURIComponent(productId)}`),
+  createProductReview: (data: any) => apiFetch('/api/client/reviews', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  checkoutCart: (data: any) => apiFetch('/api/client/checkout', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
 
   // Customer Auth methods
   registerCustomer: async (payload: any) => {

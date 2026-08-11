@@ -1,11 +1,13 @@
 import React from 'react';
-import { Search, User } from 'lucide-react';
+import { Search, ShoppingCart, User } from 'lucide-react';
 import HerveLogo from './HerveLogo';
 
 interface HeaderProps {
   onSearchChange: (search: string) => void;
   searchValue: string;
   onOpenAccountModal: () => void;
+  onOpenCart: () => void;
+  cartCount: number;
   activeUser: any;
   cms?: any;
 }
@@ -14,6 +16,8 @@ export default function Header({
   onSearchChange,
   searchValue,
   onOpenAccountModal,
+  onOpenCart,
+  cartCount,
   activeUser,
   cms
 }: HeaderProps) {
@@ -89,6 +93,21 @@ export default function Header({
             />
             <Search className="w-3.5 h-3.5 text-luxe-muted absolute left-2.5 top-2" />
           </div>
+
+          <button
+            type="button"
+            onClick={onOpenCart}
+            className="relative flex items-center justify-center w-9 h-9 rounded-full bg-white border border-warm-cream-dark hover:border-luxe-gold/60 hover:bg-warm-cream transition-all shadow-xs cursor-pointer select-none"
+            id="open-cart-btn"
+            title="Panier"
+          >
+            <ShoppingCart className="w-4 h-4 text-luxe-dark" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-luxe-copper text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white">
+                {cartCount > 9 ? '9+' : cartCount}
+              </span>
+            )}
+          </button>
 
           <button
             type="button"

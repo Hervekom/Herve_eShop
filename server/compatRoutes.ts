@@ -352,32 +352,45 @@ function fromDbOrderStatus(status?: string | null) {
 }
 
 function parseItemsPayload(value: any) {
-  if (!value || typeof value !== 'object') return {};
-  if (Array.isArray(value)) return value[0] || {};
-  return value;
+  if (!value || typeof value !== 'object') return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return [value];
 }
 
 function mapOrderRowToFrontend(row: any) {
-  const item = parseItemsPayload(row.items);
+  const items = parseItemsPayload(row.items);
+  const first = items[0] || {};
+  const totalFromItems = items.reduce((sum: number, it: any) => {
+    const qty = Number(it?.quantity || 1);
+    const unit = Number(it?.finalPrice || it?.price || it?.basePrice || 0);
+    return sum + qty * unit;
+  }, 0);
+  const computedTotal = Number(row.total_amount || totalFromItems || 0);
+
+  const summaryLabel =
+    items.length > 1
+      ? `${items.length} articles`
+      : (first.laptopBrand || first.brand || '');
+
   return {
     id: row.id,
     orderNumber: row.id,
-    clientName: item.clientName || row.shipping_address?.clientName || 'Client',
-    clientPhone: item.clientPhone || row.shipping_address?.clientPhone || '',
-    clientEmail: item.clientEmail || row.shipping_address?.clientEmail || '',
-    clientCity: item.clientCity || row.shipping_address?.clientCity || '',
-    laptopId: item.laptopId || item.productId || '',
-    laptopBrand: item.laptopBrand || item.brand || '',
-    laptopModel: item.laptopModel || item.model || '',
-    basePrice: Number(item.basePrice || row.total_amount || 0),
-    finalPrice: Number(item.finalPrice || row.total_amount || 0),
-    customizations: item.customizations || {
+    clientName: first.clientName || row.shipping_address?.clientName || 'Client',
+    clientPhone: first.clientPhone || row.shipping_address?.clientPhone || '',
+    clientEmail: first.clientEmail || row.shipping_address?.clientEmail || '',
+    clientCity: first.clientCity || row.shipping_address?.clientCity || '',
+    laptopId: first.laptopId || first.productId || '',
+    laptopBrand: summaryLabel,
+    laptopModel: items.length > 1 ? 'Commande panier' : (first.laptopModel || first.model || ''),
+    basePrice: Number(first.basePrice || computedTotal || 0),
+    finalPrice: computedTotal,
+    customizations: first.customizations || {
       ramUpgrade: 'Aucune',
       storageUpgrade: 'Aucun',
       osOption: 'Windows 11 Pro',
       accessories: [],
     },
-    additionalNotes: item.additionalNotes || '',
+    additionalNotes: first.additionalNotes || '',
     status: fromDbOrderStatus(row.status),
     createdAt: row.created_at || new Date().toISOString(),
     updatedAt: row.updated_at || row.created_at || new Date().toISOString(),
@@ -682,6 +695,205 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         return res.status(404).json({ error: 'Demande de devis introuvable.' });
       }
       res.json(mapOrderRowToFrontend(order));
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.get('/api/client/reviews/:productId', async (req, res) => {
+    const productId = String(req.params.productId || '').trim();
+    if (!productId) return res.status(400).json({ error: 'productId requis.' });
+    try {
+      const { data, error } = await adminDb
+        .from('product_reviews')
+        .select('*')
+        .eq('product_id', productId)
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const reviews = (data || []).map((row: any) => ({
+        id: row.id,
+        author: row.author_name || 'Client',
+        city: row.city || '',
+        rating: Number(row.rating || 5),
+        comment: row.comment || '',
+        date: row.created_at || new Date().toISOString(),
+        badge: row.badge || 'Client',
+      }));
+      res.json({ success: true, reviews });
+    } catch (error) {
+      if (isMissingTableError(error)) {
+        return res.json({ success: true, reviews: [] });
+      }
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/client/reviews', async (req, res) => {
+    try {
+      const customerUser = await extractCustomerUser(req, supabase);
+      if (!customerUser) {
+        return res.status(401).json({ error: 'Veuillez vous connecter pour publier un avis.' });
+      }
+      const { productId, rating, comment, city } = req.body || {};
+      const normalizedProductId = String(productId || '').trim();
+      const normalizedComment = String(comment || '').trim();
+      const normalizedRating = Math.min(5, Math.max(1, Number(rating || 5)));
+      const resolvedCity = String(city || customerUser.city || '').trim();
+
+      if (!normalizedProductId || !normalizedComment) {
+        return res.status(400).json({ error: 'productId et commentaire requis.' });
+      }
+
+      const metadata = (await supabase.auth.getUser(extractToken(req.headers['authorization-customer'] as string | undefined))).data?.user?.user_metadata || {};
+      const authorName =
+        String(metadata.name || metadata.username || customerUser.email || '')
+          .trim() || 'Client';
+
+      const insertPayload = {
+        product_id: normalizedProductId,
+        user_id: customerUser.id,
+        rating: normalizedRating,
+        comment: normalizedComment,
+        author_name: authorName,
+        city: resolvedCity,
+        badge: 'Acheteur',
+        is_published: true,
+      };
+
+      const { data, error } = await adminDb.from('product_reviews').insert([insertPayload]).select().single();
+      if (error) throw error;
+
+      pushAuditLog({
+        userEmail: customerUser.email || 'client@herve-eshop.local',
+        userRole: 'Client',
+        action: 'Creation avis',
+        entityId: String(data.id),
+        entityType: 'Review',
+      });
+
+      res.json({
+        success: true,
+        review: {
+          id: data.id,
+          author: data.author_name || authorName,
+          city: data.city || resolvedCity,
+          rating: Number(data.rating || normalizedRating),
+          comment: data.comment || normalizedComment,
+          date: data.created_at || new Date().toISOString(),
+          badge: data.badge || 'Acheteur',
+        }
+      });
+    } catch (error) {
+      if (isMissingTableError(error)) {
+        return res.status(500).json({ error: 'Table product_reviews introuvable. Ajoutez-la dans Supabase.' });
+      }
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/client/checkout', async (req, res) => {
+    try {
+      const payload = req.body || {};
+      const cartItems = Array.isArray(payload.items) ? payload.items : [];
+      const shipping = payload.shipping || {};
+      const delivery = payload.delivery || {};
+
+      if (!cartItems.length) {
+        return res.status(400).json({ error: 'Panier vide.' });
+      }
+
+      const clientName = String(shipping.clientName || shipping.name || '').trim();
+      const clientPhone = String(shipping.clientPhone || shipping.phone || '').trim();
+      const clientEmail = String(shipping.clientEmail || shipping.email || '').trim();
+      const clientCity = String(shipping.clientCity || shipping.city || '').trim();
+      const clientAddress = String(shipping.address || shipping.clientAddress || '').trim();
+
+      if (!clientName || !clientPhone || !clientCity) {
+        return res.status(400).json({ error: 'Nom, téléphone et ville sont obligatoires pour la livraison.' });
+      }
+
+      const requestedIds = cartItems.map((it: any) => String(it.productId || it.id || '').trim()).filter(Boolean);
+      const quantitiesById = new Map<string, number>();
+      cartItems.forEach((it: any) => {
+        const id = String(it.productId || it.id || '').trim();
+        const qty = Math.max(1, Number(it.quantity || 1));
+        if (!id) return;
+        quantitiesById.set(id, (quantitiesById.get(id) || 0) + qty);
+      });
+
+      const { data: products, error } = await adminDb.from('laptops').select('*').in('id', requestedIds);
+      if (error) throw error;
+      const productsById = new Map<string, any>((products || []).map((p: any) => [String(p.id), p]));
+
+      const normalizedItems = Array.from(quantitiesById.entries()).map(([id, quantity]) => {
+        const row = productsById.get(id);
+        if (!row) {
+          throw new Error(`Produit introuvable: ${id}`);
+        }
+        const unitPrice = Number(row.price_xaf || 0);
+        return {
+          productId: id,
+          brand: row.brand || '',
+          model: row.model || '',
+          quantity,
+          basePrice: unitPrice,
+          finalPrice: unitPrice,
+        };
+      });
+
+      const totalAmount = normalizedItems.reduce((sum: number, it: any) => sum + Number(it.finalPrice || 0) * Number(it.quantity || 1), 0);
+      if (totalAmount <= 0) {
+        return res.status(400).json({ error: 'Montant total invalide.' });
+      }
+
+      const customerUser = await extractCustomerUser(req, supabase);
+      const orderPayload = {
+        user_id: customerUser?.id || `guest:${clientPhone}`,
+        items: normalizedItems,
+        total_amount: totalAmount,
+        status: 'pending',
+        payment_status: 'pending',
+        payment_method: null,
+        shipping_address: {
+          clientName,
+          clientPhone,
+          clientEmail,
+          clientCity,
+          address: clientAddress,
+          deliveryMethod: String(delivery.method || 'delivery'),
+          deliveryNotes: String(delivery.notes || ''),
+        },
+      };
+
+      const { data: inserted, error: insertError } = await adminDb.from('orders').insert([orderPayload]).select().single();
+      if (insertError) throw insertError;
+
+      for (const it of normalizedItems) {
+        const row = productsById.get(it.productId);
+        const stock = Number(row?.stock_quantity || 0);
+        const nextStock = Math.max(0, stock - Number(it.quantity || 1));
+        await adminDb.from('laptops').update({ stock_quantity: nextStock, updated_at: new Date().toISOString() }).eq('id', it.productId);
+      }
+
+      await adminDb.from('notifications').insert([{
+        user_id: customerUser?.id || 'system',
+        title: 'Nouvelle commande panier',
+        message: `${clientName} a soumis une commande panier (${normalizedItems.length} article(s)).`,
+        type: 'success',
+        is_read: false,
+        metadata: { orderId: inserted.id, source: 'client_checkout' },
+      }]);
+
+      pushAuditLog({
+        userEmail: customerUser?.email || 'guest@herve-eshop.local',
+        userRole: customerUser ? 'Client' : 'Guest',
+        action: 'Creation commande panier',
+        entityId: inserted.id,
+        entityType: 'Order',
+      });
+
+      res.json({ success: true, order: mapOrderRowToFrontend(inserted) });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
     }

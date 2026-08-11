@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, Globe2, Tag, Layers, CheckCircle, ArrowUpDown, ChevronRight, Heart, Share2, Star } from 'lucide-react';
+import { Search, SlidersHorizontal, Globe2, Tag, Layers, CheckCircle, ArrowUpDown, ChevronRight, Heart, Share2, ShoppingCart, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Laptop, SourceCountry, LaptopStatus } from '../types';
 
@@ -7,6 +7,7 @@ interface CatalogViewProps {
   laptops: Laptop[];
   onSelectLaptopForQuote: (laptop: Laptop) => void;
   onSelectLaptopForDetails: (laptop: Laptop) => void;
+  onAddToCart: (laptop: Laptop) => void;
   searchValue: string;
   favouriteIds: string[];
   onToggleFavourite: (id: string) => void;
@@ -18,6 +19,7 @@ export default function CatalogView({
   laptops,
   onSelectLaptopForQuote,
   onSelectLaptopForDetails,
+  onAddToCart,
   searchValue,
   favouriteIds,
   onToggleFavourite,
@@ -689,6 +691,22 @@ export default function CatalogView({
                           title="Voir plus de photos, vidéos de test et avis des clients sur cet article"
                         >
                           Médias & Avis
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => onAddToCart(laptop)}
+                          className={`flex-1 inline-flex items-center justify-center gap-1.5 text-[10px] tracking-wider uppercase font-bold py-2.5 rounded-full transition-all border ${
+                            isOutOfStock
+                              ? 'bg-neutral-100 border-neutral-200 text-neutral-400 cursor-not-allowed font-medium'
+                              : 'bg-white text-luxe-dark border-warm-cream-dark/80 hover:bg-warm-cream hover:border-luxe-gold/60 shadow-xs'
+                          }`}
+                          disabled={isOutOfStock}
+                          title="Ajouter au panier"
+                          id={`add-to-cart-btn-${laptop.id}`}
+                        >
+                          <ShoppingCart className="w-3.5 h-3.5" />
+                          Panier
                         </button>
 
                         <button

@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, CheckCircle, Star, Globe2, Share2, Heart, 
   Play, Pause, Volume2, VolumeX, RefreshCw, Cpu, 
-  MessageSquare, ChevronLeft, ChevronRight, Send, AlertCircle
+  MessageSquare, ChevronLeft, ChevronRight, Send, ShoppingCart, AlertCircle
 } from 'lucide-react';
 import { Laptop } from '../types';
+import API, { getCachedGuestUser, getGuestToken } from '../lib/api';
 
 interface LaptopDetailModalProps {
   laptop: Laptop | null;
@@ -15,6 +16,8 @@ interface LaptopDetailModalProps {
   onToggleFavourite: (id: string) => void;
   onSelectLaptopForQuote: (laptop: Laptop) => void;
   onTriggerToast: (title: string, message: string, type?: string) => void;
+  onAddToCart: (laptop: Laptop) => void;
+  onRequireLogin: () => void;
   whatsAppPhone?: string;
 }
 
@@ -221,6 +224,8 @@ export default function LaptopDetailModal({
   onToggleFavourite,
   onSelectLaptopForQuote,
   onTriggerToast,
+  onAddToCart,
+  onRequireLogin,
   whatsAppPhone
 }: LaptopDetailModalProps) {
   const resolvedWhatsAppPhone = String(whatsAppPhone || '237699001122').replace(/\D/g, '') || '237699001122';
@@ -234,9 +239,8 @@ export default function LaptopDetailModal({
   const [videoProgress, setVideoProgress] = useState<number>(0);
   const [videoDuration, setVideoDuration] = useState<number>(0);
 
-  // New review state
-  const [customReviews, setCustomReviews] = useState<Record<string, ProductReview[]>>({});
-  const [newAuthor, setNewAuthor] = useState('');
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [newCity, setNewCity] = useState('Douala');
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState('');
@@ -261,21 +265,26 @@ export default function LaptopDetailModal({
   const details = LAPTOP_MEDIA_REVIEWS[laptop.id] || {
     images: [laptop.image],
     videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-working-on-a-laptop-42289-large.mp4',
-    reviews: [
-      {
-        id: `rev-fallback-${laptop.id}`,
-        author: 'Stéphane Mbida',
-        city: 'Yaoundé',
-        rating: 5,
-        comment: `Excellent ordinateur portable ${laptop.brand}. Très performant pour le prix. Tout à fait conforme aux conseils fournis par Hervé !`,
-        date: 'Il y a quelques jours',
-        badge: 'Professionnel'
-      }
-    ]
+    reviews: []
   };
 
-  // Combine pre-seeded with custom user reviews
-  const currentModelReviews = [...(customReviews[laptop.id] || []), ...details.reviews];
+  const currentModelReviews = reviews;
+
+  useEffect(() => {
+    if (!isOpen || !laptop?.id) return;
+    setReviewsLoading(true);
+    API.getProductReviews(laptop.id)
+      .then((res: any) => {
+        const list = Array.isArray(res?.reviews) ? res.reviews : [];
+        setReviews(list);
+      })
+      .catch(() => {
+        setReviews([]);
+      })
+      .finally(() => {
+        setReviewsLoading(false);
+      });
+  }, [isOpen, laptop?.id]);
 
   // Video functionality
   const handlePlayPause = () => {
@@ -330,40 +339,40 @@ export default function LaptopDetailModal({
     }
   };
 
-  // Submit dynamic review
-  const handleAddReview = (e: React.FormEvent) => {
+  const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAuthor.trim() || !newComment.trim()) {
-      onTriggerToast('Champs Requis ⚠️', 'Veuillez saisir votre nom et un avis honnête pour continuer.', 'error');
+    if (!getGuestToken()) {
+      onTriggerToast('Connexion requise', 'Veuillez vous connecter ou créer un compte avant de publier un avis.', 'warning');
+      onRequireLogin();
+      return;
+    }
+    if (!newComment.trim()) {
+      onTriggerToast('Champs requis', 'Veuillez saisir un commentaire.', 'warning');
       return;
     }
 
-    setIsSubmittingReview(true);
-
-    setTimeout(() => {
-      const newReview: ProductReview = {
-        id: `custom-rev-${Date.now()}`,
-        author: newAuthor,
-        city: newCity,
+    try {
+      setIsSubmittingReview(true);
+      const res: any = await API.createProductReview({
+        productId: laptop.id,
         rating: newRating,
         comment: newComment,
-        date: "À l'instant",
-        badge: 'Acheteur Vérifié'
-      };
-
-      setCustomReviews(prev => ({
-        ...prev,
-        [laptop.id]: [newReview, ...(prev[laptop.id] || [])]
-      }));
-
-      // Cleanup
-      setNewAuthor('');
-      setNewComment('');
+        city: newCity,
+      });
+      if (res?.success && res.review) {
+        setReviews((prev) => [res.review, ...prev]);
+        setNewComment('');
+        onTriggerToast('Merci', 'Votre avis est publié et visible par les autres utilisateurs.', 'success');
+      }
+    } catch (err) {
+      onTriggerToast('Erreur avis', (err as Error).message, 'danger');
+    } finally {
       setIsSubmittingReview(false);
-      onTriggerToast('Merci ! ❤️', 'Votre avis a été ajouté avec succès et renforce notre communauté.', 'success');
-    }, 600);
+    }
   };
 
+  const guestUser = getCachedGuestUser();
+  const isCustomerLoggedIn = Boolean(getGuestToken());
   const isFav = favouriteIds.includes(laptop.id);
   const isOutOfStock = laptop.stockQuantity === 0 || laptop.status === 'Rupture';
 
@@ -737,94 +746,116 @@ export default function LaptopDetailModal({
                     <div className="space-y-4">
                       {/* Avis List */}
                       <div className="space-y-3">
-                        {currentModelReviews.map((rev) => (
-                          <div key={rev.id} className="bg-white p-4 rounded-xl border border-warm-cream-dark/40 text-left space-y-2">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-extrabold text-xs text-luxe-dark">{rev.author}</span>
-                                <span className="text-[9px] bg-warm-cream border border-warm-cream-dark px-1.5 py-0.5 rounded-md text-luxe-muted font-bold">
-                                  {rev.badge}
-                                </span>
-                              </div>
-                              <div className="flex items-center text-luxe-yellow">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <Star key={i} className={`w-3 h-3 ${i < rev.rating ? 'fill-current' : 'text-neutral-200'}`} />
-                                ))}
-                              </div>
-                            </div>
-                            <p className="text-[11px] text-luxe-dark leading-relaxed italic">
-                              "{rev.comment}"
-                            </p>
-                            <div className="flex justify-between items-center text-[10px] text-luxe-muted font-medium font-mono pt-1 border-t border-dashed border-warm-cream-dark/20">
-                              <span>Achat validé à {rev.city} 🇨🇲</span>
-                              <span>{rev.date}</span>
-                            </div>
+                        {reviewsLoading ? (
+                          <div className="flex items-center justify-center py-10">
+                            <RefreshCw className="w-6 h-6 text-luxe-copper animate-spin" />
                           </div>
-                        ))}
+                        ) : currentModelReviews.length === 0 ? (
+                          <div className="bg-white p-4 rounded-xl border border-warm-cream-dark/40 text-left">
+                            <p className="text-xs font-bold text-luxe-dark">Aucun avis pour le moment</p>
+                            <p className="text-[10px] text-luxe-muted mt-1">Soyez le premier à publier un avis pour aider la communauté.</p>
+                          </div>
+                        ) : (
+                          currentModelReviews.map((rev) => (
+                            <div key={rev.id} className="bg-white p-4 rounded-xl border border-warm-cream-dark/40 text-left space-y-2">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-extrabold text-xs text-luxe-dark">{rev.author}</span>
+                                  <span className="text-[9px] bg-warm-cream border border-warm-cream-dark px-1.5 py-0.5 rounded-md text-luxe-muted font-bold">
+                                    {rev.badge}
+                                  </span>
+                                </div>
+                                <div className="flex items-center text-luxe-yellow">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star key={i} className={`w-3 h-3 ${i < rev.rating ? 'fill-current' : 'text-neutral-200'}`} />
+                                  ))}
+                                </div>
+                              </div>
+                              <p className="text-[11px] text-luxe-dark leading-relaxed italic">
+                                "{rev.comment}"
+                              </p>
+                              <div className="flex justify-between items-center text-[10px] text-luxe-muted font-medium font-mono pt-1 border-t border-dashed border-warm-cream-dark/20">
+                                <span>{rev.city ? `Achat à ${rev.city} 🇨🇲` : 'Client 🇨🇲'}</span>
+                                <span>{rev.date}</span>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
 
                       {/* Interactive form to add a review */}
                       <form onSubmit={handleAddReview} className="p-4 bg-white/70 border border-warm-cream-dark rounded-xl space-y-3 text-left">
                         <h5 className="text-[11px] uppercase tracking-wider font-black text-luxe-orange flex items-center gap-1">
-                          <Send className="w-3.5 h-3.5" /> Laissez un Avis Vérifié
+                          <Send className="w-3.5 h-3.5" /> Laisser un avis
                         </h5>
-                        <p className="text-[10px] text-luxe-muted">Votre expérience de devis ou d'achat aide la communauté !</p>
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="text"
-                            placeholder="Votre Prénom & Nom"
-                            value={newAuthor}
-                            onChange={(e) => setNewAuthor(e.target.value)}
-                            className="bg-white border text-xs border-warm-cream-dark rounded-lg px-2.5 py-1.5 text-luxe-dark focus:outline-none focus:border-luxe-orange"
-                            required
-                          />
-                          <select
-                            value={newCity}
-                            onChange={(e) => setNewCity(e.target.value)}
-                            className="bg-white border text-xs border-warm-cream-dark rounded-lg px-2.5 py-1.5 text-luxe-dark focus:outline-none focus:border-luxe-orange"
-                          >
-                            <option value="Douala">Douala</option>
-                            <option value="Yaoundé">Yaoundé</option>
-                            <option value="Bafoussam">Bafoussam</option>
-                            <option value="Kribi">Kribi</option>
-                            <option value="Garoua">Garoua</option>
-                            <option value="Limbe">Limbe</option>
-                          </select>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-luxe-muted">Note Étoilée :</span>
-                          <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <button
-                                type="button"
-                                key={star}
-                                onClick={() => setNewRating(star)}
-                                className="text-luxe-yellow hover:scale-115 transition-transform"
-                                title={`${star} étoiles`}
-                              >
-                                <Star className={`w-4 h-4 ${star <= newRating ? 'fill-current' : 'text-neutral-200'}`} />
-                              </button>
-                            ))}
+                        {!isCustomerLoggedIn ? (
+                          <div className="space-y-2">
+                            <p className="text-[10px] text-luxe-muted">
+                              Pour publier un avis visible par tous, vous devez vous connecter ou créer un compte.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={onRequireLogin}
+                              className="w-full bg-luxe-dark text-white hover:bg-luxe-orange transition-colors py-2 rounded-lg text-xs font-bold uppercase tracking-wider select-none cursor-pointer"
+                            >
+                              Se connecter / créer un compte
+                            </button>
                           </div>
-                        </div>
+                        ) : (
+                          <>
+                            <div className="bg-white rounded-lg border border-warm-cream-dark/60 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-wider font-black text-luxe-muted">Connecté en tant que</div>
+                              <div className="text-xs font-bold text-luxe-dark">{guestUser?.name || 'Client'}</div>
+                            </div>
 
-                        <textarea
-                          placeholder="Exprimez votre satisfaction (état de la machine, livraison, réactivité d'Hervé...)"
-                          value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
-                          className="w-full bg-white border text-xs border-warm-cream-dark rounded-lg p-2.5 text-luxe-dark focus:outline-none focus:border-luxe-orange min-h-[60px]"
-                          required
-                        />
+                            <div className="grid grid-cols-2 gap-2">
+                              <select
+                                value={newCity}
+                                onChange={(e) => setNewCity(e.target.value)}
+                                className="bg-white border text-xs border-warm-cream-dark rounded-lg px-2.5 py-1.5 text-luxe-dark focus:outline-none focus:border-luxe-orange"
+                              >
+                                <option value="Douala">Douala</option>
+                                <option value="Yaoundé">Yaoundé</option>
+                                <option value="Bafoussam">Bafoussam</option>
+                                <option value="Kribi">Kribi</option>
+                                <option value="Garoua">Garoua</option>
+                                <option value="Limbe">Limbe</option>
+                              </select>
+                              <div className="flex items-center gap-2 bg-white border border-warm-cream-dark rounded-lg px-2.5 py-1.5">
+                                <span className="text-[11px] text-luxe-muted">Note :</span>
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      type="button"
+                                      key={star}
+                                      onClick={() => setNewRating(star)}
+                                      className="text-luxe-yellow hover:scale-115 transition-transform"
+                                      title={`${star} étoiles`}
+                                    >
+                                      <Star className={`w-4 h-4 ${star <= newRating ? 'fill-current' : 'text-neutral-200'}`} />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
 
-                        <button
-                          type="submit"
-                          disabled={isSubmittingReview}
-                          className="w-full bg-luxe-dark text-white hover:bg-luxe-orange transition-colors py-2 rounded-lg text-xs font-bold uppercase tracking-wider select-none cursor-pointer"
-                        >
-                          {isSubmittingReview ? 'Publication...' : 'Publier mon avis certifié'}
-                        </button>
+                            <textarea
+                              placeholder="Votre avis (état de la machine, livraison, réactivité...)"
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              className="w-full bg-white border text-xs border-warm-cream-dark rounded-lg p-2.5 text-luxe-dark focus:outline-none focus:border-luxe-orange min-h-[60px]"
+                              required
+                            />
+
+                            <button
+                              type="submit"
+                              disabled={isSubmittingReview}
+                              className="w-full bg-luxe-dark text-white hover:bg-luxe-orange transition-colors py-2 rounded-lg text-xs font-bold uppercase tracking-wider select-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {isSubmittingReview ? 'Publication...' : 'Publier mon avis'}
+                            </button>
+                          </>
+                        )}
                       </form>
 
                     </div>
@@ -856,17 +887,27 @@ export default function LaptopDetailModal({
                       <ChevronRight className="w-4 h-4" />
                     </div>
                   ) : (
-                    <a
-                      href={`https://wa.me/${resolvedWhatsAppPhone}?text=${encodeURIComponent(
-                        `Bonjour Herve_eShop, je m'intéresse à l'ordinateur portable d'exception : *${laptop.brand} ${laptop.model}* (${laptop.ram} RAM, ${laptop.storage} SSD de seconde main certifiée). Est-il disponible de suite ?`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all bg-luxe-dark text-white border border-luxe-dark hover:bg-luxe-orange hover:border-luxe-orange shadow-md active:scale-95 duration-200 cursor-pointer text-center"
-                    >
-                      Contacter Hervé
-                      <ChevronRight className="w-4 h-4" />
-                    </a>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onAddToCart(laptop)}
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all bg-white text-luxe-dark border border-warm-cream-dark/80 hover:bg-warm-cream hover:border-luxe-gold/60 shadow-sm active:scale-95 duration-200 cursor-pointer text-center"
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        Panier
+                      </button>
+                      <a
+                        href={`https://wa.me/${resolvedWhatsAppPhone}?text=${encodeURIComponent(
+                          `Bonjour Herve_eShop, je m'intéresse à l'article : *${laptop.brand} ${laptop.model}* (ID ${laptop.id}). Est-il disponible ?`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all bg-luxe-dark text-white border border-luxe-dark hover:bg-luxe-orange hover:border-luxe-orange shadow-md active:scale-95 duration-200 cursor-pointer text-center"
+                      >
+                        Contacter
+                        <ChevronRight className="w-4 h-4" />
+                      </a>
+                    </>
                   )}
                 </div>
               </div>

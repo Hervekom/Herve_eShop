@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Sparkles, Bell, ArrowRight, Shield, Users, CheckCircle, Smartphone, Info, RefreshCw, X 
+  Minus, Plus, ShoppingCart, Sparkles, Trash2, Bell, ArrowRight, Shield, Users, CheckCircle, Smartphone, Info, RefreshCw, X 
 } from 'lucide-react';
 import Header from './components/Header';
 import CatalogView from './components/CatalogView';
@@ -34,6 +34,24 @@ export default function App() {
   const [selectedLaptopForQuote, setSelectedLaptopForQuote] = useState<Laptop | null>(null);
   const [selectedLaptopForDetails, setSelectedLaptopForDetails] = useState<Laptop | null>(null);
 
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<Array<{ product: Laptop; quantity: number }>>(() => {
+    try {
+      const raw = localStorage.getItem('herve_eshop_cart');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [checkoutName, setCheckoutName] = useState('');
+  const [checkoutPhone, setCheckoutPhone] = useState('');
+  const [checkoutCity, setCheckoutCity] = useState('');
+  const [checkoutAddress, setCheckoutAddress] = useState('');
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
   // --- Customer / User Account State ---
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [activeCustomerUser, setActiveCustomerUser] = useState<any>(() => {
@@ -53,6 +71,24 @@ export default function App() {
     const saved = localStorage.getItem('herve_eshop_favourites');
     return saved ? JSON.parse(saved) : [];
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('herve_eshop_cart', JSON.stringify(cartItems));
+    } catch {
+    }
+  }, [cartItems]);
+
+  useEffect(() => {
+    if (activeCustomerUser) {
+      setCheckoutName(activeCustomerUser.name || '');
+      setCheckoutPhone(activeCustomerUser.phone || '');
+      setCheckoutCity(activeCustomerUser.city || '');
+    }
+  }, [activeCustomerUser]);
+
+  const cartCount = cartItems.reduce((sum, it) => sum + Number(it.quantity || 0), 0);
+  const cartTotal = cartItems.reduce((sum, it) => sum + Number(it.product.price || 0) * Number(it.quantity || 0), 0);
 
   // Load from real server on mount
   const loadServerData = async () => {
@@ -135,6 +171,73 @@ export default function App() {
       }
       return nextFavs;
     });
+  };
+
+  const handleAddToCart = (product: Laptop) => {
+    if (product.stockQuantity <= 0 || product.status === 'Rupture') {
+      triggerToastAlert('Indisponible', 'Cet article est en rupture de stock.', 'warning');
+      return;
+    }
+    setCartItems((prev) => {
+      const idx = prev.findIndex((x) => x.product.id === product.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        const currentQty = Number(next[idx].quantity || 0);
+        const maxQty = Math.max(1, Number(product.stockQuantity || 1));
+        next[idx] = { ...next[idx], quantity: Math.min(maxQty, currentQty + 1) };
+        return next;
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    setIsCartOpen(true);
+    triggerToastAlert('Ajout au panier', `${product.brand} ${product.model} ajouté au panier.`, 'success');
+  };
+
+  const handleRemoveFromCart = (productId: string) => {
+    setCartItems((prev) => prev.filter((it) => it.product.id !== productId));
+  };
+
+  const handleUpdateCartQty = (productId: string, nextQty: number) => {
+    setCartItems((prev) =>
+      prev
+        .map((it) => (it.product.id === productId ? { ...it, quantity: Math.max(1, Math.floor(nextQty)) } : it))
+        .filter((it) => it.quantity > 0)
+    );
+  };
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cartItems.length) return;
+
+    try {
+      setIsCheckingOut(true);
+      const res = await API.checkoutCart({
+        items: cartItems.map((it) => ({
+          productId: it.product.id,
+          quantity: it.quantity,
+        })),
+        shipping: {
+          clientName: checkoutName,
+          clientPhone: checkoutPhone,
+          clientCity: checkoutCity,
+          address: checkoutAddress,
+          clientEmail: activeCustomerUser?.email || '',
+        },
+        delivery: {
+          method: deliveryMethod,
+          notes: deliveryNotes,
+        },
+      });
+      if (res?.success) {
+        setCartItems([]);
+        setIsCartOpen(false);
+        triggerToastAlert('Commande envoyée', 'Votre commande panier a été enregistrée. Nous vous contactons rapidement.', 'success');
+      }
+    } catch (err) {
+      triggerToastAlert('Erreur commande', (err as Error).message, 'danger');
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   // Utility to fire custom UI Toast alerts instantly 
@@ -239,6 +342,8 @@ export default function App() {
         onSearchChange={setSearchValue}
         searchValue={searchValue}
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+        cartCount={cartCount}
         activeUser={activeCustomerUser}
         cms={clientData}
       />
@@ -282,6 +387,7 @@ export default function App() {
           favouriteIds={favouriteIds}
           onToggleFavourite={handleToggleFavourite}
           onTriggerToast={triggerToastAlert}
+          onAddToCart={handleAddToCart}
           cms={clientData}
         />
         
@@ -329,8 +435,170 @@ export default function App() {
         onToggleFavourite={handleToggleFavourite}
         onSelectLaptopForQuote={handleSelectLaptopForQuote}
         onTriggerToast={triggerToastAlert}
+        onAddToCart={handleAddToCart}
+        onRequireLogin={() => setIsAccountModalOpen(true)}
         whatsAppPhone={clientData?.contactCMS?.whatsAppPhone}
       />
+
+      {isCartOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-luxe-dark/70 backdrop-blur-sm"
+            onClick={() => setIsCartOpen(false)}
+          />
+          <div className="relative w-full max-w-2xl bg-warm-cream rounded-3xl border border-warm-cream-dark/70 shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-warm-cream-dark/60 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-luxe-copper" />
+                <h3 className="font-serif font-bold text-luxe-dark">Panier</h3>
+                <span className="text-[11px] font-bold text-luxe-muted">({cartCount})</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCartOpen(false)}
+                className="p-2 rounded-full hover:bg-warm-cream-dark/60 text-luxe-muted hover:text-luxe-dark"
+                title="Fermer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto">
+              <div className="p-5 space-y-4">
+                {cartItems.length === 0 ? (
+                  <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-warm-cream-dark/70">
+                    <ShoppingCart className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-luxe-dark">Votre panier est vide</p>
+                    <p className="text-[10px] text-luxe-muted mt-1">Ajoutez des articles depuis le catalogue.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {cartItems.map((it) => (
+                      <div key={it.product.id} className="bg-white rounded-2xl border border-warm-cream-dark/60 p-4 flex gap-3 items-start">
+                        <img
+                          src={it.product.image}
+                          alt={`${it.product.brand} ${it.product.model}`}
+                          className="w-16 h-16 rounded-xl object-cover border border-warm-cream-dark/60"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <div className="text-xs font-bold text-luxe-dark">{it.product.brand} {it.product.model}</div>
+                              <div className="text-[10px] text-luxe-muted mt-0.5">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(it.product.price).replace('XAF', 'FCFA')}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFromCart(it.product.id)}
+                              className="p-2 rounded-xl hover:bg-warm-cream text-luxe-muted hover:text-luxe-dark border border-warm-cream-dark/60"
+                              title="Retirer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between">
+                            <div className="inline-flex items-center gap-2 bg-warm-cream/60 border border-warm-cream-dark/60 rounded-full px-2 py-1">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCartQty(it.product.id, it.quantity - 1)}
+                                className="w-7 h-7 rounded-full bg-white border border-warm-cream-dark/70 flex items-center justify-center hover:bg-warm-cream"
+                                title="Diminuer"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="text-xs font-bold text-luxe-dark w-6 text-center">{it.quantity}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCartQty(it.product.id, it.quantity + 1)}
+                                className="w-7 h-7 rounded-full bg-white border border-warm-cream-dark/70 flex items-center justify-center hover:bg-warm-cream"
+                                title="Augmenter"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="text-xs font-bold text-luxe-dark">
+                              {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(it.product.price * it.quantity).replace('XAF', 'FCFA')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {cartItems.length > 0 && (
+                  <div className="bg-white rounded-2xl border border-warm-cream-dark/60 p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-luxe-muted uppercase tracking-wider">Total</span>
+                      <span className="text-sm font-extrabold text-luxe-dark">
+                        {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(cartTotal).replace('XAF', 'FCFA')}
+                      </span>
+                    </div>
+                    <form onSubmit={handleCheckout} className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        value={checkoutName}
+                        onChange={(e) => setCheckoutName(e.target.value)}
+                        placeholder="Nom complet"
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
+                      />
+                      <input
+                        value={checkoutPhone}
+                        onChange={(e) => setCheckoutPhone(e.target.value)}
+                        placeholder="Téléphone"
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
+                      />
+                      <input
+                        value={checkoutCity}
+                        onChange={(e) => setCheckoutCity(e.target.value)}
+                        placeholder="Ville"
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
+                      />
+                      <input
+                        value={checkoutAddress}
+                        onChange={(e) => setCheckoutAddress(e.target.value)}
+                        placeholder="Adresse (quartier, rue...)"
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
+                      />
+                      <select
+                        value={deliveryMethod}
+                        onChange={(e) => setDeliveryMethod(e.target.value as any)}
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold md:col-span-2"
+                      >
+                        <option value="delivery">Livraison</option>
+                        <option value="pickup">Retrait en boutique</option>
+                      </select>
+                      <textarea
+                        value={deliveryNotes}
+                        onChange={(e) => setDeliveryNotes(e.target.value)}
+                        placeholder="Note de livraison (facultatif)"
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold md:col-span-2 min-h-[80px]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isCheckingOut}
+                        className="md:col-span-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-luxe-dark hover:bg-luxe-copper text-white text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        {isCheckingOut ? 'Envoi...' : 'Valider la commande'}
+                      </button>
+                      {!activeCustomerUser && (
+                        <button
+                          type="button"
+                          onClick={() => setIsAccountModalOpen(true)}
+                          className="md:col-span-2 text-[10px] font-bold text-luxe-copper hover:underline"
+                        >
+                          Se connecter pour suivre mes commandes
+                        </button>
+                      )}
+                    </form>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER SECTION */}
       <footer className="bg-luxe-dark text-warm-cream py-10 border-t border-white/5 select-none z-10 text-xs">
