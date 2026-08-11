@@ -16,6 +16,76 @@ import AdminPanel from './components/admin/AdminPanel';
 import API from './lib/api';
 import { Laptop, QuoteRequest, RealtimeNotification, QuoteStatus, LaptopStatus } from './types';
 
+type AppErrorBoundaryProps = {
+  children: React.ReactNode;
+};
+
+type AppErrorBoundaryState = {
+  hasError: boolean;
+  message: string;
+};
+
+class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
+  state: AppErrorBoundaryState = { hasError: false, message: '' };
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, message: String(error?.message || error || 'Erreur inconnue') };
+  }
+
+  componentDidCatch(error: any) {
+    this.setState({ message: String(error?.message || error || 'Erreur inconnue') });
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+
+    return (
+      <div className="min-h-screen bg-warm-cream text-luxe-dark flex items-center justify-center p-6">
+        <div className="w-full max-w-xl bg-white rounded-3xl border border-warm-cream-dark/70 shadow-xl p-6 text-left space-y-4">
+          <div className="flex items-center gap-2">
+            <X className="w-5 h-5 text-red-600" />
+            <h2 className="font-serif font-extrabold text-luxe-dark">Erreur d'affichage</h2>
+          </div>
+          <p className="text-xs text-luxe-muted">
+            Une erreur a empêché l'ouverture de la fiche produit. Cliquez sur “Réinitialiser” puis rechargez la page.
+          </p>
+          <div className="bg-warm-cream/60 border border-warm-cream-dark/60 rounded-2xl p-3 text-[11px] font-mono text-luxe-dark whitespace-pre-wrap">
+            {this.state.message}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  [
+                    'herve_eshop_customer_user',
+                    'herve_eshop_customer_token',
+                    'herve_eshop_admin_user',
+                    'herve_eshop_admin_token',
+                    'herve_eshop_cart',
+                  ].forEach((k) => localStorage.removeItem(k));
+                } catch {
+                }
+                window.location.reload();
+              }}
+              className="flex-1 bg-luxe-dark text-white hover:bg-luxe-copper transition-colors py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider"
+            >
+              Réinitialiser
+            </button>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="flex-1 bg-white text-luxe-dark border border-warm-cream-dark hover:bg-warm-cream transition-colors py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider"
+            >
+              Recharger
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
 export default function App() {
   const [laptops, setLaptops] = useState<Laptop[]>([]);
   const [loading, setLoading] = useState(true);
@@ -336,7 +406,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-warm-cream text-luxe-dark selection:bg-luxe-gold/30 flex flex-col justify-between antialiased">
+    <AppErrorBoundary>
+      <div className="min-h-screen bg-warm-cream text-luxe-dark selection:bg-luxe-gold/30 flex flex-col justify-between antialiased">
       {/* Dynamic Header Component */}
       <Header
         onSearchChange={setSearchValue}
@@ -643,6 +714,7 @@ export default function App() {
 
       {/* Floating Back To Top Button list */}
       <BackToTopButton />
-    </div>
+      </div>
+    </AppErrorBoundary>
   );
 }

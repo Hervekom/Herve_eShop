@@ -117,7 +117,9 @@ export default function Header({
           >
             <User className="w-3.5 h-3.5 text-luxe-gold" />
             <span className="hidden sm:inline">
-              {activeUser ? activeUser.name.split(' ')[0] : 'Mon Compte'}
+              {activeUser && typeof activeUser.name === 'string' && activeUser.name.trim()
+                ? activeUser.name.trim().split(' ')[0]
+                : 'Mon Compte'}
             </span>
           </button>
         </div>
