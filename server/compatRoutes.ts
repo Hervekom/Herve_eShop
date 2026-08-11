@@ -424,6 +424,55 @@ function mapUiRoleToDb(role?: string | null) {
   }
 }
 
+function isMissingTableError(error: any) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return message.includes('does not exist') || message.includes('schema cache') || message.includes('cannot find');
+}
+
+async function loadCmsFromDb(adminDb: SupabaseLike) {
+  try {
+    const { data, error } = await adminDb
+      .from('site_settings')
+      .select('key,value')
+      .in('key', ['site_cms', 'contact_cms', 'social_cms']);
+
+    if (error) throw error;
+
+    const map = new Map<string, any>();
+    (data || []).forEach((row: any) => {
+      map.set(String(row.key), row.value || {});
+    });
+
+    siteCMSStore = { ...clone(DEFAULT_SITE_CMS), ...(map.get('site_cms') || {}) };
+    contactCMSStore = { ...clone(DEFAULT_CONTACT_CMS), ...(map.get('contact_cms') || {}) };
+    socialCMSStore = { ...clone(DEFAULT_SOCIAL_CMS), ...(map.get('social_cms') || {}) };
+  } catch (error) {
+    if (!isMissingTableError(error)) {
+      throw error;
+    }
+  }
+}
+
+async function persistCmsToDb(adminDb: SupabaseLike, key: string, value: any) {
+  try {
+    const { error } = await adminDb.from('site_settings').upsert(
+      [
+        {
+          key,
+          value,
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      { onConflict: 'key' },
+    );
+    if (error) throw error;
+  } catch (error) {
+    if (!isMissingTableError(error)) {
+      throw error;
+    }
+  }
+}
+
 async function listAllAuthUsers(adminDb: SupabaseLike) {
   const users: any[] = [];
   let page = 1;
@@ -512,15 +561,18 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   const requireCompatAdmin = (req: Request, res: Response, next: NextFunction) =>
     compatAdminAuth(req, res, next, supabase, adminDb);
 
+  loadCmsFromDb(adminDb).catch(() => {});
+
   app.get('/api/visitor-increment', async (_req, res) => {
     res.json({ success: true, count: 0 });
   });
 
   app.get('/api/client/data', async (_req, res) => {
     try {
+      await loadCmsFromDb(adminDb);
       const [laptopsRes, blogRes] = await Promise.all([
-        db.from('laptops').select('*').order('created_at', { ascending: false }),
-        db.from('blog_posts').select('*').order('created_at', { ascending: false }),
+        adminDb.from('laptops').select('*').order('created_at', { ascending: false }),
+        adminDb.from('blog_posts').select('*').order('created_at', { ascending: false }),
       ]);
       if (laptopsRes.error) throw laptopsRes.error;
       if (blogRes.error) throw blogRes.error;
@@ -1224,21 +1276,36 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   });
 
   app.put('/api/admin/cms/site', requireCompatAdmin, async (req, res) => {
-    siteCMSStore = { ...siteCMSStore, ...(req.body.key ? req.body : { key: 'site_cms', ...req.body }) };
-    delete (siteCMSStore as any).key;
-    res.json({ success: true, cms: siteCMSStore });
+    try {
+      siteCMSStore = { ...siteCMSStore, ...(req.body.key ? req.body : { key: 'site_cms', ...req.body }) };
+      delete (siteCMSStore as any).key;
+      await persistCmsToDb(adminDb, 'site_cms', siteCMSStore);
+      res.json({ success: true, cms: siteCMSStore });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.put('/api/admin/cms/contact', requireCompatAdmin, async (req, res) => {
-    contactCMSStore = { ...contactCMSStore, ...(req.body.key ? req.body : { key: 'contact_cms', ...req.body }) };
-    delete (contactCMSStore as any).key;
-    res.json({ success: true, cms: contactCMSStore });
+    try {
+      contactCMSStore = { ...contactCMSStore, ...(req.body.key ? req.body : { key: 'contact_cms', ...req.body }) };
+      delete (contactCMSStore as any).key;
+      await persistCmsToDb(adminDb, 'contact_cms', contactCMSStore);
+      res.json({ success: true, cms: contactCMSStore });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.put('/api/admin/cms/social', requireCompatAdmin, async (req, res) => {
-    socialCMSStore = { ...socialCMSStore, ...(req.body.key ? req.body : { key: 'social_cms', ...req.body }) };
-    delete (socialCMSStore as any).key;
-    res.json({ success: true, cms: socialCMSStore });
+    try {
+      socialCMSStore = { ...socialCMSStore, ...(req.body.key ? req.body : { key: 'social_cms', ...req.body }) };
+      delete (socialCMSStore as any).key;
+      await persistCmsToDb(adminDb, 'social_cms', socialCMSStore);
+      res.json({ success: true, cms: socialCMSStore });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.get('/api/admin/banners', requireCompatAdmin, async (_req, res) => {
