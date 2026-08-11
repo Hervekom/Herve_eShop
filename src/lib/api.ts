@@ -59,7 +59,21 @@ export function setCachedGuestUser(user: any) {
   }
 }
 
-const API_BASE_URL = ((import.meta as any).env?.VITE_API_BASE_URL || '').replace(/\/$/, '');
+function normalizeBaseUrl(rawValue: string) {
+  return String(rawValue || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\/$/, '');
+}
+
+const ENV_API_BASE_URL = normalizeBaseUrl((import.meta as any).env?.VITE_API_BASE_URL || '');
+const DEFAULT_RENDER_BACKEND_URL = 'https://herve-eshop.onrender.com';
+
+const API_BASE_URL =
+  ENV_API_BASE_URL ||
+  (typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app')
+    ? DEFAULT_RENDER_BACKEND_URL
+    : '');
 
 function buildApiUrl(endpoint: string) {
   if (/^https?:\/\//i.test(endpoint)) {
@@ -79,10 +93,27 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     ...(options.headers || {})
   };
 
-  const response = await fetch(buildApiUrl(endpoint), {
+  const requestInit = {
     ...options,
     headers
-  });
+  };
+
+  const primaryUrl = buildApiUrl(endpoint);
+  let response = await fetch(primaryUrl, requestInit);
+
+  const isApiEndpoint = typeof endpoint === 'string' && endpoint.startsWith('/api/');
+  const primaryContentType = response.headers.get('content-type') || '';
+  const receivedHtml = primaryContentType.includes('text/html');
+  const canRetryOnRender =
+    isApiEndpoint &&
+    receivedHtml &&
+    !primaryUrl.startsWith(DEFAULT_RENDER_BACKEND_URL) &&
+    typeof window !== 'undefined';
+
+  if (canRetryOnRender) {
+    const fallbackUrl = `${DEFAULT_RENDER_BACKEND_URL}${endpoint}`;
+    response = await fetch(fallbackUrl, requestInit);
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -90,7 +121,10 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   }
 
   // Handle attachment downloads
-  const contentType = response.headers.get('content-type');
+  const contentType = response.headers.get('content-type') || '';
+  if (isApiEndpoint && contentType.includes('text/html')) {
+    throw new Error('Réponse HTML reçue à la place du JSON API. Vérifiez VITE_API_BASE_URL (backend Render).');
+  }
   if (contentType && contentType.includes('application/json')) {
     return response.json();
   }

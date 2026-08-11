@@ -11,6 +11,7 @@ interface CatalogViewProps {
   favouriteIds: string[];
   onToggleFavourite: (id: string) => void;
   onTriggerToast: (title: string, message: string, type?: string) => void;
+  cms?: any;
 }
 
 export default function CatalogView({
@@ -20,8 +21,12 @@ export default function CatalogView({
   searchValue,
   favouriteIds,
   onToggleFavourite,
-  onTriggerToast
+  onTriggerToast,
+  cms
 }: CatalogViewProps) {
+  const siteCMS = cms?.siteCMS || {};
+  const heroTitle = siteCMS.heroTitle || 'Excellence';
+  const heroSubtitle = siteCMS.heroSubtitle || "Découvrez le summum des ordinateurs portables de seconde main premium.";
   // Filters state
   const [selectedBrand, setSelectedBrand] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -29,8 +34,8 @@ export default function CatalogView({
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('default');
   const [showOnlyFavourites, setShowOnlyFavourites] = useState<boolean>(false);
-  const [minPrice, setMinPrice] = useState<number>(300000);
-  const [maxPrice, setMaxPrice] = useState<number>(1500000);
+  const [minPrice, setMinPrice] = useState<number>(0);
+  const [maxPrice, setMaxPrice] = useState<number>(5000000);
 
   // Auto-scroll to shared laptop card on mount if ?laptop=ID exists in URL
   useEffect(() => {
@@ -154,14 +159,14 @@ export default function CatalogView({
           </div>
 
           <h2 className="text-4xl md:text-5.5.xl font-serif text-luxe-dark leading-[1.05] tracking-tight">
-            Excellence <br />
-            <span className="text-luxe-copper font-serif font-medium italic">Redefined.</span>
+            {heroTitle.split('\n')[0]} <br />
+            <span className="text-luxe-copper font-serif font-medium italic">
+              {(heroTitle.split('\n')[1] || '').trim() || 'Redefined.'}
+            </span>
           </h2>
 
           <p className="mt-5 md:mt-7 text-xs sm:text-sm text-luxe-muted leading-relaxed max-w-md font-medium">
-            Découvrez le summum des ordinateurs portables de seconde main premium. 
-            Sélectionnés avec rigueur depuis les meilleurs marchés aux États-Unis, Europe et Asie. 
-            Une offre d'exception adaptée aux exigences de l'élite professionnelle camerounaise.
+            {heroSubtitle}
           </p>
 
           <div className="mt-8 md:mt-10 flex flex-wrap gap-4">
@@ -324,12 +329,12 @@ export default function CatalogView({
                     <span className="font-mono text-luxe-dark font-bold">{formatPrice(minPrice)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-luxe-muted font-mono font-bold">300K</span>
+                    <span className="text-[10px] text-luxe-muted font-mono font-bold">0</span>
                     <input
                       type="range"
-                      min="300000"
-                      max="1500000"
-                      step="50000"
+                      min="0"
+                      max="5000000"
+                      step="25000"
                       value={minPrice}
                       onChange={(e) => {
                         const val = Number(e.target.value);
@@ -340,7 +345,7 @@ export default function CatalogView({
                       className="flex-1 h-2 bg-warm-cream-dark rounded-full appearance-none cursor-pointer accent-luxe-copper focus:outline-none focus:ring-1 focus:ring-luxe-gold"
                       id="price-range-min-slider"
                     />
-                    <span className="text-[10px] text-luxe-muted font-mono font-bold">1.5M</span>
+                    <span className="text-[10px] text-luxe-muted font-mono font-bold">5M</span>
                   </div>
                 </div>
 
@@ -351,12 +356,12 @@ export default function CatalogView({
                     <span className="font-mono text-luxe-dark font-bold">{formatPrice(maxPrice)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-luxe-muted font-mono font-bold">300K</span>
+                    <span className="text-[10px] text-luxe-muted font-mono font-bold">0</span>
                     <input
                       type="range"
-                      min="300000"
-                      max="1500000"
-                      step="50000"
+                      min="0"
+                      max="5000000"
+                      step="25000"
                       value={maxPrice}
                       onChange={(e) => {
                         const val = Number(e.target.value);
@@ -367,7 +372,7 @@ export default function CatalogView({
                       className="flex-1 h-2 bg-warm-cream-dark rounded-full appearance-none cursor-pointer accent-luxe-copper focus:outline-none focus:ring-1 focus:ring-luxe-gold"
                       id="price-range-max-slider"
                     />
-                    <span className="text-[10px] text-luxe-muted font-mono font-bold">1.5M</span>
+                    <span className="text-[10px] text-luxe-muted font-mono font-bold">5M</span>
                   </div>
                 </div>
               </div>
@@ -376,10 +381,10 @@ export default function CatalogView({
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <span className="text-[9px] uppercase tracking-wider font-extrabold text-luxe-muted mr-1">Raccourcis Budget :</span>
                 {[
-                  { label: "Tous budgets", min: 300000, max: 1500000 },
-                  { label: "Moins de 600K 💸", min: 300000, max: 600000 },
+                  { label: "Tous budgets", min: 0, max: 5000000 },
+                  { label: "Moins de 600K 💸", min: 0, max: 600000 },
                   { label: "600K - 1M 💻", min: 600000, max: 1000000 },
-                  { label: "Plus de 1M 🔥", min: 1000000, max: 1500000 }
+                  { label: "Plus de 1M 🔥", min: 1000000, max: 5000000 }
                 ].map((b, i) => {
                   const isCurrent = minPrice === b.min && maxPrice === b.max;
                   return (

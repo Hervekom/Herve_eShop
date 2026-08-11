@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 
-export default function WhatsAppFloatingButton() {
+function normalizeWhatsAppNumber(raw: string) {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('237')) return digits;
+  if (digits.length === 9 && digits.startsWith('6')) return `237${digits}`;
+  return digits;
+}
+
+export default function WhatsAppFloatingButton({ cms }: { cms?: any }) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   // Auto-show eye-catching tooltip after a short delay to captivate prospects
@@ -13,7 +21,8 @@ export default function WhatsAppFloatingButton() {
     return () => clearTimeout(timer);
   }, []);
 
-  const phoneNumber = '237699001122'; // Extracted from footer support details (+237 699 00 11 22)
+  const contactCMS = cms?.contactCMS || {};
+  const phoneNumber = normalizeWhatsAppNumber(contactCMS.whatsAppPhone || contactCMS.primaryPhone || '237699001122');
   const defaultText = encodeURIComponent(
     "Bonjour Herve_eShop, je m'intéresse à vos ordinateurs portables importés d'origine. Pourrais-je avoir plus d'informations ?"
   );

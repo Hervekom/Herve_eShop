@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import { Sparkles, Check, HelpCircle, HardDrive, Cpu, Layers, Battery, ExternalLink, HelpCircle as HelpIcon, ArrowRight, Laptop, Gamepad2, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+function normalizeWhatsAppNumber(raw: string) {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('237')) return digits;
+  if (digits.length === 9 && digits.startsWith('6')) return `237${digits}`;
+  return digits;
+}
+
 interface GuideCategory {
   id: string;
   title: string;
@@ -89,9 +97,11 @@ const GUIDES_DATA: GuideCategory[] = [
   }
 ];
 
-export default function BuyingGuides() {
+export default function BuyingGuides({ cms }: { cms?: any }) {
   const [activeTab, setActiveTab] = useState<string>('ultrabook');
   const [userProfile, setUserProfile] = useState<string>('all');
+  const contactCMS = cms?.contactCMS || {};
+  const whatsAppPhone = normalizeWhatsAppNumber(contactCMS.whatsAppPhone || contactCMS.primaryPhone || '237699001122') || '237699001122';
   
   // Quiz states
   const [quizAnswers, setQuizAnswers] = useState({
@@ -291,7 +301,7 @@ export default function BuyingGuides() {
                 {/* Instant WhatsApp Inquiry Button for this guide state */}
                 <div className="pt-2 flex justify-end">
                   <a
-                    href={`https://wa.me/237699001122?text=${encodeURIComponent(getWhatsAppProfileText(currentGuide.id))}`}
+                    href={`https://wa.me/${whatsAppPhone}?text=${encodeURIComponent(getWhatsAppProfileText(currentGuide.id))}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-luxe-dark text-warm-cream hover:bg-luxe-copper hover:text-white font-sans text-xs font-bold uppercase tracking-widest px-5 py-3 rounded-full transition-all duration-300 shadow-md active:scale-95 cursor-pointer text-center select-none"
@@ -425,7 +435,7 @@ export default function BuyingGuides() {
                 <div className="space-y-2.5 pt-2">
                   {/* WhatsApp contact pre-filled action */}
                   <a
-                    href={`https://wa.me/237699001122?text=${encodeURIComponent(getWhatsAppProfileText(quizRecommendation))}`}
+                    href={`https://wa.me/${whatsAppPhone}?text=${encodeURIComponent(getWhatsAppProfileText(quizRecommendation))}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full bg-luxe-copper hover:bg-luxe-yellow hover:text-luxe-dark text-white text-[10px] font-bold uppercase tracking-wider py-3 rounded-full transition-all duration-300 text-center block cursor-pointer select-none"

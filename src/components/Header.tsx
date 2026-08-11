@@ -7,14 +7,23 @@ interface HeaderProps {
   searchValue: string;
   onOpenAccountModal: () => void;
   activeUser: any;
+  cms?: any;
 }
 
 export default function Header({
   onSearchChange,
   searchValue,
   onOpenAccountModal,
-  activeUser
+  activeUser,
+  cms
 }: HeaderProps) {
+  const siteCMS = cms?.siteCMS || {};
+  const contactCMS = cms?.contactCMS || {};
+  const announcementText =
+    siteCMS.announcementText ||
+    "Nouveaux arrivages d'ordinateurs MacBook, Dell & ThinkPad importés directement d'Amérique !";
+  const headerStatus = contactCMS.openingHours || "Akwa Showroom • Ouvert 🇨🇲";
+
   return (
     <header className="border-b border-warm-cream-dark bg-warm-cream/95 sticky top-0 z-40 backdrop-blur-sm shadow-xs">
       {/* Captivating Live Orange Announcement Header Bar */}
@@ -25,7 +34,7 @@ export default function Header({
               Arrivage Chaud 🔥
             </span>
             <span className="tracking-wide text-white/95 text-[10px] sm:text-xs">
-              Nouveaux arrivages d'ordinateurs <span className="underline decoration-white/40 underline-offset-2 font-black">MacBook, Dell & ThinkPad</span> importés directement d'Amérique !
+              {announcementText}
             </span>
           </div>
           <div className="flex items-center gap-4 text-[9px] sm:text-[10px] uppercase tracking-widest font-black text-white/90">
@@ -34,7 +43,7 @@ export default function Header({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
               </span>
-              Akwa Showroom • Ouvert 🇨🇲
+              {headerStatus}
             </span>
           </div>
         </div>

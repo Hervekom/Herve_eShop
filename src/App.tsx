@@ -19,6 +19,7 @@ import { Laptop, QuoteRequest, RealtimeNotification, QuoteStatus, LaptopStatus }
 export default function App() {
   const [laptops, setLaptops] = useState<Laptop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clientData, setClientData] = useState<any>(null);
 
   // --- Core Persistent State Hookup ---
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
@@ -57,8 +58,15 @@ export default function App() {
   const loadServerData = async () => {
     try {
       setLoading(true);
-      const res = await API.getLaptops();
-      setLaptops(res);
+      try {
+        const data = await API.getClientData();
+        setClientData(data);
+        setLaptops(data.products || []);
+      } catch (cmsErr) {
+        setClientData(null);
+        const res = await API.getLaptops();
+        setLaptops(res);
+      }
 
       const hasAdminToken = localStorage.getItem('herve_eshop_admin_token');
       if (hasAdminToken) {
@@ -232,6 +240,7 @@ export default function App() {
         searchValue={searchValue}
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
         activeUser={activeCustomerUser}
+        cms={clientData}
       />
 
       {/* FLOATING REALTIME SIMULATION TOAST */}
@@ -273,13 +282,14 @@ export default function App() {
           favouriteIds={favouriteIds}
           onToggleFavourite={handleToggleFavourite}
           onTriggerToast={triggerToastAlert}
+          cms={clientData}
         />
         
         {/* CLIENT TESTIMONIALS & TRUST BUILDING SECTION */}
         <Testimonials />
 
         {/* HERVE BUYING GUIDES RECOMMENDATIONS */}
-        <BuyingGuides />
+        <BuyingGuides cms={clientData} />
       </main>
 
       {/* CUSTOM QUOTE REQUEST MODAL OVERLAY */}
@@ -319,6 +329,7 @@ export default function App() {
         onToggleFavourite={handleToggleFavourite}
         onSelectLaptopForQuote={handleSelectLaptopForQuote}
         onTriggerToast={triggerToastAlert}
+        whatsAppPhone={clientData?.contactCMS?.whatsAppPhone}
       />
 
       {/* FOOTER SECTION */}
@@ -336,9 +347,9 @@ export default function App() {
           <div className="space-y-3 text-left">
             <h5 className="font-serif text-xs uppercase tracking-wider text-luxe-gold font-bold">Nos Boutiques de Retrait</h5>
             <ul className="space-y-2 text-warm-cream-dark/60">
-              <li>📍 <span className="font-bold">Douala</span> : Akwa, Face Boulangerie Zépol (Showroom principal)</li>
+              <li>📍 <span className="font-bold">Douala</span> : {(clientData?.contactCMS?.address || 'Akwa, Face Boulangerie Zépol (Showroom principal)')}</li>
               <li>📍 <span className="font-bold">Yaoundé</span> : Avenue Germaine, Immeuble Horizon</li>
-              <li>📞 <span className="font-bold">WhatsApp Secours</span> : +237 699 00 11 22</li>
+              <li>📞 <span className="font-bold">WhatsApp Secours</span> : {(clientData?.contactCMS?.whatsAppPhone || '+237 699 00 11 22')}</li>
             </ul>
           </div>
 
@@ -360,7 +371,7 @@ export default function App() {
       </footer>
 
       {/* Floating WhatsApp Quick-Contact Button */}
-      <WhatsAppFloatingButton />
+      <WhatsAppFloatingButton cms={clientData} />
 
       {/* Floating Back To Top Button list */}
       <BackToTopButton />

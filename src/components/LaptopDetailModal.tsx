@@ -15,6 +15,7 @@ interface LaptopDetailModalProps {
   onToggleFavourite: (id: string) => void;
   onSelectLaptopForQuote: (laptop: Laptop) => void;
   onTriggerToast: (title: string, message: string, type?: string) => void;
+  whatsAppPhone?: string;
 }
 
 interface ProductReview {
@@ -219,8 +220,10 @@ export default function LaptopDetailModal({
   favouriteIds,
   onToggleFavourite,
   onSelectLaptopForQuote,
-  onTriggerToast
+  onTriggerToast,
+  whatsAppPhone
 }: LaptopDetailModalProps) {
+  const resolvedWhatsAppPhone = String(whatsAppPhone || '237699001122').replace(/\D/g, '') || '237699001122';
   const [activeTab, setActiveTab] = useState<'gallery' | 'video' | 'reviews'>('gallery');
   const [selectedImgIndex, setSelectedImgIndex] = useState<number>(0);
   
@@ -854,7 +857,7 @@ export default function LaptopDetailModal({
                     </div>
                   ) : (
                     <a
-                      href={`https://wa.me/237699001122?text=${encodeURIComponent(
+                      href={`https://wa.me/${resolvedWhatsAppPhone}?text=${encodeURIComponent(
                         `Bonjour Herve_eShop, je m'intéresse à l'ordinateur portable d'exception : *${laptop.brand} ${laptop.model}* (${laptop.ram} RAM, ${laptop.storage} SSD de seconde main certifiée). Est-il disponible de suite ?`
                       )}`}
                       target="_blank"
