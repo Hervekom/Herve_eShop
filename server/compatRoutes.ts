@@ -315,37 +315,80 @@ async function ensureStorageBucket(adminDb: SupabaseLike, bucketName: string) {
 }
 
 function toDbOrderStatus(status?: string | null) {
-  switch (status) {
+  const raw = String(status || '').trim();
+  const lower = raw.toLowerCase();
+
+  if (
+    [
+      'demande reçue',
+      'demande recue',
+      'confirmée',
+      'confirmee',
+      'en traitement',
+      'expédiée',
+      'expediee',
+      'livrée',
+      'livree',
+      'annulée',
+      'annulee',
+      'remboursée',
+      'remboursee',
+    ].includes(lower)
+  ) {
+    if (lower === 'demande recue') return 'Demande reçue';
+    if (lower === 'confirmee') return 'Confirmée';
+    if (lower === 'expediee') return 'Expédiée';
+    if (lower === 'livree') return 'Livrée';
+    if (lower === 'annulee') return 'Annulée';
+    if (lower === 'remboursee') return 'Remboursée';
+    return raw;
+  }
+
+  switch (raw) {
     case 'Devis validé':
-      return 'confirmed';
+      return 'Confirmée';
     case 'En préparation':
-      return 'processing';
+      return 'En traitement';
     case 'Prêt pour livraison':
-      return 'shipped';
+      return 'Expédiée';
     case 'Livré':
-      return 'delivered';
+      return 'Livrée';
     case 'Refusé':
-      return 'cancelled';
+      return 'Annulée';
     case 'Demande reçue':
     default:
-      return 'pending';
+      return 'Demande reçue';
   }
 }
 
 function fromDbOrderStatus(status?: string | null) {
-  switch ((status || '').toLowerCase()) {
+  const lower = String(status || '').toLowerCase();
+  switch (lower) {
     case 'confirmed':
+    case 'confirmée':
+    case 'confirmee':
       return 'Devis validé';
     case 'processing':
+    case 'en traitement':
       return 'En préparation';
     case 'shipped':
+    case 'expédiée':
+    case 'expediee':
       return 'Prêt pour livraison';
     case 'delivered':
+    case 'livrée':
+    case 'livree':
       return 'Livré';
     case 'cancelled':
+    case 'annulée':
+    case 'annulee':
     case 'refunded':
+    case 'remboursée':
+    case 'remboursee':
       return 'Refusé';
     case 'pending':
+    case 'demande reçue':
+    case 'demande recue':
     default:
       return 'Demande reçue';
   }
@@ -358,6 +401,41 @@ function parseItemsPayload(value: any) {
 }
 
 function mapOrderRowToFrontend(row: any) {
+  const isLegacy =
+    row &&
+    (row.client_name !== undefined ||
+      row.client_phone !== undefined ||
+      row.client_city !== undefined ||
+      row.laptop_id !== undefined ||
+      row.order_number !== undefined);
+
+  if (isLegacy) {
+    const customizations = row.customizations || {
+      ramUpgrade: 'Aucune',
+      storageUpgrade: 'Aucun',
+      osOption: 'Windows 11 Pro',
+      accessories: [],
+    };
+    return {
+      id: row.id,
+      orderNumber: row.order_number || row.id,
+      clientName: row.client_name || 'Client',
+      clientPhone: row.client_phone || '',
+      clientEmail: row.client_email || '',
+      clientCity: row.client_city || '',
+      laptopId: row.laptop_id || '',
+      laptopBrand: row.laptop_brand || '',
+      laptopModel: row.laptop_model || '',
+      basePrice: Number(row.base_price || row.final_price || 0),
+      finalPrice: Number(row.final_price || 0),
+      customizations,
+      additionalNotes: row.additional_notes || '',
+      status: fromDbOrderStatus(row.status),
+      createdAt: row.created_at || new Date().toISOString(),
+      updatedAt: row.updated_at || row.created_at || new Date().toISOString(),
+    };
+  }
+
   const items = parseItemsPayload(row.items);
   const first = items[0] || {};
   const totalFromItems = items.reduce((sum: number, it: any) => {
@@ -634,35 +712,24 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           .eq('id', laptopId);
       }
 
-      const orderPayload = {
+      const orderPayload: any = {
         id: id || undefined,
-        user_id: customerUser?.id || `guest:${clientPhone}`,
-        items: {
-          laptopId,
-          laptopBrand: laptop.brand,
-          laptopModel: laptop.model,
-          basePrice: Number(laptop.price_xaf || 0),
-          finalPrice: resolvedFinalPrice,
-          clientName,
-          clientPhone,
-          clientEmail: clientEmail || '',
-          clientCity: clientCity || '',
-          customizations: customizations || {},
-          additionalNotes: additionalNotes || '',
-        },
-        total_amount: resolvedFinalPrice,
-        status: 'pending',
-        payment_status: 'pending',
-        payment_method: null,
-        shipping_address: {
-          clientName,
-          clientPhone,
-          clientEmail: clientEmail || '',
-          clientCity: clientCity || '',
-        },
+        order_number: id || `DV-${Date.now()}`,
+        client_name: clientName,
+        client_phone: clientPhone,
+        client_email: clientEmail || null,
+        client_city: clientCity || '',
+        laptop_id: laptopId,
+        laptop_brand: laptop.brand || '',
+        laptop_model: laptop.model || '',
+        base_price: Number(laptop.price_xaf || 0),
+        final_price: resolvedFinalPrice,
+        customizations: customizations || null,
+        additional_notes: additionalNotes || null,
+        status: toDbOrderStatus('Demande reçue'),
       };
 
-      const { data: inserted, error: orderError } = await db.from('orders').insert([orderPayload]).select().single();
+      const { data: inserted, error: orderError } = await adminDb.from('orders').insert([orderPayload]).select().single();
       if (orderError) throw orderError;
 
       await db.from('notifications').insert([{
@@ -848,22 +915,35 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       }
 
       const customerUser = await extractCustomerUser(req, supabase);
-      const orderPayload = {
-        user_id: customerUser?.id || `guest:${clientPhone}`,
-        items: normalizedItems,
-        total_amount: totalAmount,
-        status: 'pending',
-        payment_status: 'pending',
-        payment_method: null,
-        shipping_address: {
-          clientName,
-          clientPhone,
-          clientEmail,
-          clientCity,
-          address: clientAddress,
-          deliveryMethod: String(delivery.method || 'delivery'),
-          deliveryNotes: String(delivery.notes || ''),
+      const firstItem = normalizedItems[0];
+      const orderPayload: any = {
+        order_number: `CMD-${Date.now()}`,
+        client_name: clientName,
+        client_phone: clientPhone,
+        client_email: clientEmail || null,
+        client_city: clientCity,
+        laptop_id: String(firstItem?.productId || ''),
+        laptop_brand: normalizedItems.length > 1 ? `${normalizedItems.length} articles` : String(firstItem?.brand || ''),
+        laptop_model: normalizedItems.length > 1 ? 'Commande panier' : String(firstItem?.model || ''),
+        base_price: totalAmount,
+        final_price: totalAmount,
+        customizations: {
+          type: 'cart',
+          items: normalizedItems,
+          shipping: {
+            address: clientAddress,
+            clientName,
+            clientPhone,
+            clientEmail,
+            clientCity,
+          },
+          delivery: {
+            method: String(delivery.method || 'delivery'),
+            notes: String(delivery.notes || ''),
+          },
         },
+        additional_notes: normalizedItems.length > 1 ? `Commande panier: ${normalizedItems.length} article(s).` : null,
+        status: toDbOrderStatus('Demande reçue'),
       };
 
       const { data: inserted, error: insertError } = await adminDb.from('orders').insert([orderPayload]).select().single();
@@ -985,7 +1065,15 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (!user) {
         return res.status(401).json({ error: 'Session client invalide ou expirée.' });
       }
-      const { data: orders, error } = await db.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+      let ordersQuery: any = adminDb.from('orders').select('*').order('created_at', { ascending: false });
+      if (user.email && user.phone) {
+        ordersQuery = ordersQuery.or(`client_email.eq.${user.email},client_phone.eq.${user.phone}`);
+      } else if (user.email) {
+        ordersQuery = ordersQuery.eq('client_email', user.email);
+      } else if (user.phone) {
+        ordersQuery = ordersQuery.eq('client_phone', user.phone);
+      }
+      const { data: orders, error } = await ordersQuery;
       if (error) throw error;
       res.json({
         success: true,
@@ -1421,18 +1509,30 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (fetchError || !current) {
         return res.status(404).json({ error: 'Commande introuvable.' });
       }
-      const item = parseItemsPayload(current.items);
-      const nextTotal = req.body.finalPrice !== undefined ? Number(req.body.finalPrice) : Number(current.total_amount || 0);
-      const nextItems = {
-        ...item,
-        finalPrice: nextTotal,
-      };
-      const { data, error } = await adminDb.from('orders').update({
-        status: toDbOrderStatus(req.body.status),
-        total_amount: nextTotal,
-        items: nextItems,
-        updated_at: new Date().toISOString(),
-      }).eq('id', req.params.id).select().single();
+      const isLegacy =
+        current &&
+        (current.client_name !== undefined ||
+          current.client_phone !== undefined ||
+          current.client_city !== undefined ||
+          current.laptop_id !== undefined ||
+          current.order_number !== undefined);
+
+      const updatePayload: any = { updated_at: new Date().toISOString() };
+      if (req.body.status) {
+        updatePayload.status = toDbOrderStatus(req.body.status);
+      }
+      if (req.body.finalPrice !== undefined) {
+        if (isLegacy) {
+          updatePayload.final_price = Number(req.body.finalPrice);
+        } else {
+          updatePayload.total_amount = Number(req.body.finalPrice);
+          const items = parseItemsPayload(current.items);
+          const first = items[0] || {};
+          updatePayload.items = { ...first, finalPrice: Number(req.body.finalPrice) };
+        }
+      }
+
+      const { data, error } = await adminDb.from('orders').update(updatePayload).eq('id', req.params.id).select().single();
       if (error) throw error;
       pushAuditLog({
         userEmail: user.email,
