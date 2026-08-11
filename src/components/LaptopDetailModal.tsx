@@ -278,6 +278,90 @@ export default function LaptopDetailModal({
 
   if (!laptop || !isOpen) return null;
 
+  const formatXaf = (value: any) => {
+    const n = Number(value || 0);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 })
+      .format(n)
+      .replace('XAF', 'FCFA');
+  };
+
+  const isFilled = (value: any) => {
+    const s = String(value ?? '').trim();
+    if (!s) return false;
+    const lower = s.toLowerCase();
+    return lower !== 'non specifie' && lower !== 'non spécifié' && lower !== 'n/a' && lower !== 'na';
+  };
+
+  const normalizeUrl = (value: any) => {
+    return String(value ?? '')
+      .trim()
+      .replace(/^['"`\s]+|['"`\s]+$/g, '');
+  };
+
+  const shareUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}${window.location.pathname}?laptop=${encodeURIComponent(laptop.id)}`
+      : '';
+
+  const contactMessageLines: string[] = [
+    `Bonjour Herve_eShop, je souhaite des informations sur cet article :`,
+    ``,
+    `- Nom : ${String(laptop.brand || '').trim()} ${String(laptop.model || '').trim()}`.trim(),
+    `- ID : ${String(laptop.id || '').trim()}`,
+  ];
+
+  if (isFilled((laptop as any).category) || isFilled((laptop as any).subCategory)) {
+    contactMessageLines.push(
+      `- Catégorie : ${[String((laptop as any).category || '').trim(), String((laptop as any).subCategory || '').trim()].filter(Boolean).join(' / ')}`
+    );
+  }
+
+  contactMessageLines.push(`- Prix : ${formatXaf((laptop as any).price)}`);
+
+  if (isFilled((laptop as any).oldPrice)) {
+    contactMessageLines.push(`- Ancien prix : ${formatXaf((laptop as any).oldPrice)}`);
+  }
+
+  if (isFilled((laptop as any).condition)) {
+    contactMessageLines.push(`- État : ${String((laptop as any).condition).trim()}`);
+  }
+
+  if (isFilled((laptop as any).processor)) {
+    contactMessageLines.push(`- Processeur : ${String((laptop as any).processor).trim()}`);
+  }
+  if (isFilled((laptop as any).ram)) {
+    contactMessageLines.push(`- RAM : ${String((laptop as any).ram).trim()}`);
+  }
+  if (isFilled((laptop as any).storage)) {
+    contactMessageLines.push(`- Stockage : ${String((laptop as any).storage).trim()}`);
+  }
+  if (isFilled((laptop as any).screenSize)) {
+    contactMessageLines.push(`- Écran : ${String((laptop as any).screenSize).trim()}`);
+  }
+  if (isFilled((laptop as any).source)) {
+    contactMessageLines.push(`- Provenance : ${String((laptop as any).source).trim()}`);
+  }
+
+  const stockQty = Number((laptop as any).stockQuantity ?? (laptop as any).stock_quantity ?? 0);
+  if (!Number.isNaN(stockQty)) {
+    contactMessageLines.push(`- Stock : ${stockQty}`);
+  }
+  if (isFilled((laptop as any).status)) {
+    contactMessageLines.push(`- Disponibilité : ${String((laptop as any).status).trim()}`);
+  }
+
+  const imageUrl = normalizeUrl((laptop as any).image);
+  if (imageUrl) {
+    contactMessageLines.push(`- Image : ${imageUrl}`);
+  }
+  if (shareUrl) {
+    contactMessageLines.push(`- Lien : ${shareUrl}`);
+  }
+
+  contactMessageLines.push(``, `Pouvez-vous me confirmer la disponibilité et le prix final avec la livraison ? Merci.`);
+
+  const contactMessage = contactMessageLines.filter(Boolean).join('\n');
+
   // Retrieve model information or fall back to defaults
   const details = LAPTOP_MEDIA_REVIEWS[laptop.id] || {
     images: [laptop.image],
@@ -899,7 +983,7 @@ export default function LaptopDetailModal({
                       </button>
                       <a
                         href={`https://wa.me/${resolvedWhatsAppPhone}?text=${encodeURIComponent(
-                          `Bonjour Herve_eShop, je m'intéresse à l'article : *${laptop.brand} ${laptop.model}* (ID ${laptop.id}). Est-il disponible ?`
+                          contactMessage
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
