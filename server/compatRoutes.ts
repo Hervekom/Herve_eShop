@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import nodemailer from 'nodemailer';
 
 type SupabaseLike = any;
 type Request = express.Request;
@@ -616,6 +617,63 @@ async function insertNotificationBestEffort(adminDb: SupabaseLike, payload: Reco
   }
 }
 
+let cachedMailTransport: any = null;
+
+function getAdminNotifyEmail() {
+  return String(process.env.ADMIN_NOTIFY_EMAIL || 'hervekom37@gmail.com').trim() || 'hervekom37@gmail.com';
+}
+
+function getMailFromAddress() {
+  return String(process.env.SMTP_FROM || process.env.SMTP_USER || '').trim();
+}
+
+function getMailTransport() {
+  if (cachedMailTransport) return cachedMailTransport;
+
+  const smtpUrl = String(process.env.SMTP_URL || '').trim();
+  if (smtpUrl) {
+    cachedMailTransport = nodemailer.createTransport(smtpUrl);
+    return cachedMailTransport;
+  }
+
+  const host = String(process.env.SMTP_HOST || '').trim();
+  const portRaw = String(process.env.SMTP_PORT || '').trim();
+  const user = String(process.env.SMTP_USER || '').trim();
+  const pass = String(process.env.SMTP_PASS || '').trim();
+  if (!host || !portRaw || !user || !pass) return null;
+
+  const port = Number(portRaw);
+  const secure = String(process.env.SMTP_SECURE || '').trim()
+    ? String(process.env.SMTP_SECURE).trim().toLowerCase() === 'true'
+    : port === 465;
+
+  cachedMailTransport = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
+  return cachedMailTransport;
+}
+
+async function sendAdminEmailBestEffort(subject: string, text: string) {
+  try {
+    const transport = getMailTransport();
+    const to = getAdminNotifyEmail();
+    const from = getMailFromAddress();
+    if (!transport || !to || !from) return;
+
+    await transport.sendMail({
+      from,
+      to,
+      subject: String(subject || '').trim() || 'Herve_eShop',
+      text: String(text || '').trim(),
+    });
+  } catch {
+    return;
+  }
+}
+
 async function loadCmsFromDb(adminDb: SupabaseLike) {
   try {
     const { data, error } = await adminDb
@@ -1145,6 +1203,22 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         metadata: { orderId: inserted.id, source: 'client_checkout' },
       });
 
+      await sendAdminEmailBestEffort(
+        'Herve_eShop - Nouvelle commande panier',
+        [
+          `Une nouvelle commande panier vient d'être validée.`,
+          ``,
+          `Commande: ${String(inserted?.id || '').trim() || 'N/A'}`,
+          `Client: ${clientName}`,
+          `Téléphone: ${clientPhone}`,
+          `Ville: ${clientCity}`,
+          clientEmail ? `Email: ${clientEmail}` : null,
+          clientAddress ? `Adresse: ${clientAddress}` : null,
+          `Articles: ${normalizedItems.length}`,
+          `Total: ${totalAmount.toLocaleString('fr-FR')} FCFA`,
+        ].filter(Boolean).join('\n'),
+      );
+
       pushAuditLog({
         userEmail: customerUser?.email || 'guest@herve-eshop.local',
         userRole: customerUser ? 'Client' : 'Guest',
@@ -1200,6 +1274,19 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         user_id: data.user?.id || 'system',
         metadata: { source: 'client_register', userId: data.user?.id || null },
       });
+
+      await sendAdminEmailBestEffort(
+        'Herve_eShop - Nouvel utilisateur',
+        [
+          `Un nouvel utilisateur vient de s'inscrire.`,
+          ``,
+          `Nom: ${String(name || '').trim() || 'N/A'}`,
+          email ? `Email: ${String(email).trim()}` : null,
+          phone ? `Téléphone: ${String(phone).trim()}` : null,
+          city ? `Ville: ${String(city).trim()}` : null,
+          `UserId: ${String(data.user?.id || '').trim() || 'N/A'}`,
+        ].filter(Boolean).join('\n'),
+      );
 
       res.json({
         success: true,
