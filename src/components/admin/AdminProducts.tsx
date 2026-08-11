@@ -30,6 +30,45 @@ interface Product {
   isRecommended?: boolean;
 }
 
+const DEFAULT_PRODUCT_CATEGORIES = [
+  { id: 'cat-laptop', name: 'Laptop' },
+  { id: 'cat-telephone', name: 'Telephone' },
+  { id: 'cat-accessoire', name: 'Accessoire' },
+  { id: 'cat-gadget', name: 'Gadget' },
+];
+
+const DEFAULT_PRODUCT_IMAGES: Record<string, string> = {
+  Laptop: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&q=80&w=1000',
+  Telephone: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=1000',
+  Accessoire: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=1000',
+  Gadget: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=1000',
+};
+
+const CATEGORY_ID_PREFIX: Record<string, string> = {
+  Laptop: 'lpt',
+  Telephone: 'phn',
+  Accessoire: 'acc',
+  Gadget: 'gdt',
+};
+
+function buildProductId(category?: string) {
+  const prefix = CATEGORY_ID_PREFIX[category || 'Laptop'] || 'prd';
+  return `${prefix}-${Date.now()}`;
+}
+
+function getDefaultImage(category?: string) {
+  return DEFAULT_PRODUCT_IMAGES[category || 'Laptop'] || DEFAULT_PRODUCT_IMAGES.Laptop;
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function AdminProducts({ 
   currentRole, 
   onTriggerToast 
@@ -55,21 +94,21 @@ export default function AdminProducts({
   const [formData, setFormData] = useState<Partial<Product>>({
     brand: '',
     model: '',
-    category: 'Ultrabook',
+    category: 'Laptop',
     processor: '',
     ram: '',
     storage: '',
     screenSize: '',
     condition: 'Comme neuf',
     source: 'USA',
-    image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&q=80&w=1000',
+    image: getDefaultImage('Laptop'),
     price: 500000,
     oldPrice: 600000,
     stockQuantity: 3,
     status: 'Disponible',
     description: '',
     shortDescription: '',
-    subCategory: '',
+    subCategory: 'Ultrabook',
     skuByAdmin: '',
     isFeatured: false,
     isPopular: false,
@@ -77,6 +116,8 @@ export default function AdminProducts({
   });
 
   const [uploading, setUploading] = useState(false);
+  const productCategories = categories.length ? categories : DEFAULT_PRODUCT_CATEGORIES;
+  const usesTechnicalSpecs = ['Laptop', 'Telephone'].includes(formData.category || 'Laptop');
 
   const fetchProducts = async () => {
     try {
@@ -102,24 +143,25 @@ export default function AdminProducts({
       return;
     }
     setEditingId(null);
+    const defaultCategory = productCategories[0]?.name || 'Laptop';
     setFormData({
       brand: '',
       model: '',
-      category: categories[0]?.name || 'Ultrabook',
+      category: defaultCategory,
       processor: '',
       ram: '',
       storage: '',
       screenSize: '',
       condition: 'Comme neuf',
       source: 'USA',
-      image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&q=80&w=1000',
+      image: getDefaultImage(defaultCategory),
       price: 500000,
       oldPrice: 600000,
       stockQuantity: 3,
       status: 'Disponible',
       description: '',
       shortDescription: '',
-      subCategory: '',
+      subCategory: defaultCategory === 'Laptop' ? 'Ultrabook' : '',
       skuByAdmin: '',
       isFeatured: false,
       isPopular: false,
@@ -150,13 +192,13 @@ export default function AdminProducts({
     try {
       if (editingId) {
         await API.updateProduct(editingId, formData);
-        onTriggerToast('Matériel Édité 👍', `${formData.brand} ${formData.model} mis à jour avec succès.`, 'success');
+        onTriggerToast('Article mis a jour 👍', `${formData.brand} ${formData.model} mis a jour avec succes.`, 'success');
       } else {
         await API.createProduct({
           ...formData,
-          id: `lpt-${Date.now()}`
+          id: buildProductId(formData.category),
         });
-        onTriggerToast('Produit Enregistré 📥', `${formData.brand} ${formData.model} a rejoint le showroom.`, 'success');
+        onTriggerToast('Produit enregistre 📥', `${formData.brand} ${formData.model} a rejoint le catalogue.`, 'success');
       }
       setFormOpen(false);
       fetchProducts();
@@ -170,7 +212,7 @@ export default function AdminProducts({
       onTriggerToast('Refusé ⛔', 'Rôle Éditeur interdit pour suppression.', 'warning');
       return;
     }
-    if (!confirm(`Supprimer définitivement l'ordinateur portable "${name}" du showroom publique ?`)) return;
+    if (!confirm(`Supprimer definitivement l'article "${name}" du catalogue public ?`)) return;
 
     try {
       await API.deleteProduct(id);
@@ -186,7 +228,7 @@ export default function AdminProducts({
     try {
       const duplicatedItem = {
         ...item,
-        id: `lpt-${Date.now()}`,
+        id: buildProductId(item.category),
         model: `${item.model} - Copie`,
         stockQuantity: Math.max(1, item.stockQuantity),
         skuByAdmin: item.skuByAdmin ? `${item.skuByAdmin}-COPY` : undefined
@@ -219,20 +261,17 @@ export default function AdminProducts({
 
     try {
       setUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-        const uploadRes = await API.uploadMedia(file.name, base64String);
-        if (uploadRes.success) {
-          setFormData(prev => ({ ...prev, image: uploadRes.url }));
-          onTriggerToast('Média Associé 🎨', `Photo "${file.name}" importée avec succès sur le serveur.`, 'success');
-        }
-      };
-      reader.readAsDataURL(file);
+      const base64String = await readFileAsDataUrl(file);
+      const uploadRes = await API.uploadMedia(file.name, base64String, 'products');
+      if (uploadRes.success) {
+        setFormData(prev => ({ ...prev, image: uploadRes.url }));
+        onTriggerToast('Media associe 🎨', `Photo "${file.name}" importee avec succes sur le serveur.`, 'success');
+      }
     } catch (err) {
-      onTriggerToast('Erreur upload ❌', 'Impossible de charger l\'image physique.', 'danger');
+      onTriggerToast('Erreur upload ❌', (err as Error).message || 'Impossible de charger l image.', 'danger');
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -326,7 +365,7 @@ export default function AdminProducts({
             Gestion des Laptops & Produits
           </h3>
           <p className="text-xs text-luxe-muted mt-1">
-            Ajoutez, dupliquez, contrôlez la disponibilité ou chargez les visuels de vos arrivages.
+            Ajoutez des laptops, telephones, accessoires et gadgets, puis gerez leur visibilite et leurs visuels.
           </p>
         </div>
 
@@ -345,7 +384,7 @@ export default function AdminProducts({
             className="bg-luxe-copper hover:bg-luxe-dark text-white active:scale-95 px-4.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Nouveau Laptop</span>
+            <span>Nouvel article</span>
           </button>
         </div>
       </div>
@@ -369,7 +408,7 @@ export default function AdminProducts({
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-luxe-muted" />
           <input
             type="text"
-            placeholder="Rechercher par Marque, Modèle, Processeur..."
+            placeholder="Rechercher par marque, modele, categorie..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full text-xs pl-10 pr-4 py-2.5 rounded-xl border border-warm-cream-dark focus:border-luxe-copper focus:outline-none"
@@ -629,62 +668,79 @@ export default function AdminProducts({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-luxe-dark block">Catégorie *</label>
+                  <label className="font-bold text-luxe-dark block">Type d article *</label>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    onChange={(e) => {
+                      const nextCategory = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        category: nextCategory,
+                        image: prev.image && prev.image !== getDefaultImage(prev.category)
+                          ? prev.image
+                          : getDefaultImage(nextCategory),
+                        subCategory: nextCategory === 'Laptop' ? (prev.subCategory || 'Ultrabook') : prev.subCategory || '',
+                      }));
+                    }}
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                   >
-                    {categories.map(c => (
+                    {productCategories.map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-luxe-dark block">Processeur *</label>
+                  <label className="font-bold text-luxe-dark block">Sous-categorie / Famille</label>
                   <input
                     type="text"
-                    required
+                    value={formData.subCategory || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, subCategory: e.target.value }))}
+                    placeholder={formData.category === 'Laptop' ? 'Ex: Ultrabook, Gaming, Bureautique' : 'Ex: Smartphone, Ecouteurs, Montre connectee'}
+                    className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-bold text-luxe-dark block">{usesTechnicalSpecs ? 'Processeur / Puce' : 'Caracteristique principale'}</label>
+                  <input
+                    type="text"
                     value={formData.processor}
                     onChange={(e) => setFormData(prev => ({ ...prev, processor: e.target.value }))}
-                    placeholder="e.g. Intel i7-13700H, Apple M3 Pro"
+                    placeholder={usesTechnicalSpecs ? 'Ex: Intel i7-13700H, Apple A18, Snapdragon 8 Gen' : 'Ex: Bluetooth 5.3, ANC, 45W, USB-C'}
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-luxe-dark block">Mémoire RAM *</label>
+                  <label className="font-bold text-luxe-dark block">{usesTechnicalSpecs ? 'Memoire RAM' : 'Memoire / Capacite'}</label>
                   <input
                     type="text"
-                    required
                     value={formData.ram}
                     onChange={(e) => setFormData(prev => ({ ...prev, ram: e.target.value }))}
-                    placeholder="e.g. 16GB unified, 32GB DDR5"
+                    placeholder={usesTechnicalSpecs ? 'Ex: 16GB, 8GB, 12GB' : 'Ex: 128GB, 5000mAh, 1 paire'}
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-luxe-dark block">Disque Stockage *</label>
+                  <label className="font-bold text-luxe-dark block">{usesTechnicalSpecs ? 'Stockage' : 'Reference / Version'}</label>
                   <input
                     type="text"
-                    required
                     value={formData.storage}
                     onChange={(e) => setFormData(prev => ({ ...prev, storage: e.target.value }))}
-                    placeholder="e.g. 512GB SSD SuperFast, 1TB NVMe"
+                    placeholder={usesTechnicalSpecs ? 'Ex: 512GB SSD, 256GB' : 'Ex: Noir mat, USB-C, Serie Pro'}
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-luxe-dark block">Taille d'Écran *</label>
+                  <label className="font-bold text-luxe-dark block">{usesTechnicalSpecs ? "Taille d ecran" : 'Format / Taille'}</label>
                   <input
                     type="text"
-                    required
                     value={formData.screenSize}
                     onChange={(e) => setFormData(prev => ({ ...prev, screenSize: e.target.value }))}
-                    placeholder='e.g. 14.0" WUXGA, 16" Liquid Retina'
+                    placeholder={usesTechnicalSpecs ? 'Ex: 14", 6.7", 15.6"' : 'Ex: 20W, compact, tour de poignet 44mm'}
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
                   />
                 </div>
@@ -782,7 +838,7 @@ export default function AdminProducts({
 
               {/* Photo Upload Handler */}
               <div className="space-y-2 border-t border-warm-cream pt-4 text-left">
-                <label className="font-bold text-luxe-dark block">Photo du Matériel (Sélectionnez ou transférez une photo)</label>
+                  <label className="font-bold text-luxe-dark block">Photo du produit (collez une URL ou envoyez un fichier)</label>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                   <div className="md:col-span-1 h-20 border border-warm-cream bg-warm-cream/25 rounded-2xl overflow-hidden flex items-center justify-center">
                     <img src={formData.image} alt="Visuel" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -808,7 +864,7 @@ export default function AdminProducts({
                           className="hidden"
                         />
                       </label>
-                      <span className="text-[10px] text-luxe-muted italic">Formats acceptés: JPG, PNG, WEBP (Heures auto-compression)</span>
+                      <span className="text-[10px] text-luxe-muted italic">Formats acceptes: JPG, PNG, WEBP</span>
                     </div>
 
                   </div>

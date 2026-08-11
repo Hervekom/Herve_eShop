@@ -290,9 +290,9 @@ export const API = {
 
   // Media manager and raw file encoding
   getMediaFiles: () => apiFetch('/api/admin/media'),
-  uploadMedia: (fileName: string, base64Data: string) => apiFetch('/api/admin/media/upload', {
+  uploadMedia: (fileName: string, base64Data: string, bucketName: string = 'products') => apiFetch('/api/admin/media/upload', {
     method: 'POST',
-    body: JSON.stringify({ fileName, base64Data })
+    body: JSON.stringify({ fileName, base64Data, bucketName })
   }),
   deleteMedia: (filename: string) => apiFetch(`/api/admin/media/${filename}`, {
     method: 'DELETE'

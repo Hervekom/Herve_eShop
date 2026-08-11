@@ -2,7 +2,7 @@ export type SourceCountry = 'USA' | 'Europe' | 'Asia';
 
 export type LaptopStatus = 'Disponible' | 'Arrivage imminent' | 'Rupture';
 
-export type LaptopCategory = 'Bureautique' | 'Gaming' | 'Ultrabook';
+export type LaptopCategory = 'Laptop' | 'Telephone' | 'Accessoire' | 'Gadget' | string;
 
 export interface Laptop {
   id: string;
@@ -20,6 +20,12 @@ export interface Laptop {
   status: LaptopStatus;
   description: string;
   category: LaptopCategory;
+  subCategory?: string;
+  shortDescription?: string;
+  skuByAdmin?: string;
+  isFeatured?: boolean;
+  isPopular?: boolean;
+  isRecommended?: boolean;
 }
 
 export interface QuoteCustomizations {

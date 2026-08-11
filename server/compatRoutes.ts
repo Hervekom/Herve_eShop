@@ -10,30 +10,39 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 const DEFAULT_CATEGORIES = [
   {
-    id: 'cat-ultrabook',
-    name: 'Ultrabook',
-    description: 'Ordinateurs fins, premium et mobiles.',
+    id: 'cat-laptop',
+    name: 'Laptop',
+    description: 'Ordinateurs portables, ultrabooks et machines de travail.',
     image: '',
     icon: 'Laptop',
     displayOrder: 1,
     status: 'Actif',
   },
   {
-    id: 'cat-bureautique',
-    name: 'Bureautique',
-    description: 'Machines fiables pour travail et etudes.',
+    id: 'cat-telephone',
+    name: 'Telephone',
+    description: 'Smartphones premium, iPhone, Android et appareils reconditionnes.',
     image: '',
-    icon: 'Briefcase',
+    icon: 'Smartphone',
     displayOrder: 2,
     status: 'Actif',
   },
   {
-    id: 'cat-gaming',
-    name: 'Gaming',
-    description: 'Configurations puissantes pour jeux et creation.',
+    id: 'cat-accessoire',
+    name: 'Accessoire',
+    description: 'Chargeurs, ecouteurs, claviers, souris, sacs et complements.',
     image: '',
-    icon: 'Gamepad2',
+    icon: 'Headphones',
     displayOrder: 3,
+    status: 'Actif',
+  },
+  {
+    id: 'cat-gadget',
+    name: 'Gadget',
+    description: 'Montres connectees, objets intelligents et tech lifestyle.',
+    image: '',
+    icon: 'Watch',
+    displayOrder: 4,
     status: 'Actif',
   },
 ];
@@ -126,6 +135,102 @@ function inferLaptopCategory(laptop: any) {
   return 'Bureautique';
 }
 
+function normalizeProductCategory(value?: string | null) {
+  const normalized = (value || '').trim().toLowerCase();
+  if (!normalized) return 'Laptop';
+  if (['laptop', 'pc', 'ordinateur', 'ordinateur portable'].includes(normalized)) return 'Laptop';
+  if (['telephone', 'téléphone', 'phone', 'smartphone', 'mobile', 'iphone'].includes(normalized)) return 'Telephone';
+  if (['accessoire', 'accessoires', 'accessory', 'accessories'].includes(normalized)) return 'Accessoire';
+  if (['gadget', 'gadgets'].includes(normalized)) return 'Gadget';
+  return value?.trim() || 'Laptop';
+}
+
+function inferLegacyProductCategory(row: any) {
+  const id = String(row?.id || '').toLowerCase();
+  const text = `${row?.brand || ''} ${row?.model || ''} ${row?.description || ''}`.toLowerCase();
+  if (id.startsWith('phn-') || id.startsWith('tel-') || /(iphone|galaxy|pixel|redmi|infinix|tecno)/.test(text)) return 'Telephone';
+  if (id.startsWith('acc-') || /(chargeur|ecouteur|écouteur|headphone|souris|clavier|case|coque|adapter|adaptateur)/.test(text)) return 'Accessoire';
+  if (id.startsWith('gdt-') || /(watch|montre|speaker|enceinte|tracker|console|camera|caméra)/.test(text)) return 'Gadget';
+  return 'Laptop';
+}
+
+function defaultSubCategoryForProduct(category: string, row?: any) {
+  switch (normalizeProductCategory(category)) {
+    case 'Telephone':
+      return 'Smartphone';
+    case 'Accessoire':
+      return 'Accessoire';
+    case 'Gadget':
+      return 'Gadget';
+    case 'Laptop':
+    default:
+      return inferLaptopCategory(row || {});
+  }
+}
+
+function defaultImageForProduct(category: string) {
+  switch (normalizeProductCategory(category)) {
+    case 'Telephone':
+      return 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=1200';
+    case 'Accessoire':
+      return 'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=1200';
+    case 'Gadget':
+      return 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=1200';
+    case 'Laptop':
+    default:
+      return 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&q=80&w=1200';
+  }
+}
+
+function buildProductId(category?: string | null) {
+  switch (normalizeProductCategory(category)) {
+    case 'Telephone':
+      return `phn-${Date.now()}`;
+    case 'Accessoire':
+      return `acc-${Date.now()}`;
+    case 'Gadget':
+      return `gdt-${Date.now()}`;
+    case 'Laptop':
+    default:
+      return `lpt-${Date.now()}`;
+  }
+}
+
+function parseStoredProductDescription(rawValue?: string | null) {
+  const raw = rawValue || '';
+  if (!raw.startsWith('[[meta:')) {
+    return { meta: {}, description: raw };
+  }
+
+  const markerEnd = raw.indexOf(']]');
+  if (markerEnd === -1) {
+    return { meta: {}, description: raw };
+  }
+
+  const metaText = raw.slice('[[meta:'.length, markerEnd);
+  try {
+    const parsed = JSON.parse(metaText);
+    const description = raw.slice(markerEnd + 2).replace(/^\n/, '');
+    return { meta: parsed || {}, description };
+  } catch {
+    return { meta: {}, description: raw };
+  }
+}
+
+function serializeStoredProductDescription(description: string, meta: Record<string, any>) {
+  const normalizedMeta = {
+    category: normalizeProductCategory(meta.category),
+    subCategory: meta.subCategory || '',
+    shortDescription: meta.shortDescription || '',
+    skuByAdmin: meta.skuByAdmin || '',
+    isFeatured: Boolean(meta.isFeatured),
+    isPopular: Boolean(meta.isPopular),
+    isRecommended: Boolean(meta.isRecommended),
+  };
+
+  return `[[meta:${JSON.stringify(normalizedMeta)}]]\n${description || ''}`;
+}
+
 function mapLaptopStatus(laptop: any) {
   if (laptop?.is_active === false) return 'Rupture';
   const stock = Number(laptop?.stock_quantity || 0);
@@ -142,6 +247,13 @@ function mapLaptopSource(origin?: string | null): 'USA' | 'Europe' | 'Asia' {
 }
 
 function mapLaptopRowToFrontend(row: any) {
+  const stored = parseStoredProductDescription(row.description);
+  const category = normalizeProductCategory(
+    stored.meta?.category || row.category || row.product_type || inferLegacyProductCategory(row),
+  );
+  const description = stored.description || '';
+  const subCategory = stored.meta?.subCategory || row.sub_category || defaultSubCategoryForProduct(category, row);
+
   return {
     id: row.id,
     brand: row.brand || 'N/A',
@@ -152,16 +264,54 @@ function mapLaptopRowToFrontend(row: any) {
     screenSize: row.screen_size || '',
     condition: row.condition || 'Tres bon etat',
     source: mapLaptopSource(row.origin),
-    image: row.image_url || '',
+    image: row.image_url || defaultImageForProduct(category),
     price: Number(row.price_xaf || 0),
     oldPrice: row.old_price_xaf ? Number(row.old_price_xaf) : undefined,
     stockQuantity: Number(row.stock_quantity || 0),
     status: mapLaptopStatus(row),
-    category: inferLaptopCategory(row),
-    description: row.description || '',
-    shortDescription: row.description || '',
-    skuByAdmin: row.id,
+    category,
+    subCategory,
+    description,
+    shortDescription: stored.meta?.shortDescription || description || '',
+    skuByAdmin: stored.meta?.skuByAdmin || row.sku || row.id,
+    isFeatured: Boolean(stored.meta?.isFeatured),
+    isPopular: Boolean(stored.meta?.isPopular),
+    isRecommended: Boolean(stored.meta?.isRecommended),
   };
+}
+
+function detectImageContentType(fileName: string, base64Data: string) {
+  const dataMatch = /^data:(image\/[a-zA-Z0-9.+-]+);base64,/.exec(base64Data || '');
+  if (dataMatch?.[1]) return dataMatch[1];
+
+  const ext = path.extname(fileName).toLowerCase();
+  switch (ext) {
+    case '.png':
+      return 'image/png';
+    case '.webp':
+      return 'image/webp';
+    case '.gif':
+      return 'image/gif';
+    case '.svg':
+      return 'image/svg+xml';
+    case '.jpg':
+    case '.jpeg':
+    default:
+      return 'image/jpeg';
+  }
+}
+
+async function ensureStorageBucket(adminDb: SupabaseLike, bucketName: string) {
+  const { data, error } = await adminDb.storage.listBuckets();
+  if (error) throw error;
+
+  const exists = (data || []).some((bucket: any) => bucket.name === bucketName);
+  if (!exists) {
+    const { error: createError } = await adminDb.storage.createBucket(bucketName, { public: true });
+    if (createError && !/already exists/i.test(createError.message)) {
+      throw createError;
+    }
+  }
 }
 
 function toDbOrderStatus(status?: string | null) {
@@ -834,19 +984,32 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
     try {
       const payload = req.body || {};
+      const category = normalizeProductCategory(payload.category);
       const insertPayload = {
-        id: payload.id || undefined,
+        id: payload.id || buildProductId(category),
         brand: payload.brand,
         model: payload.model,
         processor: payload.processor || '',
         ram: payload.ram || '',
         storage: payload.storage || '',
+        screen_size: payload.screenSize || '',
         condition: payload.condition || '',
         origin: payload.source || '',
-        image_url: payload.image || '',
+        image_url: payload.image || defaultImageForProduct(category),
         price_xaf: Number(payload.price || 0),
+        old_price_xaf: payload.oldPrice !== undefined && payload.oldPrice !== null && payload.oldPrice !== ''
+          ? Number(payload.oldPrice)
+          : null,
         stock_quantity: Number(payload.stockQuantity || 0),
-        description: payload.description || '',
+        description: serializeStoredProductDescription(payload.description || '', {
+          category,
+          subCategory: payload.subCategory || defaultSubCategoryForProduct(category),
+          shortDescription: payload.shortDescription || '',
+          skuByAdmin: payload.skuByAdmin || '',
+          isFeatured: payload.isFeatured,
+          isPopular: payload.isPopular,
+          isRecommended: payload.isRecommended,
+        }),
         is_active: payload.status !== 'Rupture',
         video_url: null,
         youtube_url: null,
@@ -858,7 +1021,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         userRole: user.role,
         action: 'Creation produit',
         entityId: data.id,
-        entityType: 'Laptop',
+        entityType: 'Product',
       });
       res.json({ success: true, product: mapLaptopRowToFrontend(data) });
     } catch (error) {
@@ -873,18 +1036,33 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
     try {
       const payload = req.body || {};
+      const category = normalizeProductCategory(payload.category);
       const updatePayload = {
         brand: payload.brand,
         model: payload.model,
         processor: payload.processor,
         ram: payload.ram,
         storage: payload.storage,
+        screen_size: payload.screenSize,
         condition: payload.condition,
         origin: payload.source,
-        image_url: payload.image,
+        image_url: payload.image || defaultImageForProduct(category),
         price_xaf: payload.price !== undefined ? Number(payload.price) : undefined,
+        old_price_xaf: payload.oldPrice !== undefined
+          ? (payload.oldPrice === null || payload.oldPrice === '' ? null : Number(payload.oldPrice))
+          : undefined,
         stock_quantity: payload.stockQuantity !== undefined ? Number(payload.stockQuantity) : undefined,
-        description: payload.description,
+        description: payload.description !== undefined
+          ? serializeStoredProductDescription(payload.description || '', {
+              category,
+              subCategory: payload.subCategory || defaultSubCategoryForProduct(category),
+              shortDescription: payload.shortDescription || '',
+              skuByAdmin: payload.skuByAdmin || '',
+              isFeatured: payload.isFeatured,
+              isPopular: payload.isPopular,
+              isRecommended: payload.isRecommended,
+            })
+          : undefined,
         is_active: payload.status ? payload.status !== 'Rupture' : undefined,
         updated_at: new Date().toISOString(),
       };
@@ -895,7 +1073,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         userRole: user.role,
         action: 'Mise a jour produit',
         entityId: req.params.id,
-        entityType: 'Laptop',
+        entityType: 'Product',
       });
       res.json({ success: true, product: mapLaptopRowToFrontend(data) });
     } catch (error) {
@@ -916,7 +1094,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         userRole: user.role,
         action: 'Suppression produit',
         entityId: req.params.id,
-        entityType: 'Laptop',
+        entityType: 'Product',
       });
       res.json({ success: true });
     } catch (error) {
@@ -1200,8 +1378,9 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/media', requireCompatAdmin, async (_req, res) => {
     try {
-      const bucketName = 'site-assets';
-      const { data, error } = await supabase.storage.from(bucketName).list('', {
+      const bucketName = 'products';
+      await ensureStorageBucket(adminDb, bucketName);
+      const { data, error } = await adminDb.storage.from(bucketName).list('', {
         limit: 100,
         offset: 0,
         sortBy: { column: 'created_at', order: 'desc' },
@@ -1209,7 +1388,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (error) throw error;
       res.json((data || []).map((file: any) => ({
         name: file.name,
-        url: supabase.storage.from(bucketName).getPublicUrl(file.name).data.publicUrl,
+        url: adminDb.storage.from(bucketName).getPublicUrl(file.name).data.publicUrl,
         size: file.metadata?.size || 0,
         createdAt: file.created_at,
       })));
@@ -1220,21 +1399,22 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.post('/api/admin/media/upload', requireCompatAdmin, async (req, res) => {
     try {
-      const { fileName, base64Data, bucketName = 'site-assets' } = req.body;
+      const { fileName, base64Data, bucketName = 'products' } = req.body;
       if (!fileName || !base64Data) {
         return res.status(400).json({ error: 'Nom de fichier et base64 requis.' });
       }
+      await ensureStorageBucket(adminDb, bucketName);
       const cleanBase64 = String(base64Data).replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(cleanBase64, 'base64');
       const ext = path.extname(fileName) || '.jpg';
       const base = path.basename(fileName, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
       const secureName = `${base}-${Date.now()}${ext}`;
-      const { error } = await supabase.storage.from(bucketName).upload(secureName, buffer, {
-        contentType: 'image/jpeg',
+      const { error } = await adminDb.storage.from(bucketName).upload(secureName, buffer, {
+        contentType: detectImageContentType(fileName, String(base64Data)),
         upsert: false,
       });
       if (error) throw error;
-      const publicUrl = supabase.storage.from(bucketName).getPublicUrl(secureName).data.publicUrl;
+      const publicUrl = adminDb.storage.from(bucketName).getPublicUrl(secureName).data.publicUrl;
       res.json({ success: true, url: publicUrl, name: secureName });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -1243,8 +1423,8 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.delete('/api/admin/media/:filename', requireCompatAdmin, async (req, res) => {
     try {
-      const bucketName = String(req.query.bucketName || 'site-assets');
-      const { error } = await supabase.storage.from(bucketName).remove([req.params.filename]);
+      const bucketName = String(req.query.bucketName || 'products');
+      const { error } = await adminDb.storage.from(bucketName).remove([req.params.filename]);
       if (error) throw error;
       res.json({ success: true });
     } catch (error) {

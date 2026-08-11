@@ -93,6 +93,14 @@ export default function CatalogView({
 
   // Extract unique brands for filtering
   const brands = ['All', ...Array.from(new Set(laptops.map(l => l.brand)))];
+  const productCategories = ['All', ...Array.from(new Set(laptops.map(l => l.category).filter(Boolean)))];
+  const categoryIcons: Record<string, string> = {
+    All: '🛍️',
+    Laptop: '💻',
+    Telephone: '📱',
+    Accessoire: '🎧',
+    Gadget: '⌚',
+  };
 
   // Apply filters
   const filteredLaptops = laptops.filter(laptop => {
@@ -214,10 +222,10 @@ export default function CatalogView({
               <h3 className="text-base font-serif font-bold text-luxe-dark flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-luxe-copper" /> Filtrer le catalogue en temps réel
               </h3>
-              <p className="text-xs text-luxe-muted mt-0.5">Retrouvez l'ordinateur qui correspond exactement à vos besoins de performance.</p>
+              <p className="text-xs text-luxe-muted mt-0.5">Retrouvez l article tech qui correspond exactement a vos besoins.</p>
             </div>
             <div className="text-[11px] font-semibold text-luxe-muted bg-warm-cream px-3 py-1.5 rounded-full border border-warm-cream-dark">
-              {sortedLaptops.length} ordinateur{sortedLaptops.length > 1 ? 's' : ''} trouvé{sortedLaptops.length > 1 ? 's' : ''}
+              {sortedLaptops.length} article{sortedLaptops.length > 1 ? 's' : ''} trouve{sortedLaptops.length > 1 ? 's' : ''}
             </div>
           </div>
 
@@ -225,20 +233,17 @@ export default function CatalogView({
           <div className="flex flex-col gap-5 border-b border-warm-cream-dark/40 pb-5">
             {/* 1. Category & Favorites Filter Buttons */}
             <div className="flex flex-col gap-2">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-luxe-muted">Type d'Ordinateur, Usage & Favoris</span>
+              <span className="text-[10px] uppercase tracking-wider font-bold text-luxe-muted">Familles de produits et favoris</span>
               <div className="flex flex-wrap gap-2">
-                {[
-                  { value: 'All', label: 'Tous les types', icon: '💻' },
-                  { value: 'Bureautique', label: 'Bureautique (Pro & Études)', icon: '💼' },
-                  { value: 'Gaming', label: 'Gaming & Performance', icon: '🎮' },
-                  { value: 'Ultrabook', label: 'Ultrabook & Prestige', icon: '⚡' }
-                ].map((cat) => {
-                  const isSelected = selectedCategory === cat.value;
+                {productCategories.map((cat) => {
+                  const isSelected = selectedCategory === cat;
+                  const icon = categoryIcons[cat] || '📦';
+                  const label = cat === 'All' ? 'Tous les produits' : cat;
                   return (
                     <button
-                      key={cat.value}
+                      key={cat}
                       onClick={() => {
-                        setSelectedCategory(cat.value);
+                        setSelectedCategory(cat);
                         setShowOnlyFavourites(false); // Standard catalog view is restored when clicking category buttons
                       }}
                       className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all border cursor-pointer select-none ${
@@ -246,10 +251,10 @@ export default function CatalogView({
                           ? 'bg-luxe-dark text-warm-cream border-luxe-dark shadow-sm scale-[1.02]'
                           : 'bg-warm-cream text-luxe-dark border-warm-cream-dark/70 hover:border-luxe-gold hover:bg-white'
                       }`}
-                      id={`filter-category-btn-${cat.value}`}
+                      id={`filter-category-btn-${cat}`}
                     >
-                      <span className="text-sm">{cat.icon}</span>
-                      {cat.label}
+                      <span className="text-sm">{icon}</span>
+                      {label}
                     </button>
                   );
                 })}
