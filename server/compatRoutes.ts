@@ -786,7 +786,6 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         basePrice: Number(laptop.price_xaf || 0),
         finalPrice: resolvedFinalPrice,
         customizations: customizations || null,
-        additionalNotes: additionalNotes || null,
         status: toDbOrderStatus('Demande reçue'),
       };
 
@@ -1059,7 +1058,6 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
             notes: String(delivery.notes || ''),
           },
         },
-        additionalNotes: normalizedItems.length > 1 ? `Commande panier: ${normalizedItems.length} article(s).` : null,
         status: toDbOrderStatus('Demande reçue'),
       };
 
