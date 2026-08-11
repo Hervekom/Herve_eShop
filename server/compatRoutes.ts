@@ -601,6 +601,21 @@ async function adaptiveInsertSingleRow(adminDb: SupabaseLike, tableName: string,
   return { data: null, error: new Error('Insertion impossible: trop de colonnes incompatibles.') };
 }
 
+async function insertNotificationBestEffort(adminDb: SupabaseLike, payload: Record<string, any>) {
+  try {
+    const enriched = {
+      title: String(payload?.title || '').trim() || 'Notification',
+      message: payload?.message !== undefined && payload?.message !== null ? String(payload.message) : null,
+      type: payload?.type || 'info',
+      is_read: false,
+      ...payload,
+    };
+    await adaptiveInsertSingleRow(adminDb, 'notifications', enriched);
+  } catch {
+    return;
+  }
+}
+
 async function loadCmsFromDb(adminDb: SupabaseLike) {
   try {
     const { data, error } = await adminDb
@@ -864,14 +879,13 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         throw pendingAttempt.error;
       }
 
-      await db.from('notifications').insert([{
-        user_id: customerUser?.id || 'system',
-        title: 'Nouvelle commande soumise',
+      await insertNotificationBestEffort(adminDb, {
+        title: 'Nouvelle demande',
         message: `${clientName} a soumis une demande pour ${laptop.brand} ${laptop.model}.`,
         type: 'success',
-        is_read: false,
+        user_id: customerUser?.id || 'system',
         metadata: { orderId: inserted.id, source: 'client_quote' },
-      }]);
+      });
 
       pushAuditLog({
         userEmail: customerUser?.email || 'guest@herve-eshop.local',
@@ -1123,14 +1137,13 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         await adminDb.from('laptops').update({ stock_quantity: nextStock, updated_at: new Date().toISOString() }).eq('id', it.productId);
       }
 
-      await adminDb.from('notifications').insert([{
-        user_id: customerUser?.id || 'system',
+      await insertNotificationBestEffort(adminDb, {
         title: 'Nouvelle commande panier',
-        message: `${clientName} a soumis une commande panier (${normalizedItems.length} article(s)).`,
+        message: `${clientName} a validé un panier (${normalizedItems.length} article(s)) - Total: ${totalAmount.toLocaleString('fr-FR')} FCFA.`,
         type: 'success',
-        is_read: false,
+        user_id: customerUser?.id || 'system',
         metadata: { orderId: inserted.id, source: 'client_checkout' },
-      }]);
+      });
 
       pushAuditLog({
         userEmail: customerUser?.email || 'guest@herve-eshop.local',
@@ -1179,6 +1192,14 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         });
         token = loginData?.session?.access_token || null;
       }
+
+      await insertNotificationBestEffort(adminDb, {
+        title: 'Nouvel utilisateur',
+        message: `${String(name || '').trim()} vient de créer un compte${city ? ` (${String(city).trim()})` : ''}${phone ? ` - ${String(phone).trim()}` : ''}${email ? ` - ${String(email).trim()}` : ''}.`,
+        type: 'info',
+        user_id: data.user?.id || 'system',
+        metadata: { source: 'client_register', userId: data.user?.id || null },
+      });
 
       res.json({
         success: true,
