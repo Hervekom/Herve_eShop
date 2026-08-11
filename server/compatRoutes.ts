@@ -564,6 +564,32 @@ function isAnyMissingColumnError(error: any, columns: string[]) {
   return columns.some((col) => isMissingColumnError(error, col));
 }
 
+function extractMissingColumnName(error: any) {
+  const message = String(error?.message || error || '');
+  const match = /Could not find the '([^']+)' column/i.exec(message);
+  return match?.[1] ? String(match[1]) : null;
+}
+
+async function adaptiveInsertSingleRow(adminDb: SupabaseLike, tableName: string, initialPayload: Record<string, any>) {
+  const payload: Record<string, any> = { ...(initialPayload || {}) };
+  const maxRetries = 30;
+
+  for (let i = 0; i < maxRetries; i += 1) {
+    const attempt = await adminDb.from(tableName).insert([payload]).select().single();
+    if (!attempt.error) return { data: attempt.data, error: null };
+
+    const missingCol = extractMissingColumnName(attempt.error);
+    if (missingCol && Object.prototype.hasOwnProperty.call(payload, missingCol)) {
+      delete payload[missingCol];
+      continue;
+    }
+
+    return { data: null, error: attempt.error };
+  }
+
+  return { data: null, error: new Error('Insertion impossible: trop de colonnes incompatibles.') };
+}
+
 async function loadCmsFromDb(adminDb: SupabaseLike) {
   try {
     const { data, error } = await adminDb
@@ -790,8 +816,10 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       };
 
       let inserted: any = null;
-      const firstAttempt = await adminDb.from('orders').insert([orderPayload]).select().single();
-      if (firstAttempt.error) {
+      const snakeAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', orderPayload);
+      if (!snakeAttempt.error) {
+        inserted = snakeAttempt.data;
+      } else {
         const snakeCols = [
           'order_number',
           'client_name',
@@ -807,15 +835,13 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           'additional_notes',
           'status',
         ];
-        if (isAnyMissingColumnError(firstAttempt.error, snakeCols)) {
-          const secondAttempt = await adminDb.from('orders').insert([camelPayload]).select().single();
-          if (secondAttempt.error) throw secondAttempt.error;
-          inserted = secondAttempt.data;
+        if (isAnyMissingColumnError(snakeAttempt.error, snakeCols)) {
+          const camelAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', camelPayload);
+          if (camelAttempt.error) throw camelAttempt.error;
+          inserted = camelAttempt.data;
         } else {
-          throw firstAttempt.error;
+          throw snakeAttempt.error;
         }
-      } else {
-        inserted = firstAttempt.data;
       }
 
       await db.from('notifications').insert([{
@@ -1062,8 +1088,10 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       };
 
       let inserted: any = null;
-      const firstAttempt = await adminDb.from('orders').insert([orderPayload]).select().single();
-      if (firstAttempt.error) {
+      const snakeAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', orderPayload);
+      if (!snakeAttempt.error) {
+        inserted = snakeAttempt.data;
+      } else {
         const snakeCols = [
           'order_number',
           'client_name',
@@ -1079,15 +1107,13 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           'additional_notes',
           'status',
         ];
-        if (isAnyMissingColumnError(firstAttempt.error, snakeCols)) {
-          const secondAttempt = await adminDb.from('orders').insert([camelPayload]).select().single();
-          if (secondAttempt.error) throw secondAttempt.error;
-          inserted = secondAttempt.data;
+        if (isAnyMissingColumnError(snakeAttempt.error, snakeCols)) {
+          const camelAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', camelPayload);
+          if (camelAttempt.error) throw camelAttempt.error;
+          inserted = camelAttempt.data;
         } else {
-          throw firstAttempt.error;
+          throw snakeAttempt.error;
         }
-      } else {
-        inserted = firstAttempt.data;
       }
 
       for (const it of normalizedItems) {
