@@ -401,7 +401,7 @@ function parseItemsPayload(value: any) {
 }
 
 function mapOrderRowToFrontend(row: any) {
-  const isLegacy =
+  const isLegacySnake =
     row &&
     (row.client_name !== undefined ||
       row.client_phone !== undefined ||
@@ -409,7 +409,15 @@ function mapOrderRowToFrontend(row: any) {
       row.laptop_id !== undefined ||
       row.order_number !== undefined);
 
-  if (isLegacy) {
+  const isLegacyCamel =
+    row &&
+    (row.clientName !== undefined ||
+      row.clientPhone !== undefined ||
+      row.clientCity !== undefined ||
+      row.laptopId !== undefined ||
+      row.orderNumber !== undefined);
+
+  if (isLegacySnake) {
     const customizations = row.customizations || {
       ramUpgrade: 'Aucune',
       storageUpgrade: 'Aucun',
@@ -426,13 +434,40 @@ function mapOrderRowToFrontend(row: any) {
       laptopId: row.laptop_id || '',
       laptopBrand: row.laptop_brand || '',
       laptopModel: row.laptop_model || '',
-      basePrice: Number(row.base_price || row.final_price || 0),
-      finalPrice: Number(row.final_price || 0),
+      basePrice: Number(row.base_price ?? row.basePrice ?? row.final_price ?? row.finalPrice ?? 0),
+      finalPrice: Number(row.final_price ?? row.finalPrice ?? 0),
       customizations,
       additionalNotes: row.additional_notes || '',
       status: fromDbOrderStatus(row.status),
-      createdAt: row.created_at || new Date().toISOString(),
-      updatedAt: row.updated_at || row.created_at || new Date().toISOString(),
+      createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+      updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || new Date().toISOString(),
+    };
+  }
+
+  if (isLegacyCamel) {
+    const customizations = row.customizations || {
+      ramUpgrade: 'Aucune',
+      storageUpgrade: 'Aucun',
+      osOption: 'Windows 11 Pro',
+      accessories: [],
+    };
+    return {
+      id: row.id,
+      orderNumber: row.orderNumber || row.id,
+      clientName: row.clientName || 'Client',
+      clientPhone: row.clientPhone || '',
+      clientEmail: row.clientEmail || '',
+      clientCity: row.clientCity || '',
+      laptopId: row.laptopId || '',
+      laptopBrand: row.laptopBrand || '',
+      laptopModel: row.laptopModel || '',
+      basePrice: Number(row.basePrice ?? row.finalPrice ?? 0),
+      finalPrice: Number(row.finalPrice ?? 0),
+      customizations,
+      additionalNotes: row.additionalNotes || '',
+      status: fromDbOrderStatus(row.status),
+      createdAt: row.createdAt || row.created_at || new Date().toISOString(),
+      updatedAt: row.updatedAt || row.updated_at || row.createdAt || row.created_at || new Date().toISOString(),
     };
   }
 
@@ -470,8 +505,8 @@ function mapOrderRowToFrontend(row: any) {
     },
     additionalNotes: first.additionalNotes || '',
     status: fromDbOrderStatus(row.status),
-    createdAt: row.created_at || new Date().toISOString(),
-    updatedAt: row.updated_at || row.created_at || new Date().toISOString(),
+    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || new Date().toISOString(),
   };
 }
 
@@ -518,6 +553,15 @@ function mapUiRoleToDb(role?: string | null) {
 function isMissingTableError(error: any) {
   const message = String(error?.message || error || '').toLowerCase();
   return message.includes('does not exist') || message.includes('schema cache') || message.includes('cannot find');
+}
+
+function isMissingColumnError(error: any, column: string) {
+  const message = String(error?.message || error || '');
+  return message.includes(`Could not find the '${column}' column`);
+}
+
+function isAnyMissingColumnError(error: any, columns: string[]) {
+  return columns.some((col) => isMissingColumnError(error, col));
 }
 
 async function loadCmsFromDb(adminDb: SupabaseLike) {
@@ -729,8 +773,51 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         status: toDbOrderStatus('Demande reçue'),
       };
 
-      const { data: inserted, error: orderError } = await adminDb.from('orders').insert([orderPayload]).select().single();
-      if (orderError) throw orderError;
+      const camelPayload: any = {
+        id: id || undefined,
+        orderNumber: id || `DV-${Date.now()}`,
+        clientName,
+        clientPhone,
+        clientEmail: clientEmail || null,
+        clientCity: clientCity || '',
+        laptopId,
+        laptopBrand: laptop.brand || '',
+        laptopModel: laptop.model || '',
+        basePrice: Number(laptop.price_xaf || 0),
+        finalPrice: resolvedFinalPrice,
+        customizations: customizations || null,
+        additionalNotes: additionalNotes || null,
+        status: toDbOrderStatus('Demande reçue'),
+      };
+
+      let inserted: any = null;
+      const firstAttempt = await adminDb.from('orders').insert([orderPayload]).select().single();
+      if (firstAttempt.error) {
+        const snakeCols = [
+          'order_number',
+          'client_name',
+          'client_phone',
+          'client_email',
+          'client_city',
+          'laptop_id',
+          'laptop_brand',
+          'laptop_model',
+          'base_price',
+          'final_price',
+          'customizations',
+          'additional_notes',
+          'status',
+        ];
+        if (isAnyMissingColumnError(firstAttempt.error, snakeCols)) {
+          const secondAttempt = await adminDb.from('orders').insert([camelPayload]).select().single();
+          if (secondAttempt.error) throw secondAttempt.error;
+          inserted = secondAttempt.data;
+        } else {
+          throw firstAttempt.error;
+        }
+      } else {
+        inserted = firstAttempt.data;
+      }
 
       await db.from('notifications').insert([{
         user_id: customerUser?.id || 'system',
@@ -946,8 +1033,64 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         status: toDbOrderStatus('Demande reçue'),
       };
 
-      const { data: inserted, error: insertError } = await adminDb.from('orders').insert([orderPayload]).select().single();
-      if (insertError) throw insertError;
+      const camelPayload: any = {
+        orderNumber: `CMD-${Date.now()}`,
+        clientName,
+        clientPhone,
+        clientEmail: clientEmail || null,
+        clientCity,
+        laptopId: String(firstItem?.productId || ''),
+        laptopBrand: normalizedItems.length > 1 ? `${normalizedItems.length} articles` : String(firstItem?.brand || ''),
+        laptopModel: normalizedItems.length > 1 ? 'Commande panier' : String(firstItem?.model || ''),
+        basePrice: totalAmount,
+        finalPrice: totalAmount,
+        customizations: {
+          type: 'cart',
+          items: normalizedItems,
+          shipping: {
+            address: clientAddress,
+            clientName,
+            clientPhone,
+            clientEmail,
+            clientCity,
+          },
+          delivery: {
+            method: String(delivery.method || 'delivery'),
+            notes: String(delivery.notes || ''),
+          },
+        },
+        additionalNotes: normalizedItems.length > 1 ? `Commande panier: ${normalizedItems.length} article(s).` : null,
+        status: toDbOrderStatus('Demande reçue'),
+      };
+
+      let inserted: any = null;
+      const firstAttempt = await adminDb.from('orders').insert([orderPayload]).select().single();
+      if (firstAttempt.error) {
+        const snakeCols = [
+          'order_number',
+          'client_name',
+          'client_phone',
+          'client_email',
+          'client_city',
+          'laptop_id',
+          'laptop_brand',
+          'laptop_model',
+          'base_price',
+          'final_price',
+          'customizations',
+          'additional_notes',
+          'status',
+        ];
+        if (isAnyMissingColumnError(firstAttempt.error, snakeCols)) {
+          const secondAttempt = await adminDb.from('orders').insert([camelPayload]).select().single();
+          if (secondAttempt.error) throw secondAttempt.error;
+          inserted = secondAttempt.data;
+        } else {
+          throw firstAttempt.error;
+        }
+      } else {
+        inserted = firstAttempt.data;
+      }
 
       for (const it of normalizedItems) {
         const row = productsById.get(it.productId);
@@ -1065,16 +1208,36 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (!user) {
         return res.status(401).json({ error: 'Session client invalide ou expirée.' });
       }
-      let ordersQuery: any = adminDb.from('orders').select('*').order('created_at', { ascending: false });
-      if (user.email && user.phone) {
-        ordersQuery = ordersQuery.or(`client_email.eq.${user.email},client_phone.eq.${user.phone}`);
-      } else if (user.email) {
-        ordersQuery = ordersQuery.eq('client_email', user.email);
-      } else if (user.phone) {
-        ordersQuery = ordersQuery.eq('client_phone', user.phone);
+      let orders: any[] = [];
+      const firstAttempt = await (async () => {
+        let ordersQuery: any = adminDb.from('orders').select('*').order('created_at', { ascending: false });
+        if (user.email && user.phone) {
+          ordersQuery = ordersQuery.or(`client_email.eq.${user.email},client_phone.eq.${user.phone}`);
+        } else if (user.email) {
+          ordersQuery = ordersQuery.eq('client_email', user.email);
+        } else if (user.phone) {
+          ordersQuery = ordersQuery.eq('client_phone', user.phone);
+        }
+        return ordersQuery;
+      })();
+
+      if (firstAttempt.error) {
+        const cols = ['created_at', 'client_email', 'client_phone'];
+        if (isAnyMissingColumnError(firstAttempt.error, cols)) {
+          const allAttempt = await adminDb.from('orders').select('*');
+          if (allAttempt.error) throw allAttempt.error;
+          const mapped = (allAttempt.data || []).map(mapOrderRowToFrontend);
+          orders = mapped.filter((o: any) => {
+            const emailMatch = user.email ? String(o.clientEmail || '').trim() === String(user.email || '').trim() : false;
+            const phoneMatch = user.phone ? String(o.clientPhone || '').trim() === String(user.phone || '').trim() : false;
+            return emailMatch || phoneMatch;
+          });
+        } else {
+          throw firstAttempt.error;
+        }
+      } else {
+        orders = firstAttempt.data || [];
       }
-      const { data: orders, error } = await ordersQuery;
-      if (error) throw error;
       res.json({
         success: true,
         user: {
@@ -1494,9 +1657,16 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/orders', requireCompatAdmin, async (_req, res) => {
     try {
-      const { data, error } = await adminDb.from('orders').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      res.json((data || []).map(mapOrderRowToFrontend));
+      const firstAttempt = await adminDb.from('orders').select('*').order('created_at', { ascending: false });
+      if (firstAttempt.error) {
+        if (isMissingColumnError(firstAttempt.error, 'created_at')) {
+          const secondAttempt = await adminDb.from('orders').select('*').order('createdAt', { ascending: false });
+          if (secondAttempt.error) throw secondAttempt.error;
+          return res.json((secondAttempt.data || []).map(mapOrderRowToFrontend));
+        }
+        throw firstAttempt.error;
+      }
+      res.json((firstAttempt.data || []).map(mapOrderRowToFrontend));
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
     }
@@ -1570,8 +1740,35 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/customers', requireCompatAdmin, async (_req, res) => {
     try {
-      const { data, error } = await adminDb.from('orders').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
+      const firstAttempt = await adminDb.from('orders').select('*').order('created_at', { ascending: false });
+      if (firstAttempt.error) {
+        if (isMissingColumnError(firstAttempt.error, 'created_at')) {
+          const secondAttempt = await adminDb.from('orders').select('*').order('createdAt', { ascending: false });
+          if (secondAttempt.error) throw secondAttempt.error;
+          const data = secondAttempt.data || [];
+          const grouped = new Map<string, any>();
+          (data || []).forEach((row: any) => {
+            const mapped = mapOrderRowToFrontend(row);
+            const key = mapped.clientEmail || mapped.clientPhone || mapped.clientName;
+            const current = grouped.get(key) || {
+              id: key,
+              name: mapped.clientName,
+              email: mapped.clientEmail,
+              phone: mapped.clientPhone,
+              city: mapped.clientCity,
+              created_at: mapped.createdAt,
+              total_spent: 0,
+              orders_count: 0,
+            };
+            current.total_spent += mapped.finalPrice;
+            current.orders_count += 1;
+            grouped.set(key, current);
+          });
+          return res.json(Array.from(grouped.values()));
+        }
+        throw firstAttempt.error;
+      }
+      const data = firstAttempt.data || [];
       const grouped = new Map<string, any>();
       (data || []).forEach((row: any) => {
         const mapped = mapOrderRowToFrontend(row);
