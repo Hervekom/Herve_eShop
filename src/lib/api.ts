@@ -21,7 +21,13 @@ export function setAuthToken(token: string | null) {
 
 export function getCachedAdminUser() {
   const user = localStorage.getItem(AUTH_USER_KEY);
-  return user ? JSON.parse(user) : null;
+  if (!user) return null;
+  try {
+    return JSON.parse(user);
+  } catch {
+    localStorage.removeItem(AUTH_USER_KEY);
+    return null;
+  }
 }
 
 export function setCachedAdminUser(user: any) {
@@ -48,7 +54,13 @@ export function setGuestToken(token: string | null) {
 
 export function getCachedGuestUser() {
   const user = localStorage.getItem(CUSTOMER_USER_KEY);
-  return user ? JSON.parse(user) : null;
+  if (!user) return null;
+  try {
+    return JSON.parse(user);
+  } catch {
+    localStorage.removeItem(CUSTOMER_USER_KEY);
+    return null;
+  }
 }
 
 export function setCachedGuestUser(user: any) {
