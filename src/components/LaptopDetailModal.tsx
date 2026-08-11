@@ -259,21 +259,11 @@ export default function LaptopDetailModal({
     }
   }, [laptop]);
 
-  if (!laptop || !isOpen) return null;
-
-  // Retrieve model information or fall back to defaults
-  const details = LAPTOP_MEDIA_REVIEWS[laptop.id] || {
-    images: [laptop.image],
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-working-on-a-laptop-42289-large.mp4',
-    reviews: []
-  };
-
-  const currentModelReviews = reviews;
-
   useEffect(() => {
-    if (!isOpen || !laptop?.id) return;
+    const productId = laptop?.id;
+    if (!isOpen || !productId) return;
     setReviewsLoading(true);
-    API.getProductReviews(laptop.id)
+    API.getProductReviews(productId)
       .then((res: any) => {
         const list = Array.isArray(res?.reviews) ? res.reviews : [];
         setReviews(list);
@@ -285,6 +275,17 @@ export default function LaptopDetailModal({
         setReviewsLoading(false);
       });
   }, [isOpen, laptop?.id]);
+
+  if (!laptop || !isOpen) return null;
+
+  // Retrieve model information or fall back to defaults
+  const details = LAPTOP_MEDIA_REVIEWS[laptop.id] || {
+    images: [laptop.image],
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-working-on-a-laptop-42289-large.mp4',
+    reviews: []
+  };
+
+  const currentModelReviews = reviews;
 
   // Video functionality
   const handlePlayPause = () => {
