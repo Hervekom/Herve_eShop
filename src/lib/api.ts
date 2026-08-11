@@ -169,7 +169,9 @@ export const API = {
       body: JSON.stringify(payload)
     });
     if (res.success) {
-      setGuestToken(res.token);
+      if (res.token) {
+        setGuestToken(res.token);
+      }
       setCachedGuestUser(res.user);
     }
     return res;

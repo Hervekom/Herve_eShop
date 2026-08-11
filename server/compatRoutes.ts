@@ -924,9 +924,18 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         return res.status(400).json({ error: error.message });
       }
 
+      let token = data.session?.access_token || null;
+      if (!token) {
+        const { data: loginData } = await supabase.auth.signInWithPassword({
+          email: syntheticEmail,
+          password,
+        });
+        token = loginData?.session?.access_token || null;
+      }
+
       res.json({
         success: true,
-        token: data.session?.access_token || null,
+        token,
         user: {
           id: data.user?.id,
           name,

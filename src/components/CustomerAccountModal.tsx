@@ -3,7 +3,7 @@ import {
   X, Check, Laptop, Sparkles, PhoneCall, Mail, MapPin, 
   User, LogOut, Loader2, Lock, Eye, EyeOff, Edit, ClipboardList, RefreshCw
 } from 'lucide-react';
-import API, { getCachedGuestUser } from '../lib/api';
+import API, { getCachedGuestUser, getGuestToken } from '../lib/api';
 import { QuoteRequest } from '../types';
 
 interface CustomerAccountModalProps {
@@ -61,7 +61,8 @@ export default function CustomerAccountModal({
 
   useEffect(() => {
     const cached = getCachedGuestUser();
-    if (cached) {
+    const token = getGuestToken();
+    if (cached && token) {
       setCurrentUser(cached);
       setActiveTab('dashboard');
       fetchProfileData();
@@ -137,11 +138,28 @@ export default function CustomerAccountModal({
 
       const res = await API.registerCustomer(payload);
       if (res.success) {
-        setCurrentUser(res.user);
-        setActiveTab('dashboard');
-        onSuccess(res.user);
-        triggerToast('Compte créé avec succès ! 🎉', `Votre espace client Herve_eShop a été configuré, ${res.user.name}.`, 'success');
-        fetchProfileData();
+        if (res.token) {
+          setCurrentUser(res.user);
+          setActiveTab('dashboard');
+          onSuccess(res.user);
+          triggerToast('Compte créé avec succès ! 🎉', `Votre espace client Herve_eShop a été configuré, ${res.user.name}.`, 'success');
+          fetchProfileData();
+        } else {
+          try {
+            const identifierToUse = regEmail.trim() || regPhone.trim();
+            const loginRes = await API.loginCustomer({ identifier: identifierToUse, password: regPassword });
+            if (loginRes.success) {
+              setCurrentUser(loginRes.user);
+              setActiveTab('dashboard');
+              onSuccess(loginRes.user);
+              triggerToast('Compte créé et connecté ! 🎉', `Bienvenue, ${loginRes.user.name}.`, 'success');
+              fetchProfileData();
+            }
+          } catch {
+            setActiveTab('login');
+            triggerToast('Compte créé', 'Votre compte a été créé. Connectez-vous pour publier des avis et suivre vos commandes.', 'info');
+          }
+        }
       }
     } catch (err) {
       triggerToast('Échec d\'inscription ❌', (err as Error).message, 'danger');
