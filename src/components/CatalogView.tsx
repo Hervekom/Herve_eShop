@@ -491,8 +491,8 @@ export default function CatalogView({
                   setSelectedStatus('All');
                   setSortBy('default');
                   setShowOnlyFavourites(false);
-                  setMinPrice(300000);
-                  setMaxPrice(1500000);
+                  setMinPrice(0);
+                  setMaxPrice(5000000);
                 }}
                 className="mt-4 text-xs font-semibold text-luxe-copper hover:underline"
               >
