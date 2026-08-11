@@ -570,6 +570,17 @@ function extractMissingColumnName(error: any) {
   return match?.[1] ? String(match[1]) : null;
 }
 
+function isInvalidStatusValueError(error: any) {
+  const message = String(error?.message || error || '').toLowerCase();
+  if (!message.includes('status')) return false;
+  return (
+    message.includes('invalid input value for enum') ||
+    message.includes('enum') ||
+    message.includes('check constraint') ||
+    message.includes('violates check constraint')
+  );
+}
+
 async function adaptiveInsertSingleRow(adminDb: SupabaseLike, tableName: string, initialPayload: Record<string, any>) {
   const payload: Record<string, any> = { ...(initialPayload || {}) };
   const maxRetries = 30;
@@ -782,66 +793,75 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           .eq('id', laptopId);
       }
 
-      const orderPayload: any = {
-        id: id || undefined,
-        order_number: id || `DV-${Date.now()}`,
-        client_name: clientName,
-        client_phone: clientPhone,
-        client_email: clientEmail || null,
-        client_city: clientCity || '',
-        laptop_id: laptopId,
-        laptop_brand: laptop.brand || '',
-        laptop_model: laptop.model || '',
-        base_price: Number(laptop.price_xaf || 0),
-        final_price: resolvedFinalPrice,
+      const orderId = id || `DV-${Date.now()}`;
+      const quoteItem = {
+        productId: laptopId,
+        laptopId,
+        brand: laptop.brand || '',
+        model: laptop.model || '',
+        quantity: 1,
+        basePrice: Number(laptop.price_xaf || 0),
+        finalPrice: resolvedFinalPrice,
         customizations: customizations || null,
-        additional_notes: additionalNotes || null,
-        status: toDbOrderStatus('Demande reçue'),
-      };
-
-      const camelPayload: any = {
-        id: id || undefined,
-        orderNumber: id || `DV-${Date.now()}`,
+        additionalNotes: additionalNotes || null,
         clientName,
         clientPhone,
         clientEmail: clientEmail || null,
         clientCity: clientCity || '',
+      };
+
+      const unifiedPayloadBase: any = {
+        id: id || undefined,
+        order_number: orderId,
+        orderNumber: orderId,
+        client_name: clientName,
+        clientName,
+        client_phone: clientPhone,
+        clientPhone,
+        client_email: clientEmail || null,
+        clientEmail: clientEmail || null,
+        client_city: clientCity || '',
+        clientCity: clientCity || '',
+        laptop_id: laptopId,
         laptopId,
+        laptop_brand: laptop.brand || '',
         laptopBrand: laptop.brand || '',
+        laptop_model: laptop.model || '',
         laptopModel: laptop.model || '',
+        base_price: Number(laptop.price_xaf || 0),
         basePrice: Number(laptop.price_xaf || 0),
+        final_price: resolvedFinalPrice,
         finalPrice: resolvedFinalPrice,
+        total_amount: resolvedFinalPrice,
+        totalAmount: resolvedFinalPrice,
+        items: [quoteItem],
+        shipping_address: {
+          clientName,
+          clientPhone,
+          clientEmail: clientEmail || null,
+          clientCity: clientCity || '',
+          address: '',
+        },
         customizations: customizations || null,
-        status: toDbOrderStatus('Demande reçue'),
+        additional_notes: additionalNotes || null,
+        payment_status: 'pending',
+        paymentStatus: 'pending',
+        payment_method: null,
+        paymentMethod: null,
+        user_id: customerUser?.id || null,
+        userId: customerUser?.id || null,
       };
 
       let inserted: any = null;
-      const snakeAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', orderPayload);
-      if (!snakeAttempt.error) {
-        inserted = snakeAttempt.data;
+      const pendingAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', { ...unifiedPayloadBase, status: 'pending' });
+      if (!pendingAttempt.error) {
+        inserted = pendingAttempt.data;
+      } else if (isInvalidStatusValueError(pendingAttempt.error)) {
+        const frenchAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', { ...unifiedPayloadBase, status: toDbOrderStatus('Demande reçue') });
+        if (frenchAttempt.error) throw frenchAttempt.error;
+        inserted = frenchAttempt.data;
       } else {
-        const snakeCols = [
-          'order_number',
-          'client_name',
-          'client_phone',
-          'client_email',
-          'client_city',
-          'laptop_id',
-          'laptop_brand',
-          'laptop_model',
-          'base_price',
-          'final_price',
-          'customizations',
-          'additional_notes',
-          'status',
-        ];
-        if (isAnyMissingColumnError(snakeAttempt.error, snakeCols)) {
-          const camelAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', camelPayload);
-          if (camelAttempt.error) throw camelAttempt.error;
-          inserted = camelAttempt.data;
-        } else {
-          throw snakeAttempt.error;
-        }
+        throw pendingAttempt.error;
       }
 
       await db.from('notifications').insert([{
@@ -1028,17 +1048,38 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
       const customerUser = await extractCustomerUser(req, supabase);
       const firstItem = normalizedItems[0];
-      const orderPayload: any = {
-        order_number: `CMD-${Date.now()}`,
+      const orderId = `CMD-${Date.now()}`;
+      const unifiedPayloadBase: any = {
+        order_number: orderId,
+        orderNumber: orderId,
         client_name: clientName,
+        clientName,
         client_phone: clientPhone,
+        clientPhone,
         client_email: clientEmail || null,
+        clientEmail: clientEmail || null,
         client_city: clientCity,
+        clientCity,
         laptop_id: String(firstItem?.productId || ''),
+        laptopId: String(firstItem?.productId || ''),
         laptop_brand: normalizedItems.length > 1 ? `${normalizedItems.length} articles` : String(firstItem?.brand || ''),
+        laptopBrand: normalizedItems.length > 1 ? `${normalizedItems.length} articles` : String(firstItem?.brand || ''),
         laptop_model: normalizedItems.length > 1 ? 'Commande panier' : String(firstItem?.model || ''),
+        laptopModel: normalizedItems.length > 1 ? 'Commande panier' : String(firstItem?.model || ''),
         base_price: totalAmount,
+        basePrice: totalAmount,
         final_price: totalAmount,
+        finalPrice: totalAmount,
+        total_amount: totalAmount,
+        totalAmount: totalAmount,
+        items: normalizedItems,
+        shipping_address: {
+          clientName,
+          clientPhone,
+          clientEmail: clientEmail || null,
+          clientCity,
+          address: clientAddress,
+        },
         customizations: {
           type: 'cart',
           items: normalizedItems,
@@ -1055,65 +1096,24 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           },
         },
         additional_notes: normalizedItems.length > 1 ? `Commande panier: ${normalizedItems.length} article(s).` : null,
-        status: toDbOrderStatus('Demande reçue'),
-      };
-
-      const camelPayload: any = {
-        orderNumber: `CMD-${Date.now()}`,
-        clientName,
-        clientPhone,
-        clientEmail: clientEmail || null,
-        clientCity,
-        laptopId: String(firstItem?.productId || ''),
-        laptopBrand: normalizedItems.length > 1 ? `${normalizedItems.length} articles` : String(firstItem?.brand || ''),
-        laptopModel: normalizedItems.length > 1 ? 'Commande panier' : String(firstItem?.model || ''),
-        basePrice: totalAmount,
-        finalPrice: totalAmount,
-        customizations: {
-          type: 'cart',
-          items: normalizedItems,
-          shipping: {
-            address: clientAddress,
-            clientName,
-            clientPhone,
-            clientEmail,
-            clientCity,
-          },
-          delivery: {
-            method: String(delivery.method || 'delivery'),
-            notes: String(delivery.notes || ''),
-          },
-        },
-        status: toDbOrderStatus('Demande reçue'),
+        payment_status: 'pending',
+        paymentStatus: 'pending',
+        payment_method: null,
+        paymentMethod: null,
+        user_id: customerUser?.id || null,
+        userId: customerUser?.id || null,
       };
 
       let inserted: any = null;
-      const snakeAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', orderPayload);
-      if (!snakeAttempt.error) {
-        inserted = snakeAttempt.data;
+      const pendingAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', { ...unifiedPayloadBase, status: 'pending' });
+      if (!pendingAttempt.error) {
+        inserted = pendingAttempt.data;
+      } else if (isInvalidStatusValueError(pendingAttempt.error)) {
+        const frenchAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', { ...unifiedPayloadBase, status: toDbOrderStatus('Demande reçue') });
+        if (frenchAttempt.error) throw frenchAttempt.error;
+        inserted = frenchAttempt.data;
       } else {
-        const snakeCols = [
-          'order_number',
-          'client_name',
-          'client_phone',
-          'client_email',
-          'client_city',
-          'laptop_id',
-          'laptop_brand',
-          'laptop_model',
-          'base_price',
-          'final_price',
-          'customizations',
-          'additional_notes',
-          'status',
-        ];
-        if (isAnyMissingColumnError(snakeAttempt.error, snakeCols)) {
-          const camelAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', camelPayload);
-          if (camelAttempt.error) throw camelAttempt.error;
-          inserted = camelAttempt.data;
-        } else {
-          throw snakeAttempt.error;
-        }
+        throw pendingAttempt.error;
       }
 
       for (const it of normalizedItems) {
