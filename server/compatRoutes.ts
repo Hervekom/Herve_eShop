@@ -1285,7 +1285,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         title: 'Nouvelle demande',
         message: `${clientName} a soumis une demande pour ${laptop.brand} ${laptop.model}.`,
         type: 'success',
-        user_id: customerUser?.id || 'system',
+        user_id: 'system',
         metadata: { orderId: inserted.id, source: 'client_quote' },
       });
 
@@ -1620,7 +1620,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         title: 'Nouvelle commande panier',
         message: `${clientName} a validé un panier (${normalizedItems.length} article(s)) - Total: ${totalAmount.toLocaleString('fr-FR')} FCFA.`,
         type: 'success',
-        user_id: customerUser?.id || 'system',
+        user_id: 'system',
         metadata: { orderId: inserted.id, source: 'client_checkout' },
       });
 
@@ -1702,7 +1702,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         title: 'Nouvel utilisateur',
         message: `${String(name || '').trim()} vient de créer un compte${city ? ` (${String(city).trim()})` : ''}${phone ? ` - ${String(phone).trim()}` : ''}${email ? ` - ${String(email).trim()}` : ''}.`,
         type: 'info',
-        user_id: data.user?.id || 'system',
+        user_id: 'system',
         metadata: { source: 'client_register', userId: data.user?.id || null },
       });
 
