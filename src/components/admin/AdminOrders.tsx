@@ -383,12 +383,12 @@ export default function AdminOrders({
                 <th className="py-3.5 px-4 text-left">Machine Sollicitée</th>
                 <th className="py-3.5 px-4 text-left">Montant Global</th>
                 <th className="py-3.5 px-4 text-center">Progression</th>
-                <th className="py-3.5 px-4 text-right">Traitement</th>
+                <th className="py-3.5 px-4 text-right sticky right-0 bg-warm-cream/20">Traitement</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-warm-cream">
               {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-warm-cream/15 transition-all">
+                <tr key={order.id} className="group hover:bg-warm-cream/15 transition-all">
                   <td className="py-3.5 px-4 whitespace-nowrap font-mono font-bold text-luxe-copper">
                     {order.id}
                   </td>
@@ -406,7 +406,7 @@ export default function AdminOrders({
                       <span>{order.clientPhone}</span>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4">
+                  <td className="py-3.5 px-4 max-w-[320px] whitespace-normal break-words">
                     {(() => {
                       const items = resolveOrderItems(order);
                       if (items.length <= 1) {
@@ -443,7 +443,7 @@ export default function AdminOrders({
                               const specs = describeItemSpecs(it);
                               const qty = Number(it.quantity || 1);
                               return (
-                                <div key={idx} className="truncate">
+                                <div key={idx} className="break-words">
                                   {idx + 1}. {label} x{qty}{specs ? ` — ${specs}` : ''}
                                 </div>
                               );
@@ -469,7 +469,7 @@ export default function AdminOrders({
                       {order.status}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap text-right">
+                  <td className="py-3.5 px-4 whitespace-nowrap text-right sticky right-0 bg-white group-hover:bg-warm-cream/15">
                     <div className="flex justify-end gap-1.5">
                       <button
                         onClick={() => {

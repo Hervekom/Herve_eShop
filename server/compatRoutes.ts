@@ -319,6 +319,49 @@ function toDbOrderStatus(status?: string | null) {
   const raw = String(status || '').trim();
   const lower = raw.toLowerCase();
 
+  if (['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'].includes(lower)) {
+    return lower;
+  }
+
+  switch (lower) {
+    case 'demande reçue':
+    case 'demande recue':
+      return 'pending';
+    case 'devis validé':
+      return 'confirmed';
+    case 'en préparation':
+      return 'processing';
+    case 'prêt pour livraison':
+      return 'shipped';
+    case 'livré':
+    case 'livree':
+    case 'livrée':
+      return 'delivered';
+    case 'refusé':
+      return 'cancelled';
+    case 'confirmée':
+    case 'confirmee':
+      return 'confirmed';
+    case 'en traitement':
+      return 'processing';
+    case 'expédiée':
+    case 'expediee':
+      return 'shipped';
+    case 'annulée':
+    case 'annulee':
+      return 'cancelled';
+    case 'remboursée':
+    case 'remboursee':
+      return 'refunded';
+    default:
+      return 'pending';
+  }
+}
+
+function toDbOrderStatusLegacyFrench(status?: string | null) {
+  const raw = String(status || '').trim();
+  const lower = raw.toLowerCase();
+
   if (
     [
       'demande reçue',
@@ -345,21 +388,52 @@ function toDbOrderStatus(status?: string | null) {
     return raw;
   }
 
-  switch (raw) {
-    case 'Devis validé':
+  switch (lower) {
+    case 'pending':
+      return 'Demande reçue';
+    case 'confirmed':
       return 'Confirmée';
-    case 'En préparation':
+    case 'processing':
       return 'En traitement';
-    case 'Prêt pour livraison':
+    case 'shipped':
       return 'Expédiée';
-    case 'Livré':
+    case 'delivered':
       return 'Livrée';
-    case 'Refusé':
+    case 'cancelled':
       return 'Annulée';
-    case 'Demande reçue':
+    case 'refunded':
+      return 'Remboursée';
+    case 'devis validé':
+      return 'Confirmée';
+    case 'en préparation':
+      return 'En traitement';
+    case 'prêt pour livraison':
+      return 'Expédiée';
+    case 'livré':
+      return 'Livrée';
+    case 'refusé':
+      return 'Annulée';
+    case 'demande reçue':
+    case 'demande recue':
     default:
       return 'Demande reçue';
   }
+}
+
+function buildOrderStatusCandidates(status?: string | null) {
+  const raw = String(status || '').trim();
+  const candidates = new Set<string>();
+  const add = (v: string | null | undefined) => {
+    const value = String(v || '').trim();
+    if (!value) return;
+    candidates.add(value);
+  };
+  add(toDbOrderStatus(raw));
+  add(raw);
+  add(toDbOrderStatusLegacyFrench(raw));
+  add('pending');
+  add('Demande reçue');
+  return Array.from(candidates.values());
 }
 
 function fromDbOrderStatus(status?: string | null) {
@@ -1200,7 +1274,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (!pendingAttempt.error) {
         inserted = pendingAttempt.data;
       } else if (isInvalidStatusValueError(pendingAttempt.error)) {
-        const frenchAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', { ...unifiedPayloadBase, status: toDbOrderStatus('Demande reçue') });
+        const frenchAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', { ...unifiedPayloadBase, status: toDbOrderStatusLegacyFrench('Demande reçue') });
         if (frenchAttempt.error) throw frenchAttempt.error;
         inserted = frenchAttempt.data;
       } else {
@@ -1483,7 +1557,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (!pendingAttempt.error) {
         inserted = pendingAttempt.data;
       } else if (isInvalidStatusValueError(pendingAttempt.error)) {
-        const frenchAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', { ...unifiedPayloadBase, status: toDbOrderStatus('Demande reçue') });
+        const frenchAttempt = await adaptiveInsertSingleRow(adminDb, 'orders', { ...unifiedPayloadBase, status: toDbOrderStatusLegacyFrench('Demande reçue') });
         if (frenchAttempt.error) throw frenchAttempt.error;
         inserted = frenchAttempt.data;
       } else {
@@ -2420,22 +2494,46 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           current.laptop_id !== undefined ||
           current.order_number !== undefined);
 
-      const updatePayload: any = { updated_at: new Date().toISOString() };
-      if (req.body.status) {
-        updatePayload.status = toDbOrderStatus(req.body.status);
-      }
+      const updatePayloadBase: any = { updated_at: new Date().toISOString() };
       if (req.body.finalPrice !== undefined) {
         if (isLegacy) {
-          updatePayload.final_price = Number(req.body.finalPrice);
+          updatePayloadBase.final_price = Number(req.body.finalPrice);
         } else {
-          updatePayload.total_amount = Number(req.body.finalPrice);
+          updatePayloadBase.total_amount = Number(req.body.finalPrice);
           const items = parseItemsPayload(current.items);
           const first = items[0] || {};
-          updatePayload.items = { ...first, finalPrice: Number(req.body.finalPrice) };
+          updatePayloadBase.items = { ...first, finalPrice: Number(req.body.finalPrice) };
         }
       }
 
-      const { data, error } = await adminDb.from('orders').update(updatePayload).eq('id', req.params.id).select().single();
+      let data: any = null;
+      let error: any = null;
+
+      if (req.body.status) {
+        const candidates = buildOrderStatusCandidates(req.body.status);
+        for (const candidate of candidates) {
+          const attempt = await adminDb
+            .from('orders')
+            .update({ ...updatePayloadBase, status: candidate })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+          if (!attempt.error) {
+            data = attempt.data;
+            error = null;
+            break;
+          }
+          error = attempt.error;
+          if (!isInvalidStatusValueError(error)) {
+            break;
+          }
+        }
+      } else {
+        const attempt = await adminDb.from('orders').update(updatePayloadBase).eq('id', req.params.id).select().single();
+        data = attempt.data;
+        error = attempt.error;
+      }
+
       if (error) throw error;
       pushAuditLog({
         userEmail: user.email,
