@@ -401,6 +401,14 @@ function parseItemsPayload(value: any) {
   return [value];
 }
 
+function computeItemsTotal(items: any[]) {
+  return (Array.isArray(items) ? items : []).reduce((sum: number, it: any) => {
+    const qty = Number(it?.quantity || 1);
+    const unit = Number(it?.finalPrice || it?.price || it?.basePrice || 0);
+    return sum + Math.max(1, qty) * Math.max(0, unit);
+  }, 0);
+}
+
 function mapOrderRowToFrontend(row: any) {
   const isLegacySnake =
     row &&
@@ -448,6 +456,7 @@ function mapOrderRowToFrontend(row: any) {
               clientCity: row.client_city || '',
             },
           ];
+    const computedTotal = type === 'cart' ? computeItemsTotal(items) : 0;
     return {
       id: row.id,
       orderNumber: row.order_number || row.id,
@@ -456,10 +465,14 @@ function mapOrderRowToFrontend(row: any) {
       clientEmail: row.client_email || '',
       clientCity: row.client_city || '',
       laptopId: row.laptop_id || '',
-      laptopBrand: row.laptop_brand || '',
-      laptopModel: row.laptop_model || '',
-      basePrice: Number(row.base_price ?? row.basePrice ?? row.final_price ?? row.finalPrice ?? 0),
-      finalPrice: Number(row.final_price ?? row.finalPrice ?? 0),
+      laptopBrand: type === 'cart' ? `${items.length} articles` : (row.laptop_brand || ''),
+      laptopModel: type === 'cart' ? 'Commande panier' : (row.laptop_model || ''),
+      basePrice: type === 'cart'
+        ? computedTotal
+        : Number(row.base_price ?? row.basePrice ?? row.final_price ?? row.finalPrice ?? 0),
+      finalPrice: type === 'cart'
+        ? computedTotal
+        : Number(row.final_price ?? row.finalPrice ?? 0),
       customizations,
       additionalNotes: row.additional_notes || '',
       status: fromDbOrderStatus(row.status),
@@ -501,6 +514,7 @@ function mapOrderRowToFrontend(row: any) {
               clientCity: row.clientCity || '',
             },
           ];
+    const computedTotal = type === 'cart' ? computeItemsTotal(items) : 0;
     return {
       id: row.id,
       orderNumber: row.orderNumber || row.id,
@@ -509,10 +523,10 @@ function mapOrderRowToFrontend(row: any) {
       clientEmail: row.clientEmail || '',
       clientCity: row.clientCity || '',
       laptopId: row.laptopId || '',
-      laptopBrand: row.laptopBrand || '',
-      laptopModel: row.laptopModel || '',
-      basePrice: Number(row.basePrice ?? row.finalPrice ?? 0),
-      finalPrice: Number(row.finalPrice ?? 0),
+      laptopBrand: type === 'cart' ? `${items.length} articles` : (row.laptopBrand || ''),
+      laptopModel: type === 'cart' ? 'Commande panier' : (row.laptopModel || ''),
+      basePrice: type === 'cart' ? computedTotal : Number(row.basePrice ?? row.finalPrice ?? 0),
+      finalPrice: type === 'cart' ? computedTotal : Number(row.finalPrice ?? 0),
       customizations,
       additionalNotes: row.additionalNotes || '',
       status: fromDbOrderStatus(row.status),
@@ -526,11 +540,7 @@ function mapOrderRowToFrontend(row: any) {
 
   const items = parseItemsPayload(row.items);
   const first = items[0] || {};
-  const totalFromItems = items.reduce((sum: number, it: any) => {
-    const qty = Number(it?.quantity || 1);
-    const unit = Number(it?.finalPrice || it?.price || it?.basePrice || 0);
-    return sum + qty * unit;
-  }, 0);
+  const totalFromItems = computeItemsTotal(items);
   const computedTotal = Number(row.total_amount || totalFromItems || 0);
 
   const summaryLabel =
