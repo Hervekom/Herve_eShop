@@ -1993,11 +1993,175 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         if (isMissingColumnError(firstAttempt.error, 'created_at')) {
           const secondAttempt = await adminDb.from('orders').select('*').order('createdAt', { ascending: false });
           if (secondAttempt.error) throw secondAttempt.error;
-          return res.json((secondAttempt.data || []).map(mapOrderRowToFrontend));
+          const rows = secondAttempt.data || [];
+          const ids = new Set<string>();
+          rows.forEach((row: any) => {
+            const legacyId = String(row?.laptop_id || row?.laptopId || '').trim();
+            if (legacyId) ids.add(legacyId);
+            const customItems = Array.isArray(row?.customizations?.items) ? row.customizations.items : [];
+            customItems.forEach((it: any) => {
+              const id = String(it?.productId || it?.laptopId || it?.id || '').trim();
+              if (id) ids.add(id);
+            });
+            const items = parseItemsPayload(row?.items);
+            items.forEach((it: any) => {
+              const id = String(it?.productId || it?.laptopId || it?.id || '').trim();
+              if (id) ids.add(id);
+            });
+          });
+
+          const idsList = Array.from(ids.values());
+          const productsById = new Map<string, any>();
+          if (idsList.length) {
+            const { data: products, error } = await adminDb.from('laptops').select('*').in('id', idsList);
+            if (error) throw error;
+            (products || []).forEach((p: any) => productsById.set(String(p.id), p));
+          }
+
+          const enrichItem = (it: any) => {
+            if (!it || typeof it !== 'object') return it;
+            const id = String(it.productId || it.laptopId || it.id || '').trim();
+            if (!id) return it;
+            const row = productsById.get(id);
+            if (!row) return it;
+            const view = mapLaptopRowToFrontend(row);
+            const price = Number(row.price_xaf || view.price || 0);
+            return {
+              ...it,
+              productId: it.productId || id,
+              laptopId: it.laptopId || it.productId || id,
+              brand: it.brand || it.laptopBrand || view.brand || row.brand || '',
+              model: it.model || it.laptopModel || view.model || row.model || '',
+              processor: (it as any).processor || view.processor || row.processor || '',
+              ram: (it as any).ram || view.ram || row.ram || '',
+              storage: (it as any).storage || view.storage || row.storage || '',
+              screenSize: (it as any).screenSize || view.screenSize || row.screen_size || '',
+              condition: (it as any).condition || view.condition || row.condition || '',
+              basePrice: it.basePrice !== undefined ? it.basePrice : price,
+              finalPrice: it.finalPrice !== undefined ? it.finalPrice : price,
+            };
+          };
+
+          const enrichedRows = rows.map((row: any) => {
+            const next: any = { ...row };
+            const legacyId = String(row?.laptop_id || row?.laptopId || '').trim();
+            if (legacyId) {
+              const prod = productsById.get(legacyId);
+              if (prod) {
+                const view = mapLaptopRowToFrontend(prod);
+                next.laptop_brand = next.laptop_brand || view.brand;
+                next.laptop_model = next.laptop_model || view.model;
+                next.laptopBrand = next.laptopBrand || view.brand;
+                next.laptopModel = next.laptopModel || view.model;
+              }
+            }
+
+            if (row?.customizations && typeof row.customizations === 'object') {
+              const customizations: any = { ...row.customizations };
+              if (Array.isArray(customizations.items)) {
+                customizations.items = customizations.items.map(enrichItem);
+              }
+              next.customizations = customizations;
+            }
+
+            if (row?.items !== undefined) {
+              if (Array.isArray(row.items)) {
+                next.items = row.items.map(enrichItem);
+              } else if (row.items && typeof row.items === 'object') {
+                next.items = enrichItem(row.items);
+              }
+            }
+
+            return next;
+          });
+
+          return res.json(enrichedRows.map(mapOrderRowToFrontend));
         }
         throw firstAttempt.error;
       }
-      res.json((firstAttempt.data || []).map(mapOrderRowToFrontend));
+      const rows = firstAttempt.data || [];
+      const ids = new Set<string>();
+      rows.forEach((row: any) => {
+        const legacyId = String(row?.laptop_id || row?.laptopId || '').trim();
+        if (legacyId) ids.add(legacyId);
+        const customItems = Array.isArray(row?.customizations?.items) ? row.customizations.items : [];
+        customItems.forEach((it: any) => {
+          const id = String(it?.productId || it?.laptopId || it?.id || '').trim();
+          if (id) ids.add(id);
+        });
+        const items = parseItemsPayload(row?.items);
+        items.forEach((it: any) => {
+          const id = String(it?.productId || it?.laptopId || it?.id || '').trim();
+          if (id) ids.add(id);
+        });
+      });
+
+      const idsList = Array.from(ids.values());
+      const productsById = new Map<string, any>();
+      if (idsList.length) {
+        const { data: products, error } = await adminDb.from('laptops').select('*').in('id', idsList);
+        if (error) throw error;
+        (products || []).forEach((p: any) => productsById.set(String(p.id), p));
+      }
+
+      const enrichItem = (it: any) => {
+        if (!it || typeof it !== 'object') return it;
+        const id = String(it.productId || it.laptopId || it.id || '').trim();
+        if (!id) return it;
+        const row = productsById.get(id);
+        if (!row) return it;
+        const view = mapLaptopRowToFrontend(row);
+        const price = Number(row.price_xaf || view.price || 0);
+        return {
+          ...it,
+          productId: it.productId || id,
+          laptopId: it.laptopId || it.productId || id,
+          brand: it.brand || it.laptopBrand || view.brand || row.brand || '',
+          model: it.model || it.laptopModel || view.model || row.model || '',
+          processor: (it as any).processor || view.processor || row.processor || '',
+          ram: (it as any).ram || view.ram || row.ram || '',
+          storage: (it as any).storage || view.storage || row.storage || '',
+          screenSize: (it as any).screenSize || view.screenSize || row.screen_size || '',
+          condition: (it as any).condition || view.condition || row.condition || '',
+          basePrice: it.basePrice !== undefined ? it.basePrice : price,
+          finalPrice: it.finalPrice !== undefined ? it.finalPrice : price,
+        };
+      };
+
+      const enrichedRows = rows.map((row: any) => {
+        const next: any = { ...row };
+        const legacyId = String(row?.laptop_id || row?.laptopId || '').trim();
+        if (legacyId) {
+          const prod = productsById.get(legacyId);
+          if (prod) {
+            const view = mapLaptopRowToFrontend(prod);
+            next.laptop_brand = next.laptop_brand || view.brand;
+            next.laptop_model = next.laptop_model || view.model;
+            next.laptopBrand = next.laptopBrand || view.brand;
+            next.laptopModel = next.laptopModel || view.model;
+          }
+        }
+
+        if (row?.customizations && typeof row.customizations === 'object') {
+          const customizations: any = { ...row.customizations };
+          if (Array.isArray(customizations.items)) {
+            customizations.items = customizations.items.map(enrichItem);
+          }
+          next.customizations = customizations;
+        }
+
+        if (row?.items !== undefined) {
+          if (Array.isArray(row.items)) {
+            next.items = row.items.map(enrichItem);
+          } else if (row.items && typeof row.items === 'object') {
+            next.items = enrichItem(row.items);
+          }
+        }
+
+        return next;
+      });
+
+      res.json(enrichedRows.map(mapOrderRowToFrontend));
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
     }

@@ -188,6 +188,24 @@ export default function AdminOrders({
     return parts.join(' | ');
   };
 
+  const resolveItemOptions = (order: Order, it: OrderItem) => {
+    const raw = (it as any)?.customizations || (resolveOrderItems(order).length <= 1 ? (order as any)?.customizations : null) || {};
+    const ramUpgrade = String(raw?.ramUpgrade || '').trim();
+    const storageUpgrade = String(raw?.storageUpgrade || '').trim();
+    const osOption = String(raw?.osOption || '').trim();
+    const accessories = Array.isArray(raw?.accessories) ? raw.accessories.map((v: any) => String(v || '').trim()).filter(Boolean) : [];
+    const norm = (v: string) => v.toLowerCase().replace(/\s+/g, ' ').trim();
+    const isEmptyChoice = (v: string) =>
+      !v || ['—', '-', 'aucun', 'aucune', 'non', 'n/a', 'na'].includes(norm(v));
+    const parts = [
+      !isEmptyChoice(ramUpgrade) ? `RAM: ${ramUpgrade}` : '',
+      !isEmptyChoice(storageUpgrade) ? `SSD: ${storageUpgrade}` : '',
+      !isEmptyChoice(osOption) ? `OS: ${osOption}` : '',
+      accessories.length ? `Accessoires: ${accessories.join(', ')}` : '',
+    ].filter(Boolean);
+    return parts.join(' | ');
+  };
+
   const resolveShipping = (order: Order) => {
     const raw = order.shippingAddress || {};
     const name = String(raw.clientName || raw.name || order.clientName || '').trim();
@@ -626,7 +644,7 @@ export default function AdminOrders({
 
                 <div className="bg-warm-cream/25 border border-warm-cream-dark/60 rounded-2xl p-3 space-y-1">
                   <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Montant</div>
-                  <div className="font-mono font-extrabold text-luxe-dark text-base">{formatFCFA(activeOrder.finalPrice)}</div>
+                  <div className="font-mono font-extrabold text-luxe-dark text-base">{formatFCFA(getOrderTotal(activeOrder))}</div>
                   <div className="text-[10px] text-luxe-muted">
                     <span className={`text-[9px] uppercase tracking-widest font-extrabold px-2.5 py-1 rounded-sm border ${getStatusBadgeClass(activeOrder.status)}`}>
                       {activeOrder.status}
@@ -658,10 +676,22 @@ export default function AdminOrders({
                         const unit = Number(it.finalPrice || it.basePrice || 0);
                         const line = unit * qty;
                         const label = `${String(it.brand || it.laptopBrand || '').trim()} ${String(it.model || it.laptopModel || '').trim()}`.trim();
+                        const specs = describeItemSpecs(it);
+                        const options = resolveItemOptions(activeOrder, it);
                         return (
                           <tr key={idx} className="hover:bg-warm-cream/15 transition-all">
                             <td className="py-3 px-4">
                               <div className="font-extrabold text-luxe-dark">{label || 'Article'}</div>
+                              {specs && (
+                                <div className="text-[10px] text-luxe-copper mt-0.5">
+                                  {specs}
+                                </div>
+                              )}
+                              {options && (
+                                <div className="text-[10px] text-luxe-muted mt-0.5">
+                                  {options}
+                                </div>
+                              )}
                               {(it.productId || it.laptopId) && (
                                 <div className="text-[10px] text-luxe-muted font-mono mt-0.5">
                                   ID: {String(it.productId || it.laptopId)}
