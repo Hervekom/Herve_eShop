@@ -425,6 +425,29 @@ function mapOrderRowToFrontend(row: any) {
       osOption: 'Windows 11 Pro',
       accessories: [],
     };
+    const type = String(customizations?.type || '').toLowerCase();
+    const items =
+      type === 'cart' && Array.isArray(customizations?.items)
+        ? customizations.items
+        : [
+            {
+              productId: row.laptop_id || '',
+              laptopId: row.laptop_id || '',
+              brand: row.laptop_brand || '',
+              laptopBrand: row.laptop_brand || '',
+              model: row.laptop_model || '',
+              laptopModel: row.laptop_model || '',
+              quantity: 1,
+              basePrice: Number(row.base_price ?? row.basePrice ?? row.final_price ?? row.finalPrice ?? 0),
+              finalPrice: Number(row.final_price ?? row.finalPrice ?? 0),
+              customizations,
+              additionalNotes: row.additional_notes || '',
+              clientName: row.client_name || '',
+              clientPhone: row.client_phone || '',
+              clientEmail: row.client_email || '',
+              clientCity: row.client_city || '',
+            },
+          ];
     return {
       id: row.id,
       orderNumber: row.order_number || row.id,
@@ -442,6 +465,9 @@ function mapOrderRowToFrontend(row: any) {
       status: fromDbOrderStatus(row.status),
       createdAt: row.created_at || row.createdAt || new Date().toISOString(),
       updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || new Date().toISOString(),
+      items,
+      shippingAddress: customizations?.shipping || row.shipping_address || null,
+      delivery: customizations?.delivery || null,
     };
   }
 
@@ -452,6 +478,29 @@ function mapOrderRowToFrontend(row: any) {
       osOption: 'Windows 11 Pro',
       accessories: [],
     };
+    const type = String(customizations?.type || '').toLowerCase();
+    const items =
+      type === 'cart' && Array.isArray(customizations?.items)
+        ? customizations.items
+        : [
+            {
+              productId: row.laptopId || '',
+              laptopId: row.laptopId || '',
+              brand: row.laptopBrand || '',
+              laptopBrand: row.laptopBrand || '',
+              model: row.laptopModel || '',
+              laptopModel: row.laptopModel || '',
+              quantity: 1,
+              basePrice: Number(row.basePrice ?? row.finalPrice ?? 0),
+              finalPrice: Number(row.finalPrice ?? 0),
+              customizations,
+              additionalNotes: row.additionalNotes || '',
+              clientName: row.clientName || '',
+              clientPhone: row.clientPhone || '',
+              clientEmail: row.clientEmail || '',
+              clientCity: row.clientCity || '',
+            },
+          ];
     return {
       id: row.id,
       orderNumber: row.orderNumber || row.id,
@@ -469,6 +518,9 @@ function mapOrderRowToFrontend(row: any) {
       status: fromDbOrderStatus(row.status),
       createdAt: row.createdAt || row.created_at || new Date().toISOString(),
       updatedAt: row.updatedAt || row.updated_at || row.createdAt || row.created_at || new Date().toISOString(),
+      items,
+      shippingAddress: customizations?.shipping || row.shipping_address || null,
+      delivery: customizations?.delivery || null,
     };
   }
 
@@ -508,6 +560,9 @@ function mapOrderRowToFrontend(row: any) {
     status: fromDbOrderStatus(row.status),
     createdAt: row.created_at || row.createdAt || new Date().toISOString(),
     updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || new Date().toISOString(),
+    items,
+    shippingAddress: row.shipping_address || row.shippingAddress || row.customizations?.shipping || null,
+    delivery: row.customizations?.delivery || null,
   };
 }
 
@@ -672,6 +727,122 @@ async function sendAdminEmailBestEffort(subject: string, text: string) {
   } catch {
     return;
   }
+}
+
+async function sendCustomerEmailBestEffort(to: string, subject: string, text: string) {
+  try {
+    const transport = getMailTransport();
+    const from = getMailFromAddress();
+    const normalizedTo = String(to || '').trim();
+    if (!transport || !normalizedTo || !from) return;
+
+    await transport.sendMail({
+      from,
+      to: normalizedTo,
+      subject: String(subject || '').trim() || 'Herve_eShop',
+      text: String(text || '').trim(),
+    });
+  } catch {
+    return;
+  }
+}
+
+function resolveOrderCustomerContact(row: any) {
+  const email =
+    String(
+      row?.client_email ||
+        row?.clientEmail ||
+        row?.shipping_address?.clientEmail ||
+        row?.shipping_address?.email ||
+        row?.customizations?.shipping?.clientEmail ||
+        row?.customizations?.shipping?.email ||
+        (Array.isArray(row?.items) ? row.items[0]?.clientEmail || row.items[0]?.email : null) ||
+        '',
+    ).trim();
+
+  const name =
+    String(
+      row?.client_name ||
+        row?.clientName ||
+        row?.shipping_address?.clientName ||
+        row?.shipping_address?.name ||
+        row?.customizations?.shipping?.clientName ||
+        row?.customizations?.shipping?.name ||
+        (Array.isArray(row?.items) ? row.items[0]?.clientName : null) ||
+        '',
+    ).trim();
+
+  const phone =
+    String(
+      row?.client_phone ||
+        row?.clientPhone ||
+        row?.shipping_address?.clientPhone ||
+        row?.shipping_address?.phone ||
+        row?.customizations?.shipping?.clientPhone ||
+        row?.customizations?.shipping?.phone ||
+        (Array.isArray(row?.items) ? row.items[0]?.clientPhone : null) ||
+        '',
+    ).trim();
+
+  return { email, name, phone };
+}
+
+function buildCustomerOrderEmail(statusUi: string, mapped: any) {
+  const orderNumber = String(mapped?.orderNumber || mapped?.id || '').trim();
+  const items = Array.isArray(mapped?.items) ? mapped.items : [];
+  const total = Number(mapped?.finalPrice || 0);
+
+  const itemsLines =
+    items.length > 0
+      ? items.map((it: any, idx: number) => {
+          const qty = Number(it?.quantity || 1);
+          const unit = Number(it?.finalPrice || it?.basePrice || it?.price || 0);
+          const lineTotal = unit * qty;
+          const label = [String(it?.brand || it?.laptopBrand || '').trim(), String(it?.model || it?.laptopModel || '').trim()]
+            .filter(Boolean)
+            .join(' ');
+          return `- ${idx + 1}. ${label || 'Article'} (x${qty}) : ${lineTotal.toLocaleString('fr-FR')} FCFA`;
+        })
+      : [`- Article : ${String(mapped?.laptopBrand || '').trim()} ${String(mapped?.laptopModel || '').trim()}`.trim()];
+
+  const intro =
+    statusUi === 'Demande reçue'
+      ? `Nous avons bien reçu votre commande.`
+      : statusUi === 'Prêt pour livraison'
+        ? `Bonne nouvelle : votre commande est prête.`
+        : statusUi === 'En préparation'
+          ? `Votre commande est en cours de préparation.`
+          : statusUi === 'Devis validé'
+            ? `Votre devis a été validé.`
+            : statusUi === 'Livré'
+              ? `Votre commande a été livrée. Merci pour votre confiance.`
+              : statusUi === 'Refusé'
+                ? `Votre commande a été annulée.`
+                : `Mise à jour de votre commande.`;
+
+  const subject =
+    statusUi === 'Prêt pour livraison'
+      ? `Herve_eShop - Commande prête (${orderNumber})`
+      : statusUi === 'Demande reçue'
+        ? `Herve_eShop - Commande reçue (${orderNumber})`
+        : `Herve_eShop - Mise à jour commande (${orderNumber})`;
+
+  const text = [
+    intro,
+    ``,
+    `Référence: ${orderNumber || 'N/A'}`,
+    `Statut: ${statusUi}`,
+    ``,
+    `Détails:`,
+    ...itemsLines,
+    ``,
+    `Total: ${total.toLocaleString('fr-FR')} FCFA`,
+    ``,
+    `Merci,`,
+    `Herve_eShop`,
+  ].join('\n');
+
+  return { subject, text };
 }
 
 async function loadCmsFromDb(adminDb: SupabaseLike) {
@@ -1843,7 +2014,15 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         entityId: req.params.id,
         entityType: 'Order',
       });
-      res.json({ success: true, order: mapOrderRowToFrontend(data) });
+      const mapped = mapOrderRowToFrontend(data);
+      if (req.body.status) {
+        const contact = resolveOrderCustomerContact({ ...current, ...data });
+        if (contact.email) {
+          const mail = buildCustomerOrderEmail(mapped.status, mapped);
+          await sendCustomerEmailBestEffort(contact.email, mail.subject, mail.text);
+        }
+      }
+      res.json({ success: true, order: mapped });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
     }

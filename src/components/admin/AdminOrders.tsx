@@ -12,6 +12,37 @@ interface Customizations {
   accessories: string[];
 }
 
+interface OrderItem {
+  productId?: string;
+  laptopId?: string;
+  brand?: string;
+  model?: string;
+  laptopBrand?: string;
+  laptopModel?: string;
+  quantity?: number;
+  basePrice?: number;
+  finalPrice?: number;
+  customizations?: any;
+  additionalNotes?: string;
+}
+
+interface ShippingAddress {
+  clientName?: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  clientCity?: string;
+  address?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+}
+
+interface DeliveryInfo {
+  method?: string;
+  notes?: string;
+}
+
 interface Order {
   id: string;
   orderNumber: string;
@@ -29,6 +60,9 @@ interface Order {
   status: 'Demande reçue' | 'Devis validé' | 'En préparation' | 'Prêt pour livraison' | 'Livré' | 'Refusé';
   createdAt: string;
   updatedAt: string;
+  items?: OrderItem[];
+  shippingAddress?: ShippingAddress | any;
+  delivery?: DeliveryInfo | any;
 }
 
 export default function AdminOrders({ 
@@ -54,6 +88,7 @@ export default function AdminOrders({
 
   // Print Invoice Modal State
   const [printInvoiceOpen, setPrintInvoiceOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -114,6 +149,51 @@ export default function AdminOrders({
 
   const triggerPrintWindow = () => {
     window.print();
+  };
+
+  const resolveOrderItems = (order: Order): OrderItem[] => {
+    const list = Array.isArray(order.items) ? order.items : [];
+    if (list.length) return list;
+    return [
+      {
+        productId: order.laptopId,
+        brand: order.laptopBrand,
+        model: order.laptopModel,
+        quantity: 1,
+        basePrice: order.basePrice,
+        finalPrice: order.finalPrice,
+        customizations: order.customizations,
+        additionalNotes: order.additionalNotes,
+      },
+    ];
+  };
+
+  const resolveShipping = (order: Order) => {
+    const raw = order.shippingAddress || {};
+    const name = String(raw.clientName || raw.name || order.clientName || '').trim();
+    const phone = String(raw.clientPhone || raw.phone || order.clientPhone || '').trim();
+    const email = String(raw.clientEmail || raw.email || order.clientEmail || '').trim();
+    const city = String(raw.clientCity || raw.city || order.clientCity || '').trim();
+    const address = String(raw.address || '').trim();
+    return { name, phone, email, city, address };
+  };
+
+  const resolveDelivery = (order: Order) => {
+    const raw = order.delivery || {};
+    const method = String(raw.method || '').trim();
+    const notes = String(raw.notes || '').trim();
+    return { method, notes };
+  };
+
+  const handleNotifyStatus = async (order: Order, status: Order['status']) => {
+    try {
+      await API.updateOrder(order.id, { status });
+      onTriggerToast('Notification envoyée ✅', `Le client a été notifié : "${status}".`, 'success');
+      setDetailsOpen(false);
+      fetchOrders();
+    } catch (err) {
+      onTriggerToast('Erreur notification', (err as Error).message, 'danger');
+    }
   };
 
   // Export order table list to CSV Spreadsheet format
@@ -293,7 +373,7 @@ export default function AdminOrders({
                       {order.laptopBrand} <span className="font-normal">{order.laptopModel}</span>
                     </div>
                     <div className="text-[10px] text-luxe-copper mt-1">
-                      RAM : {order.customizations.ramUpgrade} | SD : {order.customizations.storageUpgrade} | OS : {order.customizations.osOption}
+                      RAM : {(order.customizations as any)?.ramUpgrade || '—'} | SD : {(order.customizations as any)?.storageUpgrade || '—'} | OS : {(order.customizations as any)?.osOption || '—'}
                     </div>
                     {order.additionalNotes && (
                       <div className="text-[10px] italic text-red-500 bg-red-50 px-2 py-0.5 rounded-lg inline-block mt-1 max-w-[220px] truncate">
@@ -311,6 +391,16 @@ export default function AdminOrders({
                   </td>
                   <td className="py-3.5 px-4 whitespace-nowrap text-right">
                     <div className="flex justify-end gap-1.5">
+                      <button
+                        onClick={() => {
+                          setActiveOrder(order);
+                          setDetailsOpen(true);
+                        }}
+                        title="Voir détails"
+                        className="p-1.5 hover:bg-warm-cream text-luxe-muted hover:text-black border border-warm-cream rounded-lg transition-all active:scale-90"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => {
                           setActiveOrder(order);
@@ -415,6 +505,146 @@ export default function AdminOrders({
         </div>
       )}
 
+      {detailsOpen && activeOrder && (
+        <div className="fixed inset-0 z-50 bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-3xl border border-warm-cream-dark shadow-2xl overflow-hidden text-xs text-left">
+            <div className="bg-luxe-dark text-warm-cream p-4 flex justify-between items-center border-b border-luxe-gold/30">
+              <div className="space-y-0.5">
+                <h4 className="font-serif font-bold text-sm">Détails commande</h4>
+                <div className="text-[10px] text-warm-cream/80 font-mono">
+                  {activeOrder.orderNumber || activeOrder.id}
+                </div>
+              </div>
+              <button
+                onClick={() => setDetailsOpen(false)}
+                className="p-2 rounded-xl hover:bg-white/10 transition-all"
+                type="button"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-warm-cream/25 border border-warm-cream-dark/60 rounded-2xl p-3 space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Client</div>
+                  <div className="font-extrabold text-luxe-dark">{resolveShipping(activeOrder).name}</div>
+                  <div className="text-[10px] text-luxe-muted flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    <span>{resolveShipping(activeOrder).city}</span>
+                  </div>
+                  <div className="text-[10px] text-luxe-muted flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    <span>{resolveShipping(activeOrder).phone}</span>
+                  </div>
+                  {resolveShipping(activeOrder).email && (
+                    <div className="text-[10px] text-luxe-muted flex items-center gap-1">
+                      <Mail className="w-3 h-3" />
+                      <span className="truncate">{resolveShipping(activeOrder).email}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-warm-cream/25 border border-warm-cream-dark/60 rounded-2xl p-3 space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Livraison</div>
+                  <div className="font-bold text-luxe-dark">
+                    {resolveDelivery(activeOrder).method ? resolveDelivery(activeOrder).method : 'Non précisé'}
+                  </div>
+                  {resolveShipping(activeOrder).address && (
+                    <div className="text-[10px] text-luxe-muted">
+                      <span className="font-bold">Adresse:</span> {resolveShipping(activeOrder).address}
+                    </div>
+                  )}
+                  {resolveDelivery(activeOrder).notes && (
+                    <div className="text-[10px] text-luxe-muted">
+                      <span className="font-bold">Notes:</span> {resolveDelivery(activeOrder).notes}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-warm-cream/25 border border-warm-cream-dark/60 rounded-2xl p-3 space-y-1">
+                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Montant</div>
+                  <div className="font-mono font-extrabold text-luxe-dark text-base">{formatFCFA(activeOrder.finalPrice)}</div>
+                  <div className="text-[10px] text-luxe-muted">
+                    <span className={`text-[9px] uppercase tracking-widest font-extrabold px-2.5 py-1 rounded-sm border ${getStatusBadgeClass(activeOrder.status)}`}>
+                      {activeOrder.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-warm-cream-dark shadow-sm overflow-hidden">
+                <div className="px-4 py-3 bg-warm-cream/20 border-b border-warm-cream-dark/60 flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Articles</div>
+                  <div className="text-[10px] text-luxe-muted font-mono">
+                    {resolveOrderItems(activeOrder).length} item(s)
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[10px] uppercase tracking-wider">
+                        <th className="py-3 px-4 text-left">Produit</th>
+                        <th className="py-3 px-4 text-center">Qté</th>
+                        <th className="py-3 px-4 text-right">PU</th>
+                        <th className="py-3 px-4 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-warm-cream">
+                      {resolveOrderItems(activeOrder).map((it, idx) => {
+                        const qty = Number(it.quantity || 1);
+                        const unit = Number(it.finalPrice || it.basePrice || 0);
+                        const line = unit * qty;
+                        const label = `${String(it.brand || it.laptopBrand || '').trim()} ${String(it.model || it.laptopModel || '').trim()}`.trim();
+                        return (
+                          <tr key={idx} className="hover:bg-warm-cream/15 transition-all">
+                            <td className="py-3 px-4">
+                              <div className="font-extrabold text-luxe-dark">{label || 'Article'}</div>
+                              {(it.productId || it.laptopId) && (
+                                <div className="text-[10px] text-luxe-muted font-mono mt-0.5">
+                                  ID: {String(it.productId || it.laptopId)}
+                                </div>
+                              )}
+                              {it.additionalNotes && (
+                                <div className="text-[10px] text-red-500 mt-0.5">
+                                  {it.additionalNotes}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center font-mono font-bold">{qty}</td>
+                            <td className="py-3 px-4 text-right font-mono">{formatFCFA(unit)}</td>
+                            <td className="py-3 px-4 text-right font-mono font-extrabold">{formatFCFA(line)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 justify-end border-t border-warm-cream pt-4">
+                <button
+                  type="button"
+                  onClick={() => handleNotifyStatus(activeOrder, 'Demande reçue')}
+                  className="px-4 py-2 rounded-xl bg-luxe-dark text-white hover:bg-luxe-copper transition-all font-bold flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Notifier: commande reçue
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNotifyStatus(activeOrder, 'Prêt pour livraison')}
+                  className="px-4 py-2 rounded-xl bg-luxe-copper text-white hover:bg-luxe-dark transition-all font-bold flex items-center justify-center gap-2"
+                >
+                  <Gift className="w-4 h-4" />
+                  Notifier: commande prête
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PRINT INVOICE MODAL (Styled to hide surrounding app frame @media print) */}
       {printInvoiceOpen && activeOrder && (
         <div className="fixed inset-0 z-55 bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto print:fixed print:inset-0 print:bg-white print:z-99 print:p-0">
@@ -501,11 +731,11 @@ export default function AdminOrders({
                         <div className="text-[10px] text-luxe-copper mt-1">
                           Options intégrées :
                           <ul className="list-disc list-inside mt-0.5 space-y-0.5 text-luxe-muted">
-                            <li>Recharge RAM : {activeOrder.customizations.ramUpgrade}</li>
-                            <li>Ajout Stockage : {activeOrder.customizations.storageUpgrade}</li>
-                            <li>Installation Système : {activeOrder.customizations.osOption}</li>
-                            {activeOrder.customizations.accessories.length > 0 && (
-                              <li>Sélect. accessoires : {activeOrder.customizations.accessories.join(', ')}</li>
+                            <li>Recharge RAM : {(activeOrder.customizations as any)?.ramUpgrade || '—'}</li>
+                            <li>Ajout Stockage : {(activeOrder.customizations as any)?.storageUpgrade || '—'}</li>
+                            <li>Installation Système : {(activeOrder.customizations as any)?.osOption || '—'}</li>
+                            {Array.isArray((activeOrder.customizations as any)?.accessories) && (activeOrder.customizations as any).accessories.length > 0 && (
+                              <li>Sélect. accessoires : {(activeOrder.customizations as any).accessories.join(', ')}</li>
                             )}
                           </ul>
                         </div>
