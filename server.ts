@@ -37,6 +37,7 @@ const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceRoleKey
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const SERVER_STARTED_AT = new Date().toISOString();
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
@@ -73,6 +74,20 @@ app.use((req, res, next) => {
 // Increase request size limit to support Base64 image uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+app.get('/api/version', (_req, res) => {
+  res.json({
+    startedAt: SERVER_STARTED_AT,
+    commit:
+      process.env.RENDER_GIT_COMMIT ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.GIT_COMMIT ||
+      null,
+    branch: process.env.RENDER_GIT_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || null,
+    service: process.env.RENDER_SERVICE_NAME || null,
+    node: process.version,
+  });
+});
 
 // Compatibility layer that maps the current Supabase schema to the app contract.
 registerCompatRoutes(app, supabase, supabaseAdmin);
