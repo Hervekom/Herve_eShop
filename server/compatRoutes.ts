@@ -528,6 +528,12 @@ function computeItemsTotal(items: any[]) {
   }, 0);
 }
 
+function buildEmbeddedNotes(humanNote: any, payload: any) {
+  const human = String(humanNote || '').trim();
+  const encoded = base64UrlEncode(JSON.stringify(payload || {}));
+  return `${human ? `${human}\n` : ''}${ADDITIONAL_NOTES_CART_MARKER}${encoded}`;
+}
+
 function mapOrderRowToFrontend(row: any) {
   const isLegacySnake =
     row &&
@@ -546,7 +552,20 @@ function mapOrderRowToFrontend(row: any) {
       row.orderNumber !== undefined);
 
   if (isLegacySnake) {
-    const customizations = row.customizations || {
+    let customizations: any = row.customizations || {
+      ramUpgrade: 'Aucune',
+      storageUpgrade: 'Aucun',
+      osOption: 'Windows 11 Pro',
+      accessories: [],
+    };
+    if (typeof customizations === 'string') {
+      try {
+        customizations = JSON.parse(customizations);
+      } catch {
+        customizations = null;
+      }
+    }
+    customizations = customizations || {
       ramUpgrade: 'Aucune',
       storageUpgrade: 'Aucun',
       osOption: 'Windows 11 Pro',
@@ -557,7 +576,7 @@ function mapOrderRowToFrontend(row: any) {
     const itemsFromCustomizations = Array.isArray(customizations?.items) ? customizations.items : [];
     const extracted = extractCartPayloadFromAdditionalNotes(row.additional_notes);
     const itemsFromNotes = Array.isArray(extracted.payload?.items) ? extracted.payload.items : [];
-    const hasCartType = type === 'cart';
+    const hasCartType = type === 'cart' || String(extracted.payload?.type || '').toLowerCase() === 'cart';
     const isCartLike = hasCartType || itemsFromCustomizations.length > 1 || itemsFromRow.length > 1 || itemsFromNotes.length > 1;
     const fallbackTotal = Number(row.total_amount ?? row.totalAmount ?? 0);
     const defaultItemBase = Number(row.base_price ?? row.basePrice ?? row.final_price ?? row.finalPrice ?? fallbackTotal ?? 0);
@@ -609,7 +628,20 @@ function mapOrderRowToFrontend(row: any) {
   }
 
   if (isLegacyCamel) {
-    const customizations = row.customizations || {
+    let customizations: any = row.customizations || {
+      ramUpgrade: 'Aucune',
+      storageUpgrade: 'Aucun',
+      osOption: 'Windows 11 Pro',
+      accessories: [],
+    };
+    if (typeof customizations === 'string') {
+      try {
+        customizations = JSON.parse(customizations);
+      } catch {
+        customizations = null;
+      }
+    }
+    customizations = customizations || {
       ramUpgrade: 'Aucune',
       storageUpgrade: 'Aucun',
       osOption: 'Windows 11 Pro',
@@ -620,7 +652,7 @@ function mapOrderRowToFrontend(row: any) {
     const itemsFromCustomizations = Array.isArray(customizations?.items) ? customizations.items : [];
     const extracted = extractCartPayloadFromAdditionalNotes(row.additionalNotes);
     const itemsFromNotes = Array.isArray(extracted.payload?.items) ? extracted.payload.items : [];
-    const hasCartType = type === 'cart';
+    const hasCartType = type === 'cart' || String(extracted.payload?.type || '').toLowerCase() === 'cart';
     const isCartLike = hasCartType || itemsFromCustomizations.length > 1 || itemsFromRow.length > 1 || itemsFromNotes.length > 1;
     const fallbackTotal = Number(row.total_amount ?? row.totalAmount ?? 0);
     const defaultItemBase = Number(row.basePrice ?? row.finalPrice ?? fallbackTotal ?? 0);
@@ -1260,7 +1292,17 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           address: '',
         },
         customizations: customizations || null,
-        additional_notes: additionalNotes || null,
+        additional_notes: buildEmbeddedNotes(
+          additionalNotes || `Demande devis: ${laptopView.brand} ${laptopView.model}`.trim(),
+          {
+            type: 'quote',
+            items: [quoteItem],
+            totalAmount: resolvedFinalPrice,
+            customerId: customerUser?.id || null,
+            customerEmail: clientEmail || null,
+            customerPhone: clientPhone || null,
+          },
+        ),
         payment_status: 'pending',
         paymentStatus: 'pending',
         payment_method: null,
@@ -1297,13 +1339,20 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         entityType: 'Order',
       });
 
-      if (customerUser?.id) {
+      if (clientEmail || clientPhone || customerUser?.id) {
         await insertNotificationBestEffort(adminDb, {
           title: 'Demande envoyée',
           message: `Votre demande ${String(orderId)} a été envoyée. En attente de confirmation par l'administrateur.`,
           type: 'info',
-          user_id: customerUser.id,
-          metadata: { orderId: inserted.id, orderNumber: orderId, source: 'client_quote' },
+          user_id: customerUser?.id || 'system',
+          metadata: {
+            orderId: inserted.id,
+            orderNumber: orderId,
+            source: 'client_quote',
+            customerId: customerUser?.id || null,
+            customerEmail: clientEmail || null,
+            customerPhone: clientPhone || null,
+          },
         });
       }
 
@@ -1500,12 +1549,15 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           notes: String(delivery.notes || ''),
         },
         totalAmount,
+        customerId: customerUser?.id || null,
+        customerEmail: clientEmail || null,
+        customerPhone: clientPhone || null,
       };
 
-      const embeddedNotes =
-        normalizedItems.length > 1
-          ? `Commande panier: ${normalizedItems.length} article(s).\n${ADDITIONAL_NOTES_CART_MARKER}${base64UrlEncode(JSON.stringify(cartPayloadForNotes))}`
-          : null;
+      const embeddedNotes = buildEmbeddedNotes(
+        `Commande panier: ${normalizedItems.length} article(s).`,
+        cartPayloadForNotes,
+      );
 
       const unifiedPayloadBase: any = {
         order_number: orderId,
@@ -1648,13 +1700,20 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         entityType: 'Order',
       });
 
-      if (customerUser?.id) {
+      if (clientEmail || clientPhone || customerUser?.id) {
         await insertNotificationBestEffort(adminDb, {
           title: 'Demande envoyée',
           message: `Votre commande ${String(orderId)} a été envoyée. En attente de confirmation par l'administrateur.`,
           type: 'info',
-          user_id: customerUser.id,
-          metadata: { orderId: inserted.id, orderNumber: orderId, source: 'client_checkout' },
+          user_id: customerUser?.id || 'system',
+          metadata: {
+            orderId: inserted.id,
+            orderNumber: orderId,
+            source: 'client_checkout',
+            customerId: customerUser?.id || null,
+            customerEmail: clientEmail || null,
+            customerPhone: clientPhone || null,
+          },
         });
       }
 
@@ -1889,7 +1948,38 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         throw attempt.error;
       }
 
-      const notifications = (attempt.data || []).map((row: any) => {
+      let rows = attempt.data || [];
+      try {
+        const fallbackAttempt: any = await adminDb.from('notifications').select('*').order('created_at', { ascending: false }).limit(200);
+        if (!fallbackAttempt.error) {
+          rows = [...rows, ...(fallbackAttempt.data || [])];
+        }
+      } catch {
+      }
+
+      const seen = new Set<string>();
+      const filteredRows = (rows || []).filter((row: any) => {
+        const id = String(row?.id || '');
+        if (id) {
+          if (seen.has(id)) return false;
+          seen.add(id);
+        }
+
+        const uid = String(row?.user_id || row?.userId || '').trim();
+        if (uid && uid === user.id) return true;
+
+        const meta = row?.metadata;
+        const metaCustomerId = String(meta?.customerId || '').trim();
+        if (metaCustomerId && metaCustomerId === user.id) return true;
+
+        const metaEmail = String(meta?.customerEmail || '').trim();
+        const metaPhone = String(meta?.customerPhone || '').trim();
+        const emailMatch = user.email ? metaEmail && metaEmail === String(user.email).trim() : false;
+        const phoneMatch = user.phone ? metaPhone && metaPhone === String(user.phone).trim() : false;
+        return emailMatch || phoneMatch;
+      });
+
+      const notifications = filteredRows.map((row: any) => {
         const isRead = Boolean(row.is_read ?? row.isRead ?? false);
         const createdAt = row.created_at || row.createdAt || row.date || row.updated_at || row.updatedAt || new Date().toISOString();
         return {
@@ -1930,6 +2020,32 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           return res.json({ success: true });
         }
         throw attempt.error;
+      }
+
+      try {
+        const recent = await adminDb.from('notifications').select('*').order('created_at', { ascending: false }).limit(200);
+        if (!recent.error) {
+          const list = recent.data || [];
+          const idsToMark = list
+            .filter((row: any) => {
+              const isRead = Boolean(row.is_read ?? row.isRead ?? false);
+              if (isRead) return false;
+              const meta = row?.metadata;
+              const metaCustomerId = String(meta?.customerId || '').trim();
+              if (metaCustomerId && metaCustomerId === user.id) return true;
+              const metaEmail = String(meta?.customerEmail || '').trim();
+              const metaPhone = String(meta?.customerPhone || '').trim();
+              const emailMatch = user.email ? metaEmail && metaEmail === String(user.email).trim() : false;
+              const phoneMatch = user.phone ? metaPhone && metaPhone === String(user.phone).trim() : false;
+              return emailMatch || phoneMatch;
+            })
+            .map((row: any) => String(row?.id || '').trim())
+            .filter(Boolean);
+          if (idsToMark.length) {
+            await adminDb.from('notifications').update({ is_read: true }).in('id', idsToMark);
+          }
+        }
+      } catch {
       }
 
       res.json({ success: true });
@@ -2645,45 +2761,57 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       });
       const mapped = mapOrderRowToFrontend(data);
       if (req.body.status) {
+        const contact = resolveOrderCustomerContact({ ...current, ...data });
+        const embedded = extractCartPayloadFromAdditionalNotes((current as any)?.additional_notes ?? (current as any)?.additionalNotes);
         const customerId = String(
           (data as any)?.user_id ||
             (data as any)?.userId ||
             (current as any)?.user_id ||
             (current as any)?.userId ||
+            embedded?.payload?.customerId ||
             '',
         ).trim();
 
-        if (customerId) {
-          const statusUi = String(mapped.status || '').trim();
-          const orderNumber = String(mapped.orderNumber || mapped.id || '').trim();
-          let title = 'Mise à jour commande';
-          let message = `Votre commande ${orderNumber} a été mise à jour: ${statusUi}.`;
-          let type: any = 'info';
+        const customerEmail = String(contact.email || embedded?.payload?.customerEmail || '').trim();
+        const customerPhone = String(contact.phone || embedded?.payload?.customerPhone || '').trim();
 
-          if (statusUi === 'Demande reçue') {
-            title = 'Demande reçue';
-            message = `Votre commande ${orderNumber} a été confirmée par l'administrateur.`;
-            type = 'success';
-          } else if (statusUi === 'Prêt pour livraison') {
-            title = 'Commande prête';
-            message = `Votre commande ${orderNumber} est prête pour livraison / expédition.`;
-            type = 'success';
-          } else if (statusUi === 'Refusé') {
-            title = 'Commande refusée';
-            message = `Votre commande ${orderNumber} a été refusée.`;
-            type = 'warning';
-          }
+        const statusUi = String(mapped.status || '').trim();
+        const orderNumber = String(mapped.orderNumber || mapped.id || '').trim();
+        let title = 'Mise à jour commande';
+        let message = `Votre commande ${orderNumber} a été mise à jour: ${statusUi}.`;
+        let type: any = 'info';
 
+        if (statusUi === 'Demande reçue') {
+          title = 'Demande reçue';
+          message = `Votre commande ${orderNumber} a été confirmée par l'administrateur.`;
+          type = 'success';
+        } else if (statusUi === 'Prêt pour livraison') {
+          title = 'Commande prête';
+          message = `Votre commande ${orderNumber} est prête pour livraison / expédition.`;
+          type = 'success';
+        } else if (statusUi === 'Refusé') {
+          title = 'Commande refusée';
+          message = `Votre commande ${orderNumber} a été refusée.`;
+          type = 'warning';
+        }
+
+        if (customerId || customerEmail || customerPhone) {
           await insertNotificationBestEffort(adminDb, {
             title,
             message,
             type,
-            user_id: customerId,
-            metadata: { orderId: String(mapped.id || req.params.id), status: statusUi, source: 'admin_update_order' },
+            user_id: customerId || 'system',
+            metadata: {
+              orderId: String(mapped.id || req.params.id),
+              status: statusUi,
+              source: 'admin_update_order',
+              customerId: customerId || null,
+              customerEmail: customerEmail || null,
+              customerPhone: customerPhone || null,
+            },
           });
         }
 
-        const contact = resolveOrderCustomerContact({ ...current, ...data });
         if (contact.email) {
           const mail = buildCustomerOrderEmail(mapped.status, mapped);
           await sendCustomerEmailBestEffort(contact.email, mail.subject, mail.text);
