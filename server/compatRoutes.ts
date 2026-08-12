@@ -1297,6 +1297,16 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         entityType: 'Order',
       });
 
+      if (customerUser?.id) {
+        await insertNotificationBestEffort(adminDb, {
+          title: 'Demande envoyée',
+          message: `Votre demande ${String(orderId)} a été envoyée. En attente de confirmation par l'administrateur.`,
+          type: 'info',
+          user_id: customerUser.id,
+          metadata: { orderId: inserted.id, orderNumber: orderId, source: 'client_quote' },
+        });
+      }
+
       res.json({ success: true, quote: mapOrderRowToFrontend(inserted) });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -1638,6 +1648,16 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         entityType: 'Order',
       });
 
+      if (customerUser?.id) {
+        await insertNotificationBestEffort(adminDb, {
+          title: 'Demande envoyée',
+          message: `Votre commande ${String(orderId)} a été envoyée. En attente de confirmation par l'administrateur.`,
+          type: 'info',
+          user_id: customerUser.id,
+          metadata: { orderId: inserted.id, orderNumber: orderId, source: 'client_checkout' },
+        });
+      }
+
       res.json({ success: true, order: mapOrderRowToFrontend(inserted) });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -1832,6 +1852,87 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           city: metadata.city,
         },
       });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.get('/api/client/notifications', async (req, res) => {
+    try {
+      const user = await extractCustomerUser(req, supabase);
+      if (!user) {
+        return res.json({ success: true, notifications: [], unreadCount: 0 });
+      }
+
+      let attempt: any = await adminDb
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (attempt.error && isMissingColumnError(attempt.error, 'user_id')) {
+        attempt = await adminDb
+          .from('notifications')
+          .select('*')
+          .eq('userId', user.id)
+          .order('created_at', { ascending: false });
+      }
+
+      if (attempt.error && isMissingColumnError(attempt.error, 'created_at')) {
+        attempt = await adminDb.from('notifications').select('*').eq('user_id', user.id).order('createdAt', { ascending: false });
+      }
+
+      if (attempt.error) {
+        if (isMissingTableError(attempt.error)) {
+          return res.json({ success: true, notifications: [], unreadCount: 0 });
+        }
+        throw attempt.error;
+      }
+
+      const notifications = (attempt.data || []).map((row: any) => {
+        const isRead = Boolean(row.is_read ?? row.isRead ?? false);
+        const createdAt = row.created_at || row.createdAt || row.date || row.updated_at || row.updatedAt || new Date().toISOString();
+        return {
+          id: row.id,
+          title: row.title || 'Notification',
+          message: row.message || '',
+          type: row.type || 'info',
+          isRead,
+          createdAt,
+          metadata: row.metadata || null,
+        };
+      });
+
+      const unreadCount = notifications.reduce((sum: number, n: any) => sum + (n && n.isRead ? 0 : 1), 0);
+      res.json({ success: true, notifications, unreadCount });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.put('/api/client/notifications/read', async (req, res) => {
+    try {
+      const user = await extractCustomerUser(req, supabase);
+      if (!user) {
+        return res.status(401).json({ error: 'Session client invalide ou expirée.' });
+      }
+
+      let attempt: any = await adminDb.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
+      if (attempt.error && isMissingColumnError(attempt.error, 'user_id')) {
+        attempt = await adminDb.from('notifications').update({ is_read: true }).eq('userId', user.id).eq('is_read', false);
+      }
+      if (attempt.error && isMissingColumnError(attempt.error, 'is_read')) {
+        attempt = await adminDb.from('notifications').update({ isRead: true }).eq('user_id', user.id).eq('isRead', false);
+      }
+
+      if (attempt.error) {
+        if (isMissingTableError(attempt.error)) {
+          return res.json({ success: true });
+        }
+        throw attempt.error;
+      }
+
+      res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
     }
@@ -2544,6 +2645,44 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       });
       const mapped = mapOrderRowToFrontend(data);
       if (req.body.status) {
+        const customerId = String(
+          (data as any)?.user_id ||
+            (data as any)?.userId ||
+            (current as any)?.user_id ||
+            (current as any)?.userId ||
+            '',
+        ).trim();
+
+        if (customerId) {
+          const statusUi = String(mapped.status || '').trim();
+          const orderNumber = String(mapped.orderNumber || mapped.id || '').trim();
+          let title = 'Mise à jour commande';
+          let message = `Votre commande ${orderNumber} a été mise à jour: ${statusUi}.`;
+          let type: any = 'info';
+
+          if (statusUi === 'Demande reçue') {
+            title = 'Demande reçue';
+            message = `Votre commande ${orderNumber} a été confirmée par l'administrateur.`;
+            type = 'success';
+          } else if (statusUi === 'Prêt pour livraison') {
+            title = 'Commande prête';
+            message = `Votre commande ${orderNumber} est prête pour livraison / expédition.`;
+            type = 'success';
+          } else if (statusUi === 'Refusé') {
+            title = 'Commande refusée';
+            message = `Votre commande ${orderNumber} a été refusée.`;
+            type = 'warning';
+          }
+
+          await insertNotificationBestEffort(adminDb, {
+            title,
+            message,
+            type,
+            user_id: customerId,
+            metadata: { orderId: String(mapped.id || req.params.id), status: statusUi, source: 'admin_update_order' },
+          });
+        }
+
         const contact = resolveOrderCustomerContact({ ...current, ...data });
         if (contact.email) {
           const mail = buildCustomerOrderEmail(mapped.status, mapped);

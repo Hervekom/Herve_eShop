@@ -201,6 +201,10 @@ export const API = {
     }
     return res;
   },
+  getCustomerNotifications: () => apiFetch('/api/client/notifications'),
+  markCustomerNotificationsRead: () => apiFetch('/api/client/notifications/read', {
+    method: 'PUT'
+  }),
 
   // Auth methods
   login: async (credentials: any) => {

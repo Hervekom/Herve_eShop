@@ -1,6 +1,7 @@
-import React from 'react';
-import { Search, ShoppingCart, User } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bell, Search, ShoppingCart, User } from 'lucide-react';
 import HerveLogo from './HerveLogo';
+import API, { getGuestToken } from '../lib/api';
 
 interface HeaderProps {
   onSearchChange: (search: string) => void;
@@ -27,6 +28,36 @@ export default function Header({
     siteCMS.announcementText ||
     "Nouveaux arrivages d'ordinateurs MacBook, Dell & ThinkPad importés directement d'Amérique !";
   const headerStatus = contactCMS.openingHours || "Akwa Showroom • Ouvert 🇨🇲";
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const token = getGuestToken();
+    if (!token) {
+      setUnreadCount(0);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const fetchUnread = async () => {
+      try {
+        const res = await API.getCustomerNotifications();
+        const next = Number(res?.unreadCount || 0);
+        if (!cancelled) setUnreadCount(next);
+      } catch {
+        if (!cancelled) setUnreadCount(0);
+      }
+    };
+
+    fetchUnread();
+    const interval = window.setInterval(fetchUnread, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [activeUser?.id]);
 
   return (
     <header className="border-b border-warm-cream-dark bg-warm-cream/95 sticky top-0 z-40 backdrop-blur-sm shadow-xs">
@@ -93,6 +124,20 @@ export default function Header({
             />
             <Search className="w-3.5 h-3.5 text-luxe-muted absolute left-2.5 top-2" />
           </div>
+
+          <button
+            type="button"
+            onClick={onOpenAccountModal}
+            className="relative flex items-center justify-center w-9 h-9 rounded-full bg-white border border-warm-cream-dark hover:border-luxe-gold/60 hover:bg-warm-cream transition-all shadow-xs cursor-pointer select-none"
+            title="Notifications"
+          >
+            <Bell className="w-4 h-4 text-luxe-dark" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-luxe-orange text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
 
           <button
             type="button"

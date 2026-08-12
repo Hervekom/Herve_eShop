@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Check, Laptop, Sparkles, PhoneCall, Mail, MapPin, 
+  X, Check, Laptop, Sparkles, PhoneCall, Mail, MapPin, Bell,
   User, LogOut, Loader2, Lock, Eye, EyeOff, Edit, ClipboardList, RefreshCw
 } from 'lucide-react';
 import API, { getCachedGuestUser, getGuestToken } from '../lib/api';
@@ -58,6 +58,8 @@ export default function CustomerAccountModal({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
   const [selectedQuoteDetail, setSelectedQuoteDetail] = useState<QuoteRequest | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const cached = getCachedGuestUser();
@@ -66,8 +68,36 @@ export default function CustomerAccountModal({
       setCurrentUser(cached);
       setActiveTab('dashboard');
       fetchProfileData();
+      fetchNotifications();
     }
   }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = getGuestToken();
+      if (!token) {
+        setNotifications([]);
+        setUnreadNotifications(0);
+        return;
+      }
+      const res = await API.getCustomerNotifications();
+      const list = Array.isArray(res?.notifications) ? res.notifications : [];
+      setNotifications(list);
+      setUnreadNotifications(Number(res?.unreadCount || 0));
+    } catch {
+      setNotifications([]);
+      setUnreadNotifications(0);
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      await API.markCustomerNotificationsRead();
+      await fetchNotifications();
+    } catch (err) {
+      triggerToast('Erreur', (err as Error).message, 'danger');
+    }
+  };
 
   const fetchProfileData = async () => {
     try {
@@ -106,6 +136,7 @@ export default function CustomerAccountModal({
         onSuccess(res.user);
         triggerToast('Connexion réussie ! 👋', `Bienvenue de retour, ${res.user.name}!`, 'success');
         fetchProfileData();
+        fetchNotifications();
       }
     } catch (err) {
       triggerToast('Erreur d\'identification ❌', (err as Error).message, 'danger');
@@ -154,6 +185,7 @@ export default function CustomerAccountModal({
               onSuccess(loginRes.user);
               triggerToast('Compte créé et connecté ! 🎉', `Bienvenue, ${loginRes.user.name}.`, 'success');
               fetchProfileData();
+              fetchNotifications();
             }
           } catch {
             setActiveTab('login');
@@ -206,6 +238,8 @@ export default function CustomerAccountModal({
     API.logoutCustomer();
     setCurrentUser(null);
     setQuotes([]);
+    setNotifications([]);
+    setUnreadNotifications(0);
     setActiveTab('login');
     onSuccess(null);
     triggerToast('Déconnexion ! 🚪', 'Vous avez été déconnecté de votre espace client.', 'info');
@@ -657,6 +691,77 @@ export default function CustomerAccountModal({
                   </div>
                 </form>
               )}
+
+              <div className="bg-white rounded-2xl border border-warm-cream-dark p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between border-b border-warm-cream-dark/60 pb-2">
+                  <h6 className="font-serif font-bold text-md text-luxe-dark flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-luxe-copper" />
+                    Notifications
+                    {unreadNotifications > 0 && (
+                      <span className="ml-1 inline-flex items-center justify-center bg-luxe-orange text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                        {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                      </span>
+                    )}
+                  </h6>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={fetchNotifications}
+                      className="p-1 px-2.5 rounded-lg border border-warm-cream-dark text-[10px] font-bold uppercase text-luxe-muted hover:text-luxe-dark bg-white hover:bg-neutral-50 flex items-center gap-1"
+                      title="Rafraîchir"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      Actualiser
+                    </button>
+                    <button
+                      type="button"
+                      onClick={markAllNotificationsRead}
+                      className="p-1 px-2.5 rounded-lg border border-warm-cream-dark text-[10px] font-bold uppercase text-luxe-muted hover:text-luxe-dark bg-white hover:bg-neutral-50"
+                      disabled={unreadNotifications <= 0}
+                    >
+                      Marquer comme lu
+                    </button>
+                  </div>
+                </div>
+
+                {notifications.length === 0 ? (
+                  <div className="text-xs text-luxe-muted">
+                    Aucune notification pour le moment.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {notifications.slice(0, 6).map((n: any) => (
+                      <div
+                        key={String(n.id)}
+                        className="p-3 rounded-xl border border-warm-cream-dark/70 bg-warm-cream/20"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-extrabold text-luxe-dark text-xs truncate">
+                              {String(n.title || 'Notification')}
+                            </div>
+                            {n.message && (
+                              <div className="text-[10px] text-luxe-muted mt-0.5 break-words">
+                                {String(n.message)}
+                              </div>
+                            )}
+                          </div>
+                          {n.createdAt && (
+                            <div className="text-[9px] text-luxe-muted whitespace-nowrap font-mono">
+                              {new Date(String(n.createdAt)).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {notifications.length > 6 && (
+                      <div className="text-[10px] text-luxe-muted">
+                        + {notifications.length - 6} autre(s)
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Quotes / Order history section */}
               <div className="space-y-4">
