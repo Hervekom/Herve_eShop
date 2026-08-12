@@ -528,6 +528,24 @@ function computeItemsTotal(items: any[]) {
   }, 0);
 }
 
+function normalizeEmail(value: any) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function normalizePhoneDigits(value: any) {
+  return String(value || '').replace(/\D+/g, '');
+}
+
+function phonesMatch(a: any, b: any) {
+  const da = normalizePhoneDigits(a);
+  const db = normalizePhoneDigits(b);
+  if (!da || !db) return false;
+  if (da === db) return true;
+  const n = Math.min(9, da.length, db.length);
+  if (n < 8) return false;
+  return da.slice(-n) === db.slice(-n);
+}
+
 function buildEmbeddedNotes(humanNote: any, payload: any) {
   const human = String(humanNote || '').trim();
   const encoded = base64UrlEncode(JSON.stringify(payload || {}));
@@ -1159,9 +1177,9 @@ async function extractCustomerUser(req: express.Request, supabase: SupabaseLike)
   const metadata = data.user.user_metadata || {};
   return {
     id: data.user.id,
-    email: data.user.email || '',
+    email: metadata.customer_email || data.user.email || '',
     name: metadata.name || metadata.username || (data.user.email || '').split('@')[0] || 'Client',
-    phone: metadata.phone || '',
+    phone: String(metadata.phone || '').trim(),
     city: metadata.city || '',
     created_at: data.user.created_at,
   };
@@ -1259,6 +1277,18 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         clientCity: clientCity || '',
       };
 
+      const embeddedQuoteNotes = buildEmbeddedNotes(
+        additionalNotes || `Demande devis: ${laptopView.brand} ${laptopView.model}`.trim(),
+        {
+          type: 'quote',
+          items: [quoteItem],
+          totalAmount: resolvedFinalPrice,
+          customerId: customerUser?.id || null,
+          customerEmail: clientEmail || null,
+          customerPhone: clientPhone || null,
+        },
+      );
+
       const unifiedPayloadBase: any = {
         id: id || undefined,
         order_number: orderId,
@@ -1292,17 +1322,8 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           address: '',
         },
         customizations: customizations || null,
-        additional_notes: buildEmbeddedNotes(
-          additionalNotes || `Demande devis: ${laptopView.brand} ${laptopView.model}`.trim(),
-          {
-            type: 'quote',
-            items: [quoteItem],
-            totalAmount: resolvedFinalPrice,
-            customerId: customerUser?.id || null,
-            customerEmail: clientEmail || null,
-            customerPhone: clientPhone || null,
-          },
-        ),
+        additional_notes: embeddedQuoteNotes,
+        additionalNotes: embeddedQuoteNotes,
         payment_status: 'pending',
         paymentStatus: 'pending',
         payment_method: null,
@@ -1606,6 +1627,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           },
         },
         additional_notes: embeddedNotes,
+        additionalNotes: embeddedNotes,
         payment_status: 'pending',
         paymentStatus: 'pending',
         payment_method: null,
@@ -1831,6 +1853,8 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         return res.status(401).json({ error: 'Session client invalide ou expirée.' });
       }
       let orders: any[] = [];
+      const emailKey = normalizeEmail(user.email);
+      const phoneKey = normalizePhoneDigits(user.phone);
       const firstAttempt = await (async () => {
         let ordersQuery: any = adminDb.from('orders').select('*').order('created_at', { ascending: false });
         if (user.email && user.phone) {
@@ -1859,7 +1883,20 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         }
       } else {
         orders = firstAttempt.data || [];
+        if ((orders || []).length === 0) {
+          const allAttempt = await adminDb.from('orders').select('*').order('created_at', { ascending: false }).limit(500);
+          if (!allAttempt.error) {
+            orders = allAttempt.data || [];
+          }
+        }
       }
+      const mapped = (orders || []).map(mapOrderRowToFrontend);
+      const filtered = mapped.filter((o: any) => {
+        const emailMatch = emailKey ? normalizeEmail(o.clientEmail) === emailKey : false;
+        const phoneMatch = phoneKey ? phonesMatch(o.clientPhone, phoneKey) : false;
+        return emailMatch || phoneMatch;
+      });
+
       res.json({
         success: true,
         user: {
@@ -1870,7 +1907,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           city: user.city,
           createdAt: user.created_at,
         },
-        orders: (orders || []).map(mapOrderRowToFrontend),
+        orders: filtered,
       });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
