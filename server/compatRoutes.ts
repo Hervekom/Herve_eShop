@@ -1406,6 +1406,41 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         throw pendingAttempt.error;
       }
 
+      try {
+        const orderDbId = String(inserted?.id || '').trim();
+        if (orderDbId && normalizedItems.length) {
+          for (const it of normalizedItems) {
+            const productId = String(it?.productId || '').trim();
+            if (!productId) continue;
+            const quantity = Math.max(1, Number(it?.quantity || 1));
+            const unitPrice = Number(it?.finalPrice || it?.basePrice || 0);
+            const totalPrice = Math.max(0, unitPrice) * quantity;
+            const itemCustomizations = (it as any)?.customizations || null;
+
+            const orderItemPayload: any = {
+              order_id: orderDbId,
+              orderId: orderDbId,
+              product_id: productId,
+              productId,
+              quantity,
+              unit_price: unitPrice,
+              unitPrice,
+              total_price: totalPrice,
+              totalPrice,
+              customizations: itemCustomizations,
+            };
+
+            const insertedItem = await adaptiveInsertSingleRow(adminDb, 'order_items', orderItemPayload);
+            if (insertedItem.error) {
+              if (isMissingTableError(insertedItem.error)) {
+                break;
+              }
+            }
+          }
+        }
+      } catch {
+      }
+
       for (const it of normalizedItems) {
         const row = productsById.get(it.productId);
         const stock = Number(row?.stock_quantity || 0);
@@ -2013,6 +2048,56 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           const secondAttempt = await adminDb.from('orders').select('*').order('createdAt', { ascending: false });
           if (secondAttempt.error) throw secondAttempt.error;
           const rows = secondAttempt.data || [];
+          const orderItemsByOrderId = new Map<string, any[]>();
+          try {
+            const orderIds = (rows || []).map((r: any) => String(r?.id || '').trim()).filter(Boolean);
+            if (orderIds.length) {
+              let itemsAttempt = await adminDb.from('order_items').select('*').in('order_id', orderIds);
+              if (itemsAttempt.error && isMissingColumnError(itemsAttempt.error, 'order_id')) {
+                itemsAttempt = await adminDb.from('order_items').select('*').in('orderId', orderIds);
+              }
+              if (!itemsAttempt.error) {
+                (itemsAttempt.data || []).forEach((it: any) => {
+                  const orderId = String(it?.order_id || it?.orderId || '').trim();
+                  if (!orderId) return;
+                  const list = orderItemsByOrderId.get(orderId) || [];
+                  const productId = String(it?.product_id || it?.productId || '').trim();
+                  const qty = Math.max(1, Number(it?.quantity || 1));
+                  const unit = Number(it?.unit_price ?? it?.unitPrice ?? it?.price ?? 0);
+                  const total = Number(it?.total_price ?? it?.totalPrice ?? (Math.max(0, unit) * qty));
+                  list.push({
+                    productId,
+                    quantity: qty,
+                    basePrice: unit,
+                    finalPrice: unit,
+                    lineTotal: total,
+                    customizations: it?.customizations || null,
+                  });
+                  orderItemsByOrderId.set(orderId, list);
+                });
+              }
+            }
+          } catch {
+          }
+
+          (rows || []).forEach((row: any) => {
+            const orderId = String(row?.id || '').trim();
+            const orderItems = orderId ? (orderItemsByOrderId.get(orderId) || []) : [];
+            if (!orderItems.length) return;
+            const existingItems = parseItemsPayload(row?.items);
+            if (!existingItems.length) {
+              row.items = orderItems;
+            }
+            if (row?.customizations && typeof row.customizations === 'object') {
+              const nextCustomizations: any = { ...row.customizations };
+              if (!Array.isArray(nextCustomizations.items) || !nextCustomizations.items.length) {
+                nextCustomizations.items = orderItems;
+              }
+              row.customizations = nextCustomizations;
+            } else {
+              row.customizations = { type: 'cart', items: orderItems };
+            }
+          });
           const ids = new Set<string>();
           rows.forEach((row: any) => {
             const legacyId = String(row?.laptop_id || row?.laptopId || '').trim();
@@ -2099,6 +2184,56 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         throw firstAttempt.error;
       }
       const rows = firstAttempt.data || [];
+      const orderItemsByOrderId = new Map<string, any[]>();
+      try {
+        const orderIds = (rows || []).map((r: any) => String(r?.id || '').trim()).filter(Boolean);
+        if (orderIds.length) {
+          let itemsAttempt = await adminDb.from('order_items').select('*').in('order_id', orderIds);
+          if (itemsAttempt.error && isMissingColumnError(itemsAttempt.error, 'order_id')) {
+            itemsAttempt = await adminDb.from('order_items').select('*').in('orderId', orderIds);
+          }
+          if (!itemsAttempt.error) {
+            (itemsAttempt.data || []).forEach((it: any) => {
+              const orderId = String(it?.order_id || it?.orderId || '').trim();
+              if (!orderId) return;
+              const list = orderItemsByOrderId.get(orderId) || [];
+              const productId = String(it?.product_id || it?.productId || '').trim();
+              const qty = Math.max(1, Number(it?.quantity || 1));
+              const unit = Number(it?.unit_price ?? it?.unitPrice ?? it?.price ?? 0);
+              const total = Number(it?.total_price ?? it?.totalPrice ?? (Math.max(0, unit) * qty));
+              list.push({
+                productId,
+                quantity: qty,
+                basePrice: unit,
+                finalPrice: unit,
+                lineTotal: total,
+                customizations: it?.customizations || null,
+              });
+              orderItemsByOrderId.set(orderId, list);
+            });
+          }
+        }
+      } catch {
+      }
+
+      (rows || []).forEach((row: any) => {
+        const orderId = String(row?.id || '').trim();
+        const orderItems = orderId ? (orderItemsByOrderId.get(orderId) || []) : [];
+        if (!orderItems.length) return;
+        const existingItems = parseItemsPayload(row?.items);
+        if (!existingItems.length) {
+          row.items = orderItems;
+        }
+        if (row?.customizations && typeof row.customizations === 'object') {
+          const nextCustomizations: any = { ...row.customizations };
+          if (!Array.isArray(nextCustomizations.items) || !nextCustomizations.items.length) {
+            nextCustomizations.items = orderItems;
+          }
+          row.customizations = nextCustomizations;
+        } else {
+          row.customizations = { type: 'cart', items: orderItems };
+        }
+      });
       const ids = new Set<string>();
       rows.forEach((row: any) => {
         const legacyId = String(row?.laptop_id || row?.laptopId || '').trim();
