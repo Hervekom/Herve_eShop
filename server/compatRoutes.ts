@@ -597,41 +597,62 @@ function mapOrderRowToFrontend(row: any) {
     };
   }
 
-  const items = parseItemsPayload(row.items);
+  const extracted = extractCartPayloadFromAdditionalNotes(row.additional_notes ?? row.additionalNotes);
+  const itemsFromRow = parseItemsPayload(row.items);
+
+  let customizations: any = row.customizations;
+  if (typeof customizations === 'string') {
+    try {
+      customizations = JSON.parse(customizations);
+    } catch {
+      customizations = null;
+    }
+  }
+
+  const itemsFromCustomizations = Array.isArray(customizations?.items) ? customizations.items : [];
+  const itemsFromNotes = Array.isArray(extracted.payload?.items) ? extracted.payload.items : [];
+
+  const items =
+    itemsFromRow.length > 1
+      ? itemsFromRow
+      : (itemsFromCustomizations.length > 1
+          ? itemsFromCustomizations
+          : (itemsFromNotes.length ? itemsFromNotes : itemsFromRow));
+
   const first = items[0] || {};
   const totalFromItems = computeItemsTotal(items);
-  const computedTotal = Number(row.total_amount || totalFromItems || 0);
+  const computedTotal = Number(row.total_amount || row.totalAmount || totalFromItems || 0);
 
-  const summaryLabel =
-    items.length > 1
-      ? `${items.length} articles`
-      : (first.laptopBrand || first.brand || '');
+  const inferredType = String(customizations?.type || extracted.payload?.type || '').toLowerCase();
+  const isCartLike = inferredType === 'cart' || items.length > 1;
+
+  const summaryLabel = isCartLike ? `${items.length} articles` : (first.laptopBrand || first.brand || '');
 
   return {
     id: row.id,
     orderNumber: row.id,
-    clientName: first.clientName || row.shipping_address?.clientName || 'Client',
-    clientPhone: first.clientPhone || row.shipping_address?.clientPhone || '',
-    clientEmail: first.clientEmail || row.shipping_address?.clientEmail || '',
-    clientCity: first.clientCity || row.shipping_address?.clientCity || '',
+    clientName: first.clientName || row.shipping_address?.clientName || row.shippingAddress?.clientName || 'Client',
+    clientPhone: first.clientPhone || row.shipping_address?.clientPhone || row.shippingAddress?.clientPhone || '',
+    clientEmail: first.clientEmail || row.shipping_address?.clientEmail || row.shippingAddress?.clientEmail || '',
+    clientCity: first.clientCity || row.shipping_address?.clientCity || row.shippingAddress?.clientCity || '',
     laptopId: first.laptopId || first.productId || '',
     laptopBrand: summaryLabel,
-    laptopModel: items.length > 1 ? 'Commande panier' : (first.laptopModel || first.model || ''),
-    basePrice: Number(first.basePrice || computedTotal || 0),
+    laptopModel: isCartLike ? 'Commande panier' : (first.laptopModel || first.model || ''),
+    basePrice: isCartLike ? computedTotal : Number(first.basePrice || computedTotal || 0),
     finalPrice: computedTotal,
-    customizations: first.customizations || {
+    customizations: first.customizations || customizations || extracted.payload || {
       ramUpgrade: 'Aucune',
       storageUpgrade: 'Aucun',
       osOption: 'Windows 11 Pro',
       accessories: [],
     },
-    additionalNotes: first.additionalNotes || '',
+    additionalNotes: first.additionalNotes || extracted.human || '',
     status: fromDbOrderStatus(row.status),
     createdAt: row.created_at || row.createdAt || new Date().toISOString(),
     updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || new Date().toISOString(),
     items,
-    shippingAddress: row.shipping_address || row.shippingAddress || row.customizations?.shipping || null,
-    delivery: row.customizations?.delivery || null,
+    shippingAddress: row.shipping_address || row.shippingAddress || customizations?.shipping || extracted.payload?.shipping || null,
+    delivery: customizations?.delivery || extracted.payload?.delivery || null,
   };
 }
 
