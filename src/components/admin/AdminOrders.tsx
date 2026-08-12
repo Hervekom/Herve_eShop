@@ -109,7 +109,7 @@ export default function AdminOrders({
   const handleOpenStatusEdit = (order: Order) => {
     setActiveOrder(order);
     setNewStatus(order.status);
-    setEditPrice(order.finalPrice);
+    setEditPrice(resolveOrderItems(order).reduce((sum, it) => sum + Number(it.finalPrice || it.basePrice || 0) * Number(it.quantity || 1), 0) || order.finalPrice);
     setEditStatusOpen(true);
   };
 
@@ -168,6 +168,26 @@ export default function AdminOrders({
     ];
   };
 
+  const getOrderTotal = (order: Order) => {
+    const items = resolveOrderItems(order);
+    const total = items.reduce((sum, it) => sum + Number(it.finalPrice || it.basePrice || 0) * Number(it.quantity || 1), 0);
+    return total || order.finalPrice || 0;
+  };
+
+  const describeItemSpecs = (it: OrderItem) => {
+    const parts = [
+      (it as any).processor,
+      (it as any).ram,
+      (it as any).storage,
+      (it as any).screenSize,
+      (it as any).condition,
+    ]
+      .map((v) => String(v || '').trim())
+      .filter(Boolean)
+      .filter((v) => !['non specifie', 'non spécifié', 'n/a', 'na'].includes(v.toLowerCase()));
+    return parts.join(' | ');
+  };
+
   const resolveShipping = (order: Order) => {
     const raw = order.shippingAddress || {};
     const name = String(raw.clientName || raw.name || order.clientName || '').trim();
@@ -209,7 +229,7 @@ export default function AdminOrders({
         o.clientEmail,
         o.laptopBrand,
         o.laptopModel,
-        o.finalPrice,
+        getOrderTotal(o),
         `RAM:${o.customizations.ramUpgrade};SSD:${o.customizations.storageUpgrade}`,
         o.status,
         new Date(o.createdAt).toLocaleDateString()
@@ -369,12 +389,54 @@ export default function AdminOrders({
                     </div>
                   </td>
                   <td className="py-3.5 px-4">
-                    <div className="font-extrabold text-luxe-dark">
-                      {order.laptopBrand} <span className="font-normal">{order.laptopModel}</span>
-                    </div>
-                    <div className="text-[10px] text-luxe-copper mt-1">
-                      RAM : {(order.customizations as any)?.ramUpgrade || '—'} | SD : {(order.customizations as any)?.storageUpgrade || '—'} | OS : {(order.customizations as any)?.osOption || '—'}
-                    </div>
+                    {(() => {
+                      const items = resolveOrderItems(order);
+                      if (items.length <= 1) {
+                        const it = items[0] || {};
+                        const label = `${String(it.brand || it.laptopBrand || order.laptopBrand || '').trim()} ${String(it.model || it.laptopModel || order.laptopModel || '').trim()}`.trim();
+                        const specs = describeItemSpecs(it);
+                        return (
+                          <>
+                            <div className="font-extrabold text-luxe-dark">
+                              {label}
+                            </div>
+                            {specs ? (
+                              <div className="text-[10px] text-luxe-copper mt-1">
+                                {specs}
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-luxe-copper mt-1">
+                                RAM : {(order.customizations as any)?.ramUpgrade || '—'} | SD : {(order.customizations as any)?.storageUpgrade || '—'} | OS : {(order.customizations as any)?.osOption || '—'}
+                              </div>
+                            )}
+                          </>
+                        );
+                      }
+
+                      const firstTwo = items.slice(0, 2);
+                      return (
+                        <>
+                          <div className="font-extrabold text-luxe-dark">
+                            Commande panier <span className="font-normal">({items.length} articles)</span>
+                          </div>
+                          <div className="text-[10px] text-luxe-copper mt-1 space-y-0.5">
+                            {firstTwo.map((it, idx) => {
+                              const label = `${String(it.brand || it.laptopBrand || '').trim()} ${String(it.model || it.laptopModel || '').trim()}`.trim();
+                              const specs = describeItemSpecs(it);
+                              const qty = Number(it.quantity || 1);
+                              return (
+                                <div key={idx} className="truncate">
+                                  {idx + 1}. {label} x{qty}{specs ? ` — ${specs}` : ''}
+                                </div>
+                              );
+                            })}
+                            {items.length > 2 && (
+                              <div className="text-[10px] text-luxe-muted">+ {items.length - 2} autre(s)</div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                     {order.additionalNotes && (
                       <div className="text-[10px] italic text-red-500 bg-red-50 px-2 py-0.5 rounded-lg inline-block mt-1 max-w-[220px] truncate">
                         💡 {order.additionalNotes}
@@ -382,7 +444,7 @@ export default function AdminOrders({
                     )}
                   </td>
                   <td className="py-3.5 px-4 whitespace-nowrap font-mono font-extrabold text-luxe-dark">
-                    {formatFCFA(order.finalPrice)}
+                    {formatFCFA(getOrderTotal(order))}
                   </td>
                   <td className="py-3.5 px-4 whitespace-nowrap text-center">
                     <span className={`text-[8.5px] uppercase tracking-widest font-extrabold px-2.5 py-1 rounded-sm border ${getStatusBadgeClass(order.status)}`}>

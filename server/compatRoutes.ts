@@ -1038,11 +1038,20 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       }
 
       const orderId = id || `DV-${Date.now()}`;
+      const laptopView = mapLaptopRowToFrontend(laptop);
       const quoteItem = {
         productId: laptopId,
         laptopId,
-        brand: laptop.brand || '',
-        model: laptop.model || '',
+        brand: laptopView.brand || laptop.brand || '',
+        model: laptopView.model || laptop.model || '',
+        processor: laptopView.processor || laptop.processor || '',
+        ram: laptopView.ram || laptop.ram || '',
+        storage: laptopView.storage || laptop.storage || '',
+        screenSize: laptopView.screenSize || laptop.screen_size || '',
+        condition: laptopView.condition || laptop.condition || '',
+        source: laptopView.source || mapLaptopSource(laptop.origin),
+        category: laptopView.category,
+        subCategory: laptopView.subCategory,
         quantity: 1,
         basePrice: Number(laptop.price_xaf || 0),
         finalPrice: resolvedFinalPrice,
@@ -1273,11 +1282,20 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         if (!row) {
           throw new Error(`Produit introuvable: ${id}`);
         }
-        const unitPrice = Number(row.price_xaf || 0);
+        const view = mapLaptopRowToFrontend(row);
+        const unitPrice = Number(row.price_xaf || view.price || 0);
         return {
           productId: id,
-          brand: row.brand || '',
-          model: row.model || '',
+          brand: view.brand || row.brand || '',
+          model: view.model || row.model || '',
+          processor: view.processor || row.processor || '',
+          ram: view.ram || row.ram || '',
+          storage: view.storage || row.storage || '',
+          screenSize: view.screenSize || row.screen_size || '',
+          condition: view.condition || row.condition || '',
+          source: view.source || mapLaptopSource(row.origin),
+          category: view.category,
+          subCategory: view.subCategory,
           quantity,
           basePrice: unitPrice,
           finalPrice: unitPrice,
