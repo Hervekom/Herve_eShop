@@ -410,6 +410,42 @@ function parseItemsPayload(value: any) {
   return [value];
 }
 
+const ADDITIONAL_NOTES_CART_MARKER = '__CART_JSON__:';
+
+function base64UrlEncode(input: string) {
+  return Buffer.from(String(input || ''), 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function base64UrlDecode(input: string) {
+  const raw = String(input || '').replace(/-/g, '+').replace(/_/g, '/');
+  const pad = raw.length % 4 === 0 ? '' : '='.repeat(4 - (raw.length % 4));
+  return Buffer.from(`${raw}${pad}`, 'base64').toString('utf8');
+}
+
+function extractCartPayloadFromAdditionalNotes(value: any): { human: string; payload: any | null } {
+  const text = String(value || '');
+  const idx = text.indexOf(ADDITIONAL_NOTES_CART_MARKER);
+  if (idx < 0) {
+    return { human: text.trim(), payload: null };
+  }
+  const human = text.slice(0, idx).trim();
+  const encoded = text.slice(idx + ADDITIONAL_NOTES_CART_MARKER.length).trim();
+  if (!encoded) {
+    return { human, payload: null };
+  }
+  try {
+    const decoded = base64UrlDecode(encoded);
+    const parsed = JSON.parse(decoded);
+    return { human, payload: parsed };
+  } catch {
+    return { human, payload: null };
+  }
+}
+
 function computeItemsTotal(items: any[]) {
   return (Array.isArray(items) ? items : []).reduce((sum: number, it: any) => {
     const qty = Number(it?.quantity || 1);
@@ -445,15 +481,17 @@ function mapOrderRowToFrontend(row: any) {
     const type = String(customizations?.type || '').toLowerCase();
     const itemsFromRow = parseItemsPayload(row.items);
     const itemsFromCustomizations = Array.isArray(customizations?.items) ? customizations.items : [];
+    const extracted = extractCartPayloadFromAdditionalNotes(row.additional_notes);
+    const itemsFromNotes = Array.isArray(extracted.payload?.items) ? extracted.payload.items : [];
     const hasCartType = type === 'cart';
-    const isCartLike = hasCartType || itemsFromCustomizations.length > 1 || itemsFromRow.length > 1;
+    const isCartLike = hasCartType || itemsFromCustomizations.length > 1 || itemsFromRow.length > 1 || itemsFromNotes.length > 1;
     const fallbackTotal = Number(row.total_amount ?? row.totalAmount ?? 0);
     const defaultItemBase = Number(row.base_price ?? row.basePrice ?? row.final_price ?? row.finalPrice ?? fallbackTotal ?? 0);
     const defaultItemFinal = Number(row.final_price ?? row.finalPrice ?? fallbackTotal ?? 0);
     const items =
       (hasCartType && itemsFromCustomizations.length)
         ? itemsFromCustomizations
-        : (itemsFromRow.length ? itemsFromRow : [
+        : (itemsFromRow.length ? itemsFromRow : (itemsFromNotes.length ? itemsFromNotes : [
             {
               productId: row.laptop_id || '',
               laptopId: row.laptop_id || '',
@@ -471,7 +509,7 @@ function mapOrderRowToFrontend(row: any) {
               clientEmail: row.client_email || '',
               clientCity: row.client_city || '',
             },
-          ]);
+          ]));
     const computedTotal = isCartLike ? computeItemsTotal(items) : 0;
     return {
       id: row.id,
@@ -486,13 +524,13 @@ function mapOrderRowToFrontend(row: any) {
       basePrice: isCartLike ? computedTotal : defaultItemBase,
       finalPrice: isCartLike ? computedTotal : defaultItemFinal,
       customizations,
-      additionalNotes: row.additional_notes || '',
+      additionalNotes: extracted.human || '',
       status: fromDbOrderStatus(row.status),
       createdAt: row.created_at || row.createdAt || new Date().toISOString(),
       updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || new Date().toISOString(),
       items,
-      shippingAddress: customizations?.shipping || row.shipping_address || null,
-      delivery: customizations?.delivery || null,
+      shippingAddress: customizations?.shipping || row.shipping_address || extracted.payload?.shipping || null,
+      delivery: customizations?.delivery || extracted.payload?.delivery || null,
     };
   }
 
@@ -506,15 +544,17 @@ function mapOrderRowToFrontend(row: any) {
     const type = String(customizations?.type || '').toLowerCase();
     const itemsFromRow = parseItemsPayload(row.items);
     const itemsFromCustomizations = Array.isArray(customizations?.items) ? customizations.items : [];
+    const extracted = extractCartPayloadFromAdditionalNotes(row.additionalNotes);
+    const itemsFromNotes = Array.isArray(extracted.payload?.items) ? extracted.payload.items : [];
     const hasCartType = type === 'cart';
-    const isCartLike = hasCartType || itemsFromCustomizations.length > 1 || itemsFromRow.length > 1;
+    const isCartLike = hasCartType || itemsFromCustomizations.length > 1 || itemsFromRow.length > 1 || itemsFromNotes.length > 1;
     const fallbackTotal = Number(row.total_amount ?? row.totalAmount ?? 0);
     const defaultItemBase = Number(row.basePrice ?? row.finalPrice ?? fallbackTotal ?? 0);
     const defaultItemFinal = Number(row.finalPrice ?? fallbackTotal ?? 0);
     const items =
       (hasCartType && itemsFromCustomizations.length)
         ? itemsFromCustomizations
-        : (itemsFromRow.length ? itemsFromRow : [
+        : (itemsFromRow.length ? itemsFromRow : (itemsFromNotes.length ? itemsFromNotes : [
             {
               productId: row.laptopId || '',
               laptopId: row.laptopId || '',
@@ -532,7 +572,7 @@ function mapOrderRowToFrontend(row: any) {
               clientEmail: row.clientEmail || '',
               clientCity: row.clientCity || '',
             },
-          ]);
+          ]));
     const computedTotal = isCartLike ? computeItemsTotal(items) : 0;
     return {
       id: row.id,
@@ -547,13 +587,13 @@ function mapOrderRowToFrontend(row: any) {
       basePrice: isCartLike ? computedTotal : defaultItemBase,
       finalPrice: isCartLike ? computedTotal : defaultItemFinal,
       customizations,
-      additionalNotes: row.additionalNotes || '',
+      additionalNotes: extracted.human || '',
       status: fromDbOrderStatus(row.status),
       createdAt: row.createdAt || row.created_at || new Date().toISOString(),
       updatedAt: row.updatedAt || row.updated_at || row.createdAt || row.created_at || new Date().toISOString(),
       items,
-      shippingAddress: customizations?.shipping || row.shipping_address || null,
-      delivery: customizations?.delivery || null,
+      shippingAddress: customizations?.shipping || row.shipping_address || extracted.payload?.shipping || null,
+      delivery: customizations?.delivery || extracted.payload?.delivery || null,
     };
   }
 
@@ -1339,6 +1379,29 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       const customerUser = await extractCustomerUser(req, supabase);
       const firstItem = normalizedItems[0];
       const orderId = `CMD-${Date.now()}`;
+
+      const cartPayloadForNotes = {
+        type: 'cart',
+        items: normalizedItems,
+        shipping: {
+          address: clientAddress,
+          clientName,
+          clientPhone,
+          clientEmail,
+          clientCity,
+        },
+        delivery: {
+          method: String(delivery.method || 'delivery'),
+          notes: String(delivery.notes || ''),
+        },
+        totalAmount,
+      };
+
+      const embeddedNotes =
+        normalizedItems.length > 1
+          ? `Commande panier: ${normalizedItems.length} article(s).\n${ADDITIONAL_NOTES_CART_MARKER}${base64UrlEncode(JSON.stringify(cartPayloadForNotes))}`
+          : null;
+
       const unifiedPayloadBase: any = {
         order_number: orderId,
         orderNumber: orderId,
@@ -1385,7 +1448,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
             notes: String(delivery.notes || ''),
           },
         },
-        additional_notes: normalizedItems.length > 1 ? `Commande panier: ${normalizedItems.length} article(s).` : null,
+        additional_notes: embeddedNotes,
         payment_status: 'pending',
         paymentStatus: 'pending',
         payment_method: null,
