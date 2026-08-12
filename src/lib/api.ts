@@ -4,6 +4,7 @@ const AUTH_TOKEN_KEY = 'herve_eshop_admin_token';
 const AUTH_USER_KEY = 'herve_eshop_admin_user';
 
 const CUSTOMER_TOKEN_KEY = 'herve_eshop_customer_token';
+const CUSTOMER_REFRESH_TOKEN_KEY = 'herve_eshop_customer_refresh_token';
 const CUSTOMER_USER_KEY = 'herve_eshop_customer_user';
 
 export function getAuthToken(): string | null {
@@ -43,12 +44,25 @@ export function getGuestToken(): string | null {
   return localStorage.getItem(CUSTOMER_TOKEN_KEY);
 }
 
+export function getGuestRefreshToken(): string | null {
+  return localStorage.getItem(CUSTOMER_REFRESH_TOKEN_KEY);
+}
+
 export function setGuestToken(token: string | null) {
   if (token) {
     localStorage.setItem(CUSTOMER_TOKEN_KEY, token);
   } else {
     localStorage.removeItem(CUSTOMER_TOKEN_KEY);
+    localStorage.removeItem(CUSTOMER_REFRESH_TOKEN_KEY);
     localStorage.removeItem(CUSTOMER_USER_KEY);
+  }
+}
+
+export function setGuestRefreshToken(token: string | null) {
+  if (token) {
+    localStorage.setItem(CUSTOMER_REFRESH_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(CUSTOMER_REFRESH_TOKEN_KEY);
   }
 }
 
@@ -94,6 +108,24 @@ function buildApiUrl(endpoint: string) {
   return `${API_BASE_URL}${endpoint}`;
 }
 
+async function refreshCustomerSession() {
+  const refreshToken = getGuestRefreshToken();
+  if (!refreshToken) return false;
+  const url = buildApiUrl('/api/client/auth/refresh');
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+  if (!res.ok) return false;
+  const json = await res.json().catch(() => null);
+  if (!json?.success || !json?.token) return false;
+  setGuestToken(json.token);
+  if (json.refreshToken) setGuestRefreshToken(json.refreshToken);
+  if (json.user) setCachedGuestUser(json.user);
+  return true;
+}
+
 // Low-level fetcher
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const token = getAuthToken();
@@ -128,6 +160,17 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   }
 
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      typeof endpoint === 'string' &&
+      endpoint.startsWith('/api/client/') &&
+      !endpoint.startsWith('/api/client/auth/refresh')
+    ) {
+      const refreshed = await refreshCustomerSession();
+      if (refreshed) {
+        return apiFetch(endpoint, options);
+      }
+    }
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Erreur de communication serveur (${response.status})`);
   }
@@ -172,6 +215,9 @@ export const API = {
       if (res.token) {
         setGuestToken(res.token);
       }
+      if (res.refreshToken) {
+        setGuestRefreshToken(res.refreshToken);
+      }
       setCachedGuestUser(res.user);
     }
     return res;
@@ -183,6 +229,9 @@ export const API = {
     });
     if (res.success) {
       setGuestToken(res.token);
+      if (res.refreshToken) {
+        setGuestRefreshToken(res.refreshToken);
+      }
       setCachedGuestUser(res.user);
     }
     return res;

@@ -1771,12 +1771,14 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       }
 
       let token = data.session?.access_token || null;
+      let refreshToken = data.session?.refresh_token || null;
       if (!token) {
         const { data: loginData } = await supabase.auth.signInWithPassword({
           email: syntheticEmail,
           password,
         });
         token = loginData?.session?.access_token || null;
+        refreshToken = loginData?.session?.refresh_token || refreshToken;
       }
 
       await insertNotificationBestEffort(adminDb, {
@@ -1803,6 +1805,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       res.json({
         success: true,
         token,
+        refreshToken,
         user: {
           id: data.user?.id,
           name,
@@ -1833,9 +1836,38 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       res.json({
         success: true,
         token: data.session.access_token,
+        refreshToken: data.session.refresh_token,
         user: {
           id: data.user.id,
           name: metadata.name || metadata.username || email.split('@')[0],
+          email: metadata.customer_email || data.user.email || '',
+          phone: metadata.phone || '',
+          city: metadata.city || '',
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/client/auth/refresh', async (req, res) => {
+    const refreshToken = String(req.body?.refreshToken || '').trim();
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'refreshToken requis.' });
+    }
+    try {
+      const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+      if (error || !data?.session || !data.user) {
+        return res.status(401).json({ error: 'Session client invalide ou expirée.' });
+      }
+      const metadata = data.user.user_metadata || {};
+      res.json({
+        success: true,
+        token: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        user: {
+          id: data.user.id,
+          name: metadata.name || metadata.username || (metadata.customer_email || data.user.email || '').split('@')[0] || 'Client',
           email: metadata.customer_email || data.user.email || '',
           phone: metadata.phone || '',
           city: metadata.city || '',
@@ -1959,6 +1991,8 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (!user) {
         return res.json({ success: true, notifications: [], unreadCount: 0 });
       }
+      const emailKey = normalizeEmail(user.email);
+      const phoneKey = normalizePhoneDigits(user.phone);
 
       let attempt: any = await adminDb
         .from('notifications')
@@ -2009,10 +2043,10 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         const metaCustomerId = String(meta?.customerId || '').trim();
         if (metaCustomerId && metaCustomerId === user.id) return true;
 
-        const metaEmail = String(meta?.customerEmail || '').trim();
+        const metaEmail = normalizeEmail(meta?.customerEmail);
         const metaPhone = String(meta?.customerPhone || '').trim();
-        const emailMatch = user.email ? metaEmail && metaEmail === String(user.email).trim() : false;
-        const phoneMatch = user.phone ? metaPhone && metaPhone === String(user.phone).trim() : false;
+        const emailMatch = emailKey ? metaEmail && metaEmail === emailKey : false;
+        const phoneMatch = phoneKey ? phonesMatch(metaPhone, phoneKey) : false;
         return emailMatch || phoneMatch;
       });
 
@@ -2043,6 +2077,8 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       if (!user) {
         return res.status(401).json({ error: 'Session client invalide ou expirée.' });
       }
+      const emailKey = normalizeEmail(user.email);
+      const phoneKey = normalizePhoneDigits(user.phone);
 
       let attempt: any = await adminDb.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
       if (attempt.error && isMissingColumnError(attempt.error, 'user_id')) {
@@ -2070,10 +2106,10 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
               const meta = row?.metadata;
               const metaCustomerId = String(meta?.customerId || '').trim();
               if (metaCustomerId && metaCustomerId === user.id) return true;
-              const metaEmail = String(meta?.customerEmail || '').trim();
+              const metaEmail = normalizeEmail(meta?.customerEmail);
               const metaPhone = String(meta?.customerPhone || '').trim();
-              const emailMatch = user.email ? metaEmail && metaEmail === String(user.email).trim() : false;
-              const phoneMatch = user.phone ? metaPhone && metaPhone === String(user.phone).trim() : false;
+              const emailMatch = emailKey ? metaEmail && metaEmail === emailKey : false;
+              const phoneMatch = phoneKey ? phonesMatch(metaPhone, phoneKey) : false;
               return emailMatch || phoneMatch;
             })
             .map((row: any) => String(row?.id || '').trim())
