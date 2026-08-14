@@ -1064,7 +1064,7 @@ async function loadCmsFromDb(adminDb: SupabaseLike) {
     const { data, error } = await adminDb
       .from('site_settings')
       .select('key,value')
-      .in('key', ['site_cms', 'contact_cms', 'social_cms']);
+      .in('key', ['site_cms', 'contact_cms', 'social_cms', 'banners_store', 'guides_store']);
 
     if (error) throw error;
 
@@ -1076,6 +1076,8 @@ async function loadCmsFromDb(adminDb: SupabaseLike) {
     siteCMSStore = { ...clone(DEFAULT_SITE_CMS), ...(map.get('site_cms') || {}) };
     contactCMSStore = { ...clone(DEFAULT_CONTACT_CMS), ...(map.get('contact_cms') || {}) };
     socialCMSStore = { ...clone(DEFAULT_SOCIAL_CMS), ...(map.get('social_cms') || {}) };
+    bannersStore = Array.isArray(map.get('banners_store')) ? map.get('banners_store') : [];
+    guidesStore = Array.isArray(map.get('guides_store')) ? map.get('guides_store') : [];
   } catch (error) {
     if (!isMissingTableError(error)) {
       throw error;
@@ -1097,9 +1099,10 @@ async function persistCmsToDb(adminDb: SupabaseLike, key: string, value: any) {
     );
     if (error) throw error;
   } catch (error) {
-    if (!isMissingTableError(error)) {
-      throw error;
+    if (isMissingTableError(error)) {
+      throw new Error("Table 'site_settings' introuvable dans Supabase. Créez-la pour conserver le CMS (site/contact/social/bannières) après redémarrage.");
     }
+    throw error;
   }
 }
 
@@ -3072,16 +3075,19 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   app.post('/api/admin/banners', requireCompatAdmin, async (req, res) => {
     const banner = { id: `banner-${Date.now()}`, ...req.body };
     bannersStore.unshift(banner);
+    await persistCmsToDb(adminDb, 'banners_store', bannersStore);
     res.json({ success: true, banner });
   });
 
   app.put('/api/admin/banners/:id', requireCompatAdmin, async (req, res) => {
     bannersStore = bannersStore.map((banner) => banner.id === req.params.id ? { ...banner, ...req.body } : banner);
+    await persistCmsToDb(adminDb, 'banners_store', bannersStore);
     res.json({ success: true, banner: bannersStore.find((banner) => banner.id === req.params.id) });
   });
 
   app.delete('/api/admin/banners/:id', requireCompatAdmin, async (req, res) => {
     bannersStore = bannersStore.filter((banner) => banner.id !== req.params.id);
+    await persistCmsToDb(adminDb, 'banners_store', bannersStore);
     res.json({ success: true });
   });
 
@@ -3092,16 +3098,19 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   app.post('/api/admin/guides', requireCompatAdmin, async (req, res) => {
     const guide = { id: `guide-${Date.now()}`, ...req.body };
     guidesStore.unshift(guide);
+    await persistCmsToDb(adminDb, 'guides_store', guidesStore);
     res.json({ success: true, guide });
   });
 
   app.put('/api/admin/guides/:id', requireCompatAdmin, async (req, res) => {
     guidesStore = guidesStore.map((guide) => guide.id === req.params.id ? { ...guide, ...req.body } : guide);
+    await persistCmsToDb(adminDb, 'guides_store', guidesStore);
     res.json({ success: true, guide: guidesStore.find((guide) => guide.id === req.params.id) });
   });
 
   app.delete('/api/admin/guides/:id', requireCompatAdmin, async (req, res) => {
     guidesStore = guidesStore.filter((guide) => guide.id !== req.params.id);
+    await persistCmsToDb(adminDb, 'guides_store', guidesStore);
     res.json({ success: true });
   });
 
