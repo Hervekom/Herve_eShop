@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Minus, Plus, ShoppingCart, Sparkles, Trash2, Bell, ArrowRight, Shield, Users, CheckCircle, Smartphone, Info, RefreshCw, X 
+  Minus, Plus, ShoppingCart, Sparkles, Trash2, Bell, ArrowRight, Shield, Users, CheckCircle, Smartphone, Info, RefreshCw, X,
+  Facebook, Instagram, Linkedin, Youtube, Twitter, Music2
 } from 'lucide-react';
 import Header from './components/Header';
 import CatalogView from './components/CatalogView';
@@ -159,6 +160,26 @@ export default function App() {
 
   const cartCount = cartItems.reduce((sum, it) => sum + Number(it.quantity || 0), 0);
   const cartTotal = cartItems.reduce((sum, it) => sum + Number(it.product.price || 0) * Number(it.quantity || 0), 0);
+
+  const socialCMS = clientData?.socialCMS || {};
+  const normalizeExternalUrl = (raw: any) => {
+    const value = String(raw || '').trim();
+    if (!value) return '';
+    if (/^https?:\/\//i.test(value)) return value;
+    return `https://${value}`;
+  };
+
+  const socialLinks = [
+    { key: 'facebook', label: 'Facebook', Icon: Facebook, active: socialCMS?.facebook?.active, url: socialCMS?.facebook?.url },
+    { key: 'instagram', label: 'Instagram', Icon: Instagram, active: socialCMS?.instagram?.active, url: socialCMS?.instagram?.url },
+    { key: 'tiktok', label: 'TikTok', Icon: Music2, active: socialCMS?.tiktok?.active, url: socialCMS?.tiktok?.url },
+    { key: 'linkedin', label: 'LinkedIn', Icon: Linkedin, active: socialCMS?.linkedin?.active, url: socialCMS?.linkedin?.url },
+    { key: 'youtube', label: 'YouTube', Icon: Youtube, active: socialCMS?.youtube?.active, url: socialCMS?.youtube?.url },
+    { key: 'twitter', label: 'X', Icon: Twitter, active: socialCMS?.twitter?.active, url: socialCMS?.twitter?.url },
+  ]
+    .filter((s) => Boolean(s.active) && Boolean(String(s.url || '').trim()))
+    .map((s) => ({ ...s, url: normalizeExternalUrl(s.url) }))
+    .filter((s) => Boolean(s.url));
 
   // Load from real server on mount
   const loadServerData = async () => {
@@ -683,6 +704,22 @@ export default function App() {
             <p className="text-warm-cream-dark/60 leading-relaxed max-w-sm">
               L'excellence du matériel informatique haut de gamme de seconde main importé au Cameroun. Traçabilité, configuration sur-mesure et service après-vente d'exception.
             </p>
+            {socialLinks.length > 0 && (
+              <div className="flex items-center gap-2 pt-1">
+                {socialLinks.map(({ key, label, Icon, url }) => (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-9 h-9 rounded-full bg-white/5 border border-white/10 hover:border-luxe-gold/40 hover:bg-white/10 flex items-center justify-center transition-all"
+                    title={label}
+                  >
+                    <Icon className="w-4 h-4 text-warm-cream" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick links representation */}
