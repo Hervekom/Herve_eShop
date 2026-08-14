@@ -192,18 +192,8 @@ export default function CatalogView({
             <button
               type="button"
               onClick={() => {
-                const first = sortedLaptops[0];
-                if (!first) {
-                  onTriggerToast('Aucun article', 'Aucun article n’est disponible pour le moment.', 'danger');
-                  return;
-                }
                 const anchor = document.getElementById('catalog-grid-anchor');
                 anchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                window.setTimeout(() => {
-                  const el = document.getElementById(`laptop-card-${first.id}`);
-                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  onSelectLaptopForDetails(first);
-                }, 550);
               }}
               className="inline-flex items-center justify-center bg-luxe-dark text-warm-cream text-11px md:text-xs tracking-widest uppercase font-semibold px-6 py-4 rounded-full shadow-lg hover:bg-luxe-copper transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               id="discover-collection-btn"
