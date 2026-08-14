@@ -428,6 +428,12 @@ export const API = {
   // Complex multi-metric Analytics
   getAnalytics: () => apiFetch('/api/admin/analytics'),
 
+  // Service reviews (admin)
+  getAdminServiceReviews: () => apiFetch('/api/admin/service-reviews'),
+  deleteAdminServiceReview: (id: string) => apiFetch(`/api/admin/service-reviews/${id}`, {
+    method: 'DELETE'
+  }),
+
   // --- COMPATIBILITY ALIASES FOR COMPONENT ACTIONS ---
   getLaptops: async () => {
     // Get list of products from client data endpoint

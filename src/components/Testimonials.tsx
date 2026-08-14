@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Star, CheckCircle2, Quote, Sparkles, Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Star, CheckCircle2, Quote, Sparkles, MessageSquare, X } from 'lucide-react';
+import API, { getCachedGuestUser, getGuestToken } from '../lib/api';
 
 interface Testimonial {
   id: string;
@@ -49,68 +50,107 @@ const PRE_SEEDED_TESTIMONIALS: Testimonial[] = [
   }
 ];
 
-const RANDOM_NAMES = [
-  'Amina Abbo', 'Marc Alhadji', 'Fidèle Tchakounté', 'Nathalie Eyenga',
-  'Ibrahim Bello', 'Emilie Ngo', 'Rodrigue Fotso', 'Raïssa Belinga',
-  'Arnaud Ebolo', 'Saliou Ousmanou', 'Vanessa Moukoko', 'Serge Mvogo'
-];
-
-const RANDOM_CITIES = [
-  'Douala', 'Yaoundé', 'Bafoussam', 'Garoua', 'Limbe', 'Bamenda', 'Kribi', 'Ngaoundéré'
-];
-
-const RANDOM_PRODUCTS = [
-  'MacBook Air 13" M2 (16GB)', 'HP EliteBook 840 G9', 'Dell Latitude 7430',
-  'ASUS ROG Zephyrus G14', 'MacBook Pro 16" M1 Max', 'Lenovo ThinkPad X1 Carbon Gen 10',
-  'HP ZBook Fury 15 G8', 'Microsoft Surface Laptop 5'
-];
-
 const RANDOM_AVATARS = [
   'bg-emerald-600 text-white', 'bg-blue-600 text-white', 'bg-amber-500 text-white',
   'bg-indigo-600 text-white', 'bg-rose-500 text-white', 'bg-teal-600 text-white',
   'bg-luxe-copper text-white', 'bg-luxe-gold text-luxe-dark'
 ];
 
-const RANDOM_COMMENTS = [
-  'Excellent rapport qualité-prix. Très bon suivi de commande du début à la fin de l\'importation.',
-  'Machine super propre, conforme en tout point à la fiche technique. Je valide à 100% l\'authenticité.',
-  'Hervé est d\'un professionnalisme incroyable au Cameroun. Traçabilité complète du colis depuis les USA.',
-  'Service après-vente au top ! J\'ai eu un petit doute sur le chargeur et Hervé me l\'a échangé instantanément à Douala.',
-  'Incroyable ! On dirait que l\'ordinateur sort d\'usine. La batterie tient plus de 9 heures en utilisation continue.',
-  'Parfait pour mes cours de design graphique. Le processeur et la carte graphique font des merveilles.',
-  'La transaction s\'est faite rapidement. Les tarifs sont hyper honnêtes pour cette qualité certifiée d\'importation.',
-  'Un grand merci à Herve_eShop pour la réactivité, le professionnalisme de la configuration et le cadeau surprise !'
-];
-
-export default function Testimonials() {
+export default function Testimonials({
+  onRequireLogin,
+  onTriggerToast,
+}: {
+  onRequireLogin: () => void;
+  onTriggerToast: (title: string, message: string, type?: string) => void;
+}) {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(PRE_SEEDED_TESTIMONIALS);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [city, setCity] = useState('');
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const generateRandomTestimonial = () => {
-    setIsGenerating(true);
-    
-    setTimeout(() => {
-      const randomName = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
-      const randomCity = RANDOM_CITIES[Math.floor(Math.random() * RANDOM_CITIES.length)];
-      const randomProduct = RANDOM_PRODUCTS[Math.floor(Math.random() * RANDOM_PRODUCTS.length)];
-      const randomAvatar = RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)];
-      const randomComment = RANDOM_COMMENTS[Math.floor(Math.random() * RANDOM_COMMENTS.length)];
-      
-      const newTestimonial: Testimonial = {
-        id: `t-random-${Date.now()}`,
-        name: randomName,
-        city: randomCity,
-        avatarColor: randomAvatar,
-        rating: Math.random() > 0.15 ? 5 : 4, // 85% 5 stars, 15% 4 stars
-        product: randomProduct,
-        comment: randomComment,
-        date: 'À l\'instant',
-        verified: true
-      };
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await API.getProductReviews('service');
+        const reviews = Array.isArray(res?.reviews) ? res.reviews : [];
+        const mapped: Testimonial[] = reviews.map((r: any) => ({
+          id: String(r.id),
+          name: String(r.author || 'Client'),
+          city: String(r.city || '—'),
+          avatarColor: RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)],
+          rating: Math.min(5, Math.max(1, Number(r.rating || 5))),
+          product: 'Service Herve_eShop',
+          comment: String(r.comment || ''),
+          date: String(r.date || ''),
+          verified: true,
+        }));
+        if (!cancelled && mapped.length) setTestimonials(mapped);
+      } catch {
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-      setTestimonials(prev => [newTestimonial, ...prev]);
-      setIsGenerating(false);
-    }, 450);
+  const openForm = () => {
+    if (!getGuestToken()) {
+      onTriggerToast('Connexion requise', 'Connectez-vous pour laisser un avis sur le service.', 'info');
+      onRequireLogin();
+      return;
+    }
+    const user = getCachedGuestUser();
+    setCity(String(user?.city || '').trim());
+    setRating(5);
+    setComment('');
+    setFormOpen(true);
+  };
+
+  const submitServiceReview = async () => {
+    const trimmed = String(comment || '').trim();
+    if (!trimmed) {
+      onTriggerToast('Avis incomplet', 'Veuillez écrire votre avis.', 'danger');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await API.createProductReview({
+        productId: 'service',
+        rating,
+        comment: trimmed,
+        city: String(city || '').trim(),
+      });
+      onTriggerToast('Merci !', 'Votre avis a été publié.', 'success');
+      setFormOpen(false);
+      setComment('');
+
+      const res = await API.getProductReviews('service');
+      const reviews = Array.isArray(res?.reviews) ? res.reviews : [];
+      const mapped: Testimonial[] = reviews.map((r: any) => ({
+        id: String(r.id),
+        name: String(r.author || 'Client'),
+        city: String(r.city || '—'),
+        avatarColor: RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)],
+        rating: Math.min(5, Math.max(1, Number(r.rating || 5))),
+        product: 'Service Herve_eShop',
+        comment: String(r.comment || ''),
+        date: String(r.date || ''),
+        verified: true,
+      }));
+      if (mapped.length) setTestimonials(mapped);
+    } catch (err) {
+      onTriggerToast('Erreur avis', (err as Error).message, 'danger');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -132,20 +172,20 @@ export default function Testimonials() {
             </p>
           </div>
 
-          {/* Interactive random testimonial generator button */}
+          {/* Service review button */}
           <div className="flex items-center">
             <button
-              onClick={generateRandomTestimonial}
-              disabled={isGenerating}
+              onClick={openForm}
+              disabled={submitting}
               className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wide border cursor-pointer select-none transition-all shadow-md active:scale-95 duration-200 ${
-                isGenerating 
+                submitting
                   ? 'bg-warm-cream-dark border-warm-cream-dark text-luxe-muted cursor-not-allowed'
                   : 'bg-luxe-dark text-white border-luxe-dark hover:bg-luxe-orange hover:border-luxe-orange hover:shadow-luxe-orange/20'
               }`}
-              id="generate-testimonial-btn"
+              id="leave-service-review-btn"
             >
-              <Plus className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-              {isGenerating ? 'Génération...' : 'Générer un avis client'}
+              <MessageSquare className={`w-4 h-4 ${submitting ? 'animate-spin' : ''}`} />
+              Laisser un avis sur le service
             </button>
           </div>
         </div>
@@ -171,6 +211,12 @@ export default function Testimonials() {
             <span className="text-[10px] uppercase font-bold tracking-wider text-luxe-muted">Importé USA d'Origine</span>
           </div>
         </div>
+
+        {loading && (
+          <div className="text-xs text-luxe-muted font-mono uppercase tracking-widest font-bold mb-6">
+            Chargement des avis...
+          </div>
+        )}
 
         {/* Testimonials Grid Layout with animations */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -234,6 +280,88 @@ export default function Testimonials() {
         </div>
 
       </div>
+
+      {formOpen && (
+        <div className="fixed inset-0 z-50 bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl border border-warm-cream-dark shadow-2xl p-5 text-left select-text">
+            <div className="flex justify-between items-center border-b border-warm-cream pb-3 mb-4">
+              <h4 className="font-serif font-bold text-sm text-luxe-dark">Laisser un avis sur le service</h4>
+              <button
+                type="button"
+                onClick={() => setFormOpen(false)}
+                className="text-luxe-muted hover:text-black font-serif text-lg font-bold"
+                title="Fermer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="font-bold text-luxe-dark">Note</label>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const v = i + 1;
+                    const active = v <= rating;
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setRating(v)}
+                        className="p-1"
+                        title={`${v}/5`}
+                      >
+                        <Star className={`w-5 h-5 ${active ? 'fill-luxe-yellow text-luxe-yellow' : 'text-warm-cream-dark/70'}`} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-luxe-dark">Ville</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
+                  placeholder="Douala, Yaoundé..."
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-luxe-dark">Votre avis</label>
+                <textarea
+                  rows={4}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  className="w-full p-2 rounded-xl border border-warm-cream text-xs"
+                  placeholder="Parlez du service reçu..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-warm-cream pt-3.5">
+                <button
+                  type="button"
+                  onClick={() => setFormOpen(false)}
+                  className="px-3.5 py-1.5 border border-grey rounded-xl font-bold font-sans"
+                  disabled={submitting}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={submitServiceReview}
+                  disabled={submitting}
+                  className="px-4.5 py-1.5 bg-luxe-copper hover:bg-luxe-dark text-white rounded-xl font-bold font-sans disabled:opacity-60"
+                >
+                  Publier
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

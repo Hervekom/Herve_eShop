@@ -463,7 +463,10 @@ export default function App() {
         />
         
         {/* CLIENT TESTIMONIALS & TRUST BUILDING SECTION */}
-        <Testimonials />
+        <Testimonials
+          onRequireLogin={() => setIsAccountModalOpen(true)}
+          onTriggerToast={triggerToastAlert}
+        />
 
         {/* HERVE BUYING GUIDES RECOMMENDATIONS */}
         <BuyingGuides cms={clientData} />

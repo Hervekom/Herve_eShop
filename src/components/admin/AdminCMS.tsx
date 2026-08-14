@@ -12,7 +12,7 @@ export default function AdminCMS({
   currentRole: 'Super Admin' | 'Admin' | 'Editor';
   onTriggerToast: (title: string, message: string, type?: string) => void;
 }) {
-  const [subTab, setSubTab] = useState<'site' | 'contact' | 'social' | 'banners'>('site');
+  const [subTab, setSubTab] = useState<'site' | 'contact' | 'social' | 'banners' | 'reviews'>('site');
   const [loading, setLoading] = useState(true);
 
   // CMS forms states
@@ -22,6 +22,7 @@ export default function AdminCMS({
   
   // Announcement banner lists
   const [banners, setBanners] = useState<any[]>([]);
+  const [serviceReviews, setServiceReviews] = useState<any[]>([]);
   const [bannerFormOpen, setBannerFormOpen] = useState(false);
   const [currentBanner, setCurrentBanner] = useState<any>({
     title: '', subtitle: '', image: '', link: '', type: 'Homepage Banner', status: 'Actif'
@@ -37,6 +38,13 @@ export default function AdminCMS({
       
       const bannersList = await API.getBanners();
       setBanners(bannersList);
+
+      try {
+        const reviews = await API.getAdminServiceReviews();
+        setServiceReviews(Array.isArray(reviews) ? reviews : []);
+      } catch {
+        setServiceReviews([]);
+      }
     } catch (err) {
       onTriggerToast('Erreur ❌', 'Impossible de charger les données du CMS.');
     } finally {
@@ -110,6 +118,17 @@ export default function AdminCMS({
     }
   };
 
+  const handleServiceReviewDelete = async (id: string) => {
+    if (!confirm('Supprimer définitivement cet avis client ?')) return;
+    try {
+      await API.deleteAdminServiceReview(id);
+      onTriggerToast('Avis supprimé', 'L’avis client a été supprimé.', 'success');
+      fetchCMSData();
+    } catch (err) {
+      onTriggerToast('Erreur', (err as Error).message, 'danger');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -170,6 +189,16 @@ export default function AdminCMS({
         >
           <Image className="w-4 h-4 inline mr-1.5" />
           <span>Bannières & Sliders</span>
+        </button>
+
+        <button
+          onClick={() => setSubTab('reviews')}
+          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+            subTab === 'reviews' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
+          }`}
+        >
+          <FileText className="w-4 h-4 inline mr-1.5" />
+          <span>Avis Clients</span>
         </button>
       </div>
 
@@ -819,6 +848,67 @@ export default function AdminCMS({
             </div>
           )}
 
+        </div>
+      )}
+
+      {subTab === 'reviews' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-mono font-extrabold text-luxe-muted block">Avis sur le service (page d’accueil)</span>
+            <button
+              onClick={fetchCMSData}
+              className="px-3.5 py-1.5 bg-warm-cream hover:bg-white text-luxe-dark rounded-lg font-bold uppercase tracking-wider text-[10px] cursor-pointer border border-warm-cream-dark flex items-center gap-2"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Actualiser
+            </button>
+          </div>
+
+          {serviceReviews.length === 0 ? (
+            <div className="bg-white p-6 rounded-3xl border border-warm-cream-dark shadow-sm text-xs text-luxe-muted">
+              Aucun avis pour le moment.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+              {serviceReviews.map((rev) => (
+                <div key={rev.id} className="bg-white border border-warm-cream-dark rounded-2xl overflow-hidden shadow-xs p-5 space-y-3">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="min-w-0">
+                      <h5 className="font-serif font-bold text-sm text-luxe-dark truncate">
+                        {String(rev.author || 'Client')}
+                      </h5>
+                      <div className="text-[10px] text-luxe-muted font-mono mt-0.5">
+                        {String(rev.city || '—')} • {new Date(String(rev.createdAt || '')).toLocaleString('fr-FR')}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleServiceReviewDelete(String(rev.id))}
+                      disabled={currentRole === 'Editor'}
+                      className="px-3 py-1.5 border border-red-150 hover:bg-red-50 text-red-600 rounded-xl text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Sparkles
+                        key={i}
+                        className={`w-3.5 h-3.5 ${i < Number(rev.rating || 5) ? 'text-luxe-orange' : 'text-warm-cream-dark/60'}`}
+                      />
+                    ))}
+                    <span className="text-[10px] text-luxe-muted font-mono ml-2">
+                      {Number(rev.rating || 5)}/5
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-luxe-dark/90 leading-relaxed whitespace-pre-wrap">
+                    {String(rev.comment || '').trim()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -3005,6 +3005,66 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
+  app.get('/api/admin/service-reviews', requireCompatAdmin, async (_req, res) => {
+    try {
+      let attempt: any = await adminDb
+        .from('product_reviews')
+        .select('*')
+        .eq('product_id', 'service')
+        .order('created_at', { ascending: false });
+
+      if (attempt.error && isMissingColumnError(attempt.error, 'product_id')) {
+        attempt = await adminDb
+          .from('product_reviews')
+          .select('*')
+          .eq('productId', 'service')
+          .order('created_at', { ascending: false });
+      }
+
+      if (attempt.error && isMissingColumnError(attempt.error, 'created_at')) {
+        attempt = await adminDb.from('product_reviews').select('*').eq('product_id', 'service').order('createdAt', { ascending: false });
+      }
+
+      if (attempt.error) {
+        if (isMissingTableError(attempt.error)) {
+          return res.json([]);
+        }
+        throw attempt.error;
+      }
+
+      const rows = attempt.data || [];
+      res.json(
+        rows.map((row: any) => ({
+          id: row.id,
+          author: row.author_name || row.author || 'Client',
+          city: row.city || '',
+          rating: Number(row.rating || 5),
+          comment: row.comment || '',
+          createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+        })),
+      );
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.delete('/api/admin/service-reviews/:id', requireCompatAdmin, async (req, res) => {
+    try {
+      const id = String(req.params.id || '').trim();
+      if (!id) return res.status(400).json({ error: 'id requis.' });
+      const attempt = await adminDb.from('product_reviews').delete().eq('id', id);
+      if (attempt.error) {
+        if (isMissingTableError(attempt.error)) {
+          return res.json({ success: true });
+        }
+        throw attempt.error;
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   app.get('/api/admin/banners', requireCompatAdmin, async (_req, res) => {
     res.json(bannersStore);
   });
