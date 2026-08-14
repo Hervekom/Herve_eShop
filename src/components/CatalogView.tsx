@@ -29,6 +29,10 @@ export default function CatalogView({
   const siteCMS = cms?.siteCMS || {};
   const heroTitle = siteCMS.heroTitle || 'Excellence';
   const heroSubtitle = siteCMS.heroSubtitle || "Découvrez le summum des ordinateurs portables de seconde main premium.";
+  const homepageBanners = (Array.isArray(cms?.banners) ? cms.banners : []).filter(
+    (b: any) => String(b?.type || '').trim() === 'Homepage Banner' && String(b?.status || '').trim() === 'Actif',
+  );
+
   // Filters state
   const [selectedBrand, setSelectedBrand] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -38,6 +42,7 @@ export default function CatalogView({
   const [showOnlyFavourites, setShowOnlyFavourites] = useState<boolean>(false);
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(5000000);
+  const [activeHomepageBannerIndex, setActiveHomepageBannerIndex] = useState(0);
 
   // Auto-scroll to shared laptop card on mount if ?laptop=ID exists in URL
   useEffect(() => {
@@ -57,6 +62,18 @@ export default function CatalogView({
       }, 600);
     }
   }, []);
+
+  useEffect(() => {
+    if (!homepageBanners.length) return;
+    if (homepageBanners.length === 1) {
+      setActiveHomepageBannerIndex(0);
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setActiveHomepageBannerIndex((prev) => (prev + 1) % homepageBanners.length);
+    }, 6500);
+    return () => window.clearInterval(interval);
+  }, [homepageBanners.length]);
 
   const handleShare = (laptop: Laptop) => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?laptop=${laptop.id}#laptop-card-${laptop.id}`;
@@ -172,14 +189,28 @@ export default function CatalogView({
           </p>
 
           <div className="mt-8 md:mt-10 flex flex-wrap gap-4">
-            <a
-              href="#catalog-grid-anchor"
+            <button
+              type="button"
+              onClick={() => {
+                const first = sortedLaptops[0];
+                if (!first) {
+                  onTriggerToast('Aucun article', 'Aucun article n’est disponible pour le moment.', 'danger');
+                  return;
+                }
+                const anchor = document.getElementById('catalog-grid-anchor');
+                anchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.setTimeout(() => {
+                  const el = document.getElementById(`laptop-card-${first.id}`);
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  onSelectLaptopForDetails(first);
+                }, 550);
+              }}
               className="inline-flex items-center justify-center bg-luxe-dark text-warm-cream text-11px md:text-xs tracking-widest uppercase font-semibold px-6 py-4 rounded-full shadow-lg hover:bg-luxe-copper transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               id="discover-collection-btn"
             >
               Découvrir la Collection
               <ChevronRight className="w-4 h-4 ml-1.5" />
-            </a>
+            </button>
           </div>
         </div>
 
@@ -188,13 +219,73 @@ export default function CatalogView({
           <div className="relative w-full aspect-[4/3] rounded-2xl bg-gradient-to-br from-warm-cream to-warm-cream-dark p-4 md:p-8 flex items-center justify-center shadow-lg border border-warm-cream-dark/60 overflow-hidden">
             {/* Ambient inner soft lighting shadow */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_100%)]"></div>
-            
-            <img
-              src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1200"
-              alt="Premium Apple MacBook Cover"
-              className="w-4/5 h-auto object-contain rounded-lg drop-shadow-[0_25px_40px_rgba(0,0,0,0.18)] transform -rotate-2 hover:rotate-0 transition-transform duration-700"
-              referrerPolicy="no-referrer"
-            />
+
+            {homepageBanners.length ? (
+              <div className="relative w-full h-full rounded-xl overflow-hidden border border-white/50 shadow-inner">
+                <AnimatePresence mode="wait">
+                  <motion.a
+                    key={String(homepageBanners[activeHomepageBannerIndex]?.id || activeHomepageBannerIndex)}
+                    href={String(homepageBanners[activeHomepageBannerIndex]?.link || '#catalog-grid-anchor')}
+                    className="absolute inset-0 block"
+                    initial={{ opacity: 0, scale: 1.01 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.99 }}
+                    transition={{ duration: 0.45 }}
+                  >
+                    <img
+                      src={String(homepageBanners[activeHomepageBannerIndex]?.image || '')}
+                      alt={String(homepageBanners[activeHomepageBannerIndex]?.title || 'Bannière')}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    <div className="absolute bottom-5 left-5 right-5 text-left">
+                      <div className="text-[10px] uppercase tracking-[0.25em] font-bold text-white/80">
+                        Publicité
+                      </div>
+                      <div className="mt-2 font-serif font-extrabold text-xl md:text-2xl text-white leading-tight">
+                        {String(homepageBanners[activeHomepageBannerIndex]?.title || '').trim()}
+                      </div>
+                      {homepageBanners[activeHomepageBannerIndex]?.subtitle && (
+                        <div className="mt-1.5 text-xs text-white/85 leading-relaxed max-w-lg">
+                          {String(homepageBanners[activeHomepageBannerIndex]?.subtitle || '').trim()}
+                        </div>
+                      )}
+                      <div className="mt-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full text-[10px] uppercase tracking-widest font-extrabold text-luxe-dark border border-white/50">
+                        Voir l’offre <ChevronRight className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </motion.a>
+                </AnimatePresence>
+
+                {homepageBanners.length > 1 && (
+                  <div className="absolute top-4 left-4 flex items-center gap-1.5">
+                    {homepageBanners.slice(0, 7).map((b: any, idx: number) => {
+                      const active = idx === activeHomepageBannerIndex;
+                      return (
+                        <button
+                          key={String(b?.id || idx)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setActiveHomepageBannerIndex(idx);
+                          }}
+                          className={`w-2 h-2 rounded-full border ${active ? 'bg-white border-white' : 'bg-white/30 border-white/60'}`}
+                          title={String(b?.title || 'Bannière')}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <img
+                src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1200"
+                alt="Premium Apple MacBook Cover"
+                className="w-4/5 h-auto object-contain rounded-lg drop-shadow-[0_25px_40px_rgba(0,0,0,0.18)] transform -rotate-2 hover:rotate-0 transition-transform duration-700"
+                referrerPolicy="no-referrer"
+              />
+            )}
 
             {/* Float badge 100% verified import on laptops */}
             <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 bg-white/90 backdrop-blur-md px-4 py-3 rounded-lg border border-warm-cream-dark/50 flex gap-4 shadow-lg animate-bounce duration-1000">
