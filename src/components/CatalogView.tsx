@@ -119,11 +119,11 @@ export default function CatalogView({
   const brands = ['All', ...Array.from(new Set(laptops.map(l => l.brand)))];
   const productCategories = ['All', ...Array.from(new Set(laptops.map(l => l.category).filter(Boolean)))];
   const categoryIcons: Record<string, string> = {
-    All: '🛍️',
-    Laptop: '💻',
-    Telephone: '📱',
-    Accessoire: '🎧',
-    Gadget: '⌚',
+    All: 'All',
+    Laptop: 'Laptop',
+    Telephone: 'Phone',
+    Accessoire: 'Accessory',
+    Gadget: 'Gadget',
   };
 
   // Apply filters
@@ -356,12 +356,12 @@ export default function CatalogView({
                   }}
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all border cursor-pointer select-none ${
                     showOnlyFavourites
-                      ? 'bg-rose-500 text-white border-rose-500 shadow-sm scale-[1.02]'
-                      : 'bg-rose-50/50 text-rose-600 border-rose-200/60 hover:border-rose-400 hover:bg-rose-50/80'
+                      ? 'bg-red-500 text-white border-red-500 shadow-sm scale-[1.02]'
+                      : 'bg-red-50 text-red-600 border-red-200 hover:border-red-400 hover:bg-red-100'
                   }`}
                   id="filter-only-favourites-btn"
                 >
-                  <span className="text-sm">❤️</span>
+                  <Heart className="w-4 h-4" />
                   Mes Favoris ({favouriteIds.length})
                 </button>
               </div>
@@ -465,9 +465,9 @@ export default function CatalogView({
                 <span className="text-[9px] uppercase tracking-wider font-extrabold text-luxe-muted mr-1">Raccourcis Budget :</span>
                 {[
                   { label: "Tous budgets", min: 0, max: 5000000 },
-                  { label: "Moins de 600K 💸", min: 0, max: 600000 },
-                  { label: "600K - 1M 💻", min: 600000, max: 1000000 },
-                  { label: "Plus de 1M 🔥", min: 1000000, max: 5000000 }
+                  { label: "Moins de 600K", min: 0, max: 600000 },
+                  { label: "600K - 1M", min: 600000, max: 1000000 },
+                  { label: "Plus de 1M", min: 1000000, max: 5000000 }
                 ].map((b, i) => {
                   const isCurrent = minPrice === b.min && maxPrice === b.max;
                   return (
@@ -500,13 +500,13 @@ export default function CatalogView({
               <select
                 value={selectedSource}
                 onChange={(e) => setSelectedSource(e.target.value)}
-                className="w-full text-xs bg-warm-cream border border-warm-cream-dark rounded-lg py-2 px-3 text-luxe-dark focus:outline-none focus:border-luxe-gold font-medium"
+                className="w-full text-xs bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 text-gray-900 focus:outline-none focus:border-blue-500 font-medium"
                 id="filter-source-select"
               >
                 <option value="All">Toutes provenances</option>
-                <option value="USA">Importé des USA 🇺🇸</option>
-                <option value="Europe">Importé d'Europe 🇪🇺</option>
-                <option value="Asia">Importé d'Asie 🇦🇸</option>
+                <option value="USA">Importé des USA</option>
+                <option value="Europe">Importé d'Europe</option>
+                <option value="Asia">Importé d'Asie</option>
               </select>
             </div>
 
@@ -596,22 +596,22 @@ export default function CatalogView({
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   key={laptop.id}
                   id={`laptop-card-${laptop.id}`}
-                  className="group flex flex-col bg-white rounded-2xl border border-warm-cream-dark/60 overflow-hidden shadow-xs hover:shadow-xl hover:border-luxe-gold/50 transition-all duration-300"
+                  className="group flex flex-col bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300"
                 >
-                  {/* Image Section */}
+                  {/* Image Section - Style moderne */}
                   <div 
                     onClick={() => onSelectLaptopForDetails(laptop)}
-                    className="relative aspect-[16/10] bg-warm-cream/50 overflow-hidden border-b border-warm-cream-dark/40 cursor-pointer group/img"
+                    className="relative aspect-[16/10] bg-gray-100 overflow-hidden border-b border-gray-200 cursor-pointer group/img"
                     title="Cliquez pour voir les photos additionnelles, la vidéo démo et les avis clients"
                   >
                     <img
                       src={laptop.image}
                       alt={`${laptop.brand} ${laptop.model}`}
-                      className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
                     />
 
-                    {/* Absolute elegant action buttons for favorites & sharing */}
+                    {/* Boutons d'action */}
                     <div className="absolute top-3 right-3 flex flex-col gap-2 z-20">
                       <button
                         type="button"
@@ -619,10 +619,10 @@ export default function CatalogView({
                           e.stopPropagation();
                           onToggleFavourite(laptop.id);
                         }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border shadow-xs select-none cursor-pointer ${
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm select-none cursor-pointer ${
                           favouriteIds.includes(laptop.id)
-                            ? 'bg-rose-500 border-rose-500 text-white hover:scale-115 active:scale-90 shadow-md shadow-rose-300/60'
-                            : 'bg-white/95 backdrop-blur-md text-luxe-muted hover:text-rose-500 hover:scale-115 active:scale-90 border-warm-cream-dark/50'
+                            ? 'bg-red-500 text-white hover:bg-red-600'
+                            : 'bg-white text-gray-600 hover:text-red-500 hover:bg-gray-50'
                         }`}
                         title={favouriteIds.includes(laptop.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
                         id={`toggle-fav-${laptop.id}`}
@@ -636,7 +636,7 @@ export default function CatalogView({
                           e.stopPropagation();
                           handleShare(laptop);
                         }}
-                        className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-md text-luxe-muted hover:text-luxe-copper hover:scale-115 hover:border-luxe-copper active:scale-90 border border-warm-cream-dark/50 flex items-center justify-center transition-all shadow-xs select-none cursor-pointer"
+                        className="w-8 h-8 rounded-full bg-white text-gray-600 hover:text-blue-600 hover:bg-gray-50 flex items-center justify-center transition-all shadow-sm select-none cursor-pointer"
                         title="Partager cet article"
                         id={`share-btn-${laptop.id}`}
                       >
@@ -644,165 +644,146 @@ export default function CatalogView({
                       </button>
                     </div>
                     
-                    {/* Glass Header Badges on Hover */}
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 pointer-events-none">
-                      {/* Source flag tag */}
-                      <span className="bg-white/95 text-[10px] font-semibold tracking-wider text-luxe-dark px-2.5 py-1 rounded-full border border-warm-cream-dark/40 shadow-xs flex items-center gap-1">
-                        <Globe2 className="w-3 h-3 text-luxe-copper" /> 
-                        Import {laptop.source === 'USA' ? 'USA 🇺🇸' : laptop.source === 'Europe' ? 'Europe 🇪🇺' : 'Asie 🇦🇸'}
+                    {/* Badges */}
+                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                      <span className="bg-white text-xs font-medium text-gray-700 px-2 py-1 rounded-full border border-gray-300 shadow-xs">
+                        Import {laptop.source}
                       </span>
-                      {/* Condition badge */}
-                      <span className="bg-luxe-dark/85 text-warm-cream text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold">
+                      <span className="bg-gray-800 text-white text-xs font-medium px-2 py-1 rounded-full">
                         {laptop.condition}
                       </span>
                     </div>
 
-                    {/* Absolute price block overlay */}
-                    <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-md px-3 font-semibold text-xs py-1.5 rounded-lg border border-warm-cream-dark/45 shadow-sm font-mono text-luxe-dark flex items-center gap-0.5">
-                      ID: {laptop.id.toUpperCase()}
+                    {/* ID overlay */}
+                    <div className="absolute bottom-3 right-3 bg-white px-2 py-1 rounded text-xs font-mono text-gray-600 border border-gray-300 shadow-sm">
+                      ID: {laptop.id.slice(0, 8)}
                     </div>
                   </div>
 
                   {/* Details Section */}
-                  <div className="p-5 flex-1 flex flex-col justify-between">
-                    <div 
-                      onClick={() => onSelectLaptopForDetails(laptop)}
-                      className="cursor-pointer text-left"
-                      title="Cliquer pour voir les détails de cette machine"
-                    >
-                      {/* Brand & Name */}
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-serif text-[17px] font-bold text-luxe-dark group-hover:text-luxe-copper transition-colors">
-                          {laptop.brand} {laptop.model}
-                        </h4>
-                      </div>
-
-                      {/* Polished golden-yellow star ratings for the premium yellow request */}
-                      <div className="mt-1 flex items-center gap-1 select-none">
-                        <div className="flex items-center text-luxe-yellow">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div 
+                        onClick={() => onSelectLaptopForDetails(laptop)}
+                        className="cursor-pointer text-left"
+                        title="Cliquer pour voir les détails de cette machine"
+                      >
+                        {/* Brand & Name */}
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                            {laptop.brand} {laptop.model}
+                          </h4>
                         </div>
-                        <span className="text-[10px] text-luxe-muted font-medium ml-1">
-                          4.9 (Certifié d'Origine)
-                        </span>
-                      </div>
 
-                      {/* Stock status indicator details */}
-                      <div className="mt-2 flex items-center gap-3">
-                        {isOutOfStock ? (
-                          <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                            Rupture de stock
+                        {/* Évaluation */}
+                        <div className="mt-1 flex items-center gap-1 select-none">
+                          <div className="flex items-center text-yellow-500">
+                            <Star className="w-4 h-4 fill-current" />
+                            <Star className="w-4 h-4 fill-current" />
+                            <Star className="w-4 h-4 fill-current" />
+                            <Star className="w-4 h-4 fill-current" />
+                            <Star className="w-4 h-4 fill-current" />
+                          </div>
+                          <span className="text-xs text-gray-500 font-medium ml-1">
+                            4.9
                           </span>
-                        ) : isIncoming ? (
-                          <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                            Arrivage imminent
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            En Stock ({laptop.stockQuantity} dispos)
-                          </span>
-                        )}
+                        </div>
 
-                        {!isOutOfStock && (
-                          <p className="text-[10px] text-luxe-muted font-medium font-mono">
-                            Mise à jour en direct
-                          </p>
-                        )}
+                        {/* Statut de stock */}
+                        <div className="mt-3">
+                          {isOutOfStock ? (
+                            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 text-xs font-medium px-3 py-1 rounded-full">
+                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                              Rupture de stock
+                            </span>
+                          ) : isIncoming ? (
+                            <span className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-700 text-xs font-medium px-3 py-1 rounded-full">
+                              <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                              Arrivage imminent
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-medium px-3 py-1 rounded-full">
+                              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                              En Stock ({laptop.stockQuantity})
+                            </span>
+                          )}
+                        </div>
+
+                      {/* Technical Specifications highlights - Style moderne */}
+                      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-3 flex flex-col gap-2 font-sans">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600 font-medium">Processeur</span>
+                          <span className="text-gray-900 font-semibold text-right max-w-[180px] break-words">{laptop.processor}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600 font-medium">Mémoire RAM</span>
+                          <span className="text-gray-900 font-semibold font-mono">{laptop.ram}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600 font-medium">Disque SSD</span>
+                          <span className="text-gray-900 font-semibold font-mono">{laptop.storage}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600 font-medium">Écran</span>
+                          <span className="text-gray-900 font-semibold">{laptop.screenSize}</span>
+                        </div>
                       </div>
 
-                      {/* Technical Specifications highlights */}
-                      <div className="mt-4 bg-warm-cream/70 border border-warm-cream-dark/40 rounded-xl p-3 flex flex-col gap-1.5 font-sans">
-                        <div className="flex justify-between text-[11px] border-b border-warm-cream-dark/30 pb-1.5">
-                          <span className="text-luxe-muted">Processeur</span>
-                          <span className="text-luxe-dark font-semibold text-right max-w-[180px] break-words">{laptop.processor}</span>
-                        </div>
-                        <div className="flex justify-between text-[11px] border-b border-warm-cream-dark/30 pb-1.5">
-                          <span className="text-luxe-muted">Mémoire RAM</span>
-                          <span className="text-luxe-dark font-semibold font-mono">{laptop.ram}</span>
-                        </div>
-                        <div className="flex justify-between text-[11px] border-b border-warm-cream-dark/30 pb-1.5">
-                          <span className="text-luxe-muted">Disque SSD</span>
-                          <span className="text-luxe-dark font-semibold font-mono">{laptop.storage}</span>
-                        </div>
-                        <div className="flex justify-between text-[11px]">
-                          <span className="text-luxe-muted">Écran d'affichage</span>
-                          <span className="text-luxe-dark font-semibold">{laptop.screenSize}</span>
-                        </div>
-                      </div>
-
-                      {/* Exquisite custom description */}
-                      <p className="mt-3 text-[11px] text-luxe-muted leading-relaxed italic">
-                        « {laptop.description} »
+                      {/* Description concise */}
+                      <p className="mt-3 text-xs text-gray-600 leading-relaxed">
+                        {laptop.description}
                       </p>
                     </div>
 
-                    {/* Call To Action Row */}
-                    <div className="mt-5 pt-4 border-t border-warm-cream-dark/50 flex flex-col gap-3">
+                    {/* Call To Action Row - Style moderne */}
+                    <div className="mt-5 pt-4 border-t border-gray-200 flex flex-col gap-3">
                       <div className="flex justify-between items-center w-full">
                         <div className="flex flex-col text-left">
-                          <span className="text-[9px] uppercase tracking-wider font-bold text-luxe-muted font-sans font-semibold">Tarif indicatif</span>
-                          <span className="text-base font-bold font-serif text-luxe-dark tracking-tight">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Prix</span>
+                          <span className="text-lg font-bold text-gray-900 tracking-tight">
                             {formatPrice(laptop.price)}
                           </span>
                         </div>
 
-                        {/* Explicit micro-button tag for media details trigger */}
+                        {/* Bouton détails */}
                         <button
                           type="button"
                           onClick={() => onSelectLaptopForDetails(laptop)}
-                          className="inline-flex items-center text-[10px] font-sans font-extrabold text-luxe-orange hover:text-luxe-dark transition-colors cursor-pointer select-none"
+                          className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none"
                           id={`details-link-${laptop.id}`}
                         >
-                          Photos & Vidéos 📸
+                          Voir détails
                         </button>
                       </div>
 
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => onSelectLaptopForDetails(laptop)}
-                          className="flex-1 inline-flex items-center justify-center text-[10px] tracking-wider uppercase font-bold py-2.5 rounded-full bg-white text-luxe-dark border border-warm-cream-dark/80 hover:bg-warm-cream transition-all shadow-xs cursor-pointer select-none"
-                          title="Voir plus de photos, vidéos de test et avis des clients sur cet article"
-                        >
-                          Médias & Avis
-                        </button>
-
-                        <button
-                          type="button"
                           onClick={() => onAddToCart(laptop)}
-                          className={`flex-1 inline-flex items-center justify-center gap-1.5 text-[10px] tracking-wider uppercase font-bold py-2.5 rounded-full transition-all border ${
+                          className={`flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 rounded-lg transition-all ${
                             isOutOfStock
-                              ? 'bg-neutral-100 border-neutral-200 text-neutral-400 cursor-not-allowed font-medium'
-                              : 'bg-white text-luxe-dark border-warm-cream-dark/80 hover:bg-warm-cream hover:border-luxe-gold/60 shadow-xs'
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
                           }`}
                           disabled={isOutOfStock}
                           title="Ajouter au panier"
                           id={`add-to-cart-btn-${laptop.id}`}
                         >
-                          <ShoppingCart className="w-3.5 h-3.5" />
+                          <ShoppingCart className="w-4 h-4" />
                           Panier
                         </button>
 
                         <button
                           type="button"
                           onClick={() => onSelectLaptopForQuote(laptop)}
-                          className={`flex-1 inline-flex items-center justify-center text-[10px] tracking-wider uppercase font-bold py-2.5 rounded-full transition-all border ${
+                          className={`flex-1 inline-flex items-center justify-center text-xs font-medium py-2.5 rounded-lg transition-all border ${
                             isOutOfStock
-                              ? 'bg-neutral-100 border-neutral-200 text-neutral-400 cursor-not-allowed font-medium'
-                              : 'bg-luxe-dark text-warm-cream border-luxe-dark hover:bg-luxe-copper hover:border-luxe-copper shadow-sm hover:shadow-md'
+                              ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                              : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
                           }`}
                           disabled={isOutOfStock}
                           id={`quote-btn-${laptop.id}`}
                         >
                           {isIncoming ? 'Réserver' : 'Devis'}
-                          <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                         </button>
                       </div>
                     </div>
