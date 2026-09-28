@@ -33,6 +33,8 @@ type CmsBannerRecord = {
   priority?: number | string;
   targetType?: string;
   trackingCode?: string;
+  imageFit?: string;
+  imagePosition?: string;
 };
 
 type BasePromoSlide = {
@@ -45,6 +47,8 @@ type BasePromoSlide = {
   ctaText: string;
   badge: string;
   meta: string[];
+  imageFit?: 'cover' | 'contain';
+  imagePosition?: string;
 };
 
 type PromoSlide =
@@ -82,6 +86,18 @@ const toValidDate = (value: unknown) => {
 const getBannerPriority = (banner: CmsBannerRecord) => {
   const raw = Number(banner.priority);
   return Number.isFinite(raw) ? raw : 999;
+};
+
+const normalizeImageFit = (value: unknown): 'cover' | 'contain' | undefined => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'contain') return 'contain';
+  if (normalized === 'cover') return 'cover';
+  return undefined;
+};
+
+const normalizeImagePosition = (value: unknown) => {
+  const normalized = String(value || '').trim();
+  return normalized || undefined;
 };
 
 const isScheduledBannerActive = (banner: CmsBannerRecord, now: Date) => {
@@ -286,6 +302,8 @@ export default function CatalogView({
     priority: getBannerPriority(banner),
     targetType: String(banner.targetType || 'external').trim(),
     trackingCode: String(banner.trackingCode || '').trim() || undefined,
+    imageFit: normalizeImageFit(banner.imageFit) || 'cover',
+    imagePosition: normalizeImagePosition(banner.imagePosition) || 'center center',
     meta: [
       `Priorité ${getBannerPriority(banner)}`,
       toValidDate(banner.endDate) ? `Jusqu'au ${new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(toValidDate(banner.endDate) as Date)}` : 'Sans date de fin',
@@ -303,6 +321,8 @@ export default function CatalogView({
     badge: laptop.isFeatured ? 'Produit mis en avant' : 'Sélection catalogue',
     price: laptop.price,
     product: laptop,
+    imageFit: 'contain',
+    imagePosition: 'center center',
     meta: [laptop.processor, laptop.ram, laptop.storage],
   }));
 
@@ -318,6 +338,8 @@ export default function CatalogView({
         ctaText: String(banner.ctaText || 'Explorer la sélection').trim(),
         ctaUrl: String(banner.link || '#catalog-grid-anchor').trim(),
         badge: 'Promotion maison',
+        imageFit: normalizeImageFit(banner.imageFit) || 'cover',
+        imagePosition: normalizeImagePosition(banner.imagePosition) || 'center center',
         meta: ['Collection premium', 'Contenu éditorial'],
       }))
     : [
@@ -331,6 +353,8 @@ export default function CatalogView({
           ctaText: 'Découvrir la collection',
           ctaUrl: '#catalog-grid-anchor',
           badge: 'Sélection premium',
+          imageFit: 'cover',
+          imagePosition: 'center center',
           meta: ['Toujours actif', 'Orienté catalogue'],
         },
       ];
@@ -439,6 +463,10 @@ export default function CatalogView({
     !failedAssetUrls[currentPromoSlide.logo]
       ? currentPromoSlide.logo
       : '';
+
+  const currentPromoImageFit = currentPromoSlide?.imageFit || (currentPromoSlide?.kind === 'product' ? 'contain' : 'cover');
+  const currentPromoImagePosition = currentPromoSlide?.imagePosition || 'center center';
+  const promoImageUsesContain = currentPromoImageFit === 'contain';
 
   const handlePromoAssetError = (url?: string) => {
     if (!url) return;
@@ -587,17 +615,24 @@ export default function CatalogView({
               </div>
 
               <div className="lg:col-span-7">
-                <div className="relative h-[220px] sm:h-[250px] md:h-[290px] lg:h-[320px] xl:h-[340px] rounded-[1.35rem] overflow-hidden border border-white/10 bg-white/6">
+                <div className={`relative h-[210px] sm:h-[235px] md:h-[280px] lg:h-[315px] xl:h-[332px] rounded-[1.35rem] overflow-hidden border border-white/10 ${
+                  promoImageUsesContain
+                    ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(245,242,237,0.96)_62%,rgba(232,223,210,0.9))]'
+                    : 'bg-white/6'
+                }`}>
                   {currentPromoImage ? (
                     <button
                       type="button"
                       onClick={() => currentPromoSlide && handlePromoAction(currentPromoSlide)}
-                      className="absolute inset-0 block w-full h-full text-left"
+                      className={`absolute inset-0 block w-full h-full text-left ${
+                        promoImageUsesContain ? 'p-3 sm:p-4 md:p-5 lg:p-6' : ''
+                      }`}
                     >
                       <img
                         src={currentPromoImage}
                         alt={currentPromoSlide?.title || 'Promotion'}
-                        className="absolute inset-0 w-full h-full object-cover object-center"
+                        className={`w-full h-full ${promoImageUsesContain ? 'object-contain' : 'object-cover'} ${promoImageUsesContain ? 'rounded-[1rem]' : 'absolute inset-0'}`}
+                        style={{ objectPosition: currentPromoImagePosition }}
                         referrerPolicy="no-referrer"
                         onError={() => handlePromoAssetError(currentPromoImage)}
                       />
@@ -616,8 +651,19 @@ export default function CatalogView({
                     </div>
                   )}
 
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/18 to-black/12" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                  {!promoImageUsesContain && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/18 to-black/12" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                    </>
+                  )}
+
+                  {promoImageUsesContain && (
+                    <>
+                      <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/8 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/20 to-transparent" />
+                    </>
+                  )}
 
                   <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-3">
                     <div className="inline-flex flex-col gap-2">
