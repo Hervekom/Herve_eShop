@@ -5,6 +5,25 @@ import {
 } from 'lucide-react';
 import API from '../../lib/api';
 
+const createEmptyBanner = () => ({
+  title: '',
+  subtitle: '',
+  description: '',
+  image: '',
+  mobileImage: '',
+  logo: '',
+  link: '#catalog-grid-anchor',
+  ctaText: 'Découvrir',
+  advertiserName: '',
+  startDate: '',
+  endDate: '',
+  type: 'Advertisement Banner',
+  status: 'Actif',
+  priority: 1,
+  targetType: 'external',
+  trackingCode: '',
+});
+
 export default function AdminCMS({ 
   currentRole, 
   onTriggerToast 
@@ -24,9 +43,7 @@ export default function AdminCMS({
   const [banners, setBanners] = useState<any[]>([]);
   const [serviceReviews, setServiceReviews] = useState<any[]>([]);
   const [bannerFormOpen, setBannerFormOpen] = useState(false);
-  const [currentBanner, setCurrentBanner] = useState<any>({
-    title: '', subtitle: '', image: '', link: '', type: 'Homepage Banner', status: 'Actif'
-  });
+  const [currentBanner, setCurrentBanner] = useState<any>(createEmptyBanner());
 
   const fetchCMSData = async () => {
     try {
@@ -689,9 +706,7 @@ export default function AdminCMS({
             <span className="text-xs font-mono font-extrabold text-luxe-muted block">Affiches, Annonces et Offres temporaires programmées</span>
             <button
               onClick={() => {
-                setCurrentBanner({
-                  title: '', subtitle: '', image: '', link: '#catalogue', type: 'Homepage Banner', status: 'Actif'
-                });
+                setCurrentBanner(createEmptyBanner());
                 setBannerFormOpen(true);
               }}
               className="px-3.5 py-1.5 bg-luxe-copper hover:bg-luxe-dark text-white rounded-lg font-bold uppercase tracking-wider text-[10px] cursor-pointer"
@@ -718,6 +733,12 @@ export default function AdminCMS({
                     </span>
                     <h5 className="font-serif font-bold text-sm text-luxe-dark mt-1">{ban.title}</h5>
                     <p className="text-[11px] text-luxe-muted leading-relaxed mt-0.5">{ban.subtitle}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-luxe-muted">
+                      {ban.advertiserName && <span>Annonceur : {ban.advertiserName}</span>}
+                      {ban.priority !== undefined && <span>Priorité : {ban.priority}</span>}
+                      {ban.startDate && <span>Début : {ban.startDate}</span>}
+                      {ban.endDate && <span>Fin : {ban.endDate}</span>}
+                    </div>
                   </div>
                   <div className="pt-2 border-t border-warm-cream flex justify-between items-center">
                     <span className="text-[9px] text-luxe-muted font-mono">Action : {ban.link}</span>
@@ -767,13 +788,24 @@ export default function AdminCMS({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-bold text-luxe-dark">Texte de Description *</label>
+                    <label className="font-bold text-luxe-dark">Sous-titre *</label>
                     <textarea
                       required
                       rows={2}
                       value={currentBanner.subtitle}
                       onChange={(e) => setCurrentBanner((p: any) => ({ ...p, subtitle: e.target.value }))}
                       placeholder="e.g. 15% de reise sur tous les ThinkPads"
+                      className="w-full p-2 rounded-xl border border-warm-cream"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-luxe-dark">Description détaillée</label>
+                    <textarea
+                      rows={3}
+                      value={currentBanner.description || ''}
+                      onChange={(e) => setCurrentBanner((p: any) => ({ ...p, description: e.target.value }))}
+                      placeholder="Texte plus riche pour le bandeau principal"
                       className="w-full p-2 rounded-xl border border-warm-cream"
                     />
                   </div>
@@ -790,6 +822,30 @@ export default function AdminCMS({
                     />
                   </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Image mobile</label>
+                      <input
+                        type="text"
+                        value={currentBanner.mobileImage || ''}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, mobileImage: e.target.value }))}
+                        placeholder="Image dédiée au mobile"
+                        className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Logo annonceur</label>
+                      <input
+                        type="text"
+                        value={currentBanner.logo || ''}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, logo: e.target.value }))}
+                        placeholder="Logo du partenaire"
+                        className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <label className="font-bold text-luxe-dark">Type de Bannière</label>
                     <select
@@ -804,7 +860,17 @@ export default function AdminCMS({
               </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Nom de l'annonceur</label>
+                      <input
+                        type="text"
+                        value={currentBanner.advertiserName || ''}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, advertiserName: e.target.value }))}
+                        className="w-full p-2 rounded-xl border border-warm-cream"
+                      />
+                    </div>
+
                     <div className="space-y-1">
                       <label className="font-bold text-luxe-dark">Lien d'Action (URL)</label>
                       <input
@@ -812,6 +878,76 @@ export default function AdminCMS({
                         value={currentBanner.link}
                         onChange={(e) => setCurrentBanner((p: any) => ({ ...p, link: e.target.value }))}
                         className="w-full p-2 rounded-xl border border-warm-cream font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Texte CTA</label>
+                      <input
+                        type="text"
+                        value={currentBanner.ctaText || ''}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, ctaText: e.target.value }))}
+                        className="w-full p-2 rounded-xl border border-warm-cream"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Type de destination</label>
+                      <select
+                        value={currentBanner.targetType || 'external'}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, targetType: e.target.value }))}
+                        className="w-full p-2 rounded-xl border border-warm-cream bg-white text-xs"
+                      >
+                        <option value="external">Externe</option>
+                        <option value="internal">Interne</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Début de campagne</label>
+                      <input
+                        type="date"
+                        value={currentBanner.startDate || ''}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, startDate: e.target.value }))}
+                        className="w-full p-2 rounded-xl border border-warm-cream bg-white text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Fin de campagne</label>
+                      <input
+                        type="date"
+                        value={currentBanner.endDate || ''}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, endDate: e.target.value }))}
+                        className="w-full p-2 rounded-xl border border-warm-cream bg-white text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Priorité</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={currentBanner.priority ?? 1}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, priority: Number(e.target.value || 1) }))}
+                        className="w-full p-2 rounded-xl border border-warm-cream"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Tracking / Référence campagne</label>
+                      <input
+                        type="text"
+                        value={currentBanner.trackingCode || ''}
+                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, trackingCode: e.target.value }))}
+                        placeholder="campaign-2026-q4"
+                        className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
                       />
                     </div>
 

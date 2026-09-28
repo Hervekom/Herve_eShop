@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { SlidersHorizontal, Globe2, CheckCircle, ArrowUpDown, ChevronRight, Heart, ShoppingCart } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { SlidersHorizontal, Globe2, CheckCircle, ArrowUpDown, ChevronRight, Heart, ShoppingCart, ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Laptop, SourceCountry, LaptopStatus } from '../types';
 
@@ -15,6 +15,84 @@ interface CatalogViewProps {
   cms?: any;
 }
 
+type CmsBannerRecord = {
+  id: string;
+  type?: string;
+  status?: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  image?: string;
+  mobileImage?: string;
+  logo?: string;
+  link?: string;
+  ctaText?: string;
+  advertiserName?: string;
+  startDate?: string;
+  endDate?: string;
+  priority?: number | string;
+  targetType?: string;
+  trackingCode?: string;
+};
+
+type BasePromoSlide = {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  image?: string;
+  mobileImage?: string;
+  ctaText: string;
+  badge: string;
+  meta: string[];
+};
+
+type PromoSlide =
+  | (BasePromoSlide & {
+      kind: 'advertisement';
+      image: string;
+      logo?: string;
+      ctaUrl: string;
+      advertiserName: string;
+      priority: number;
+      targetType: string;
+      trackingCode?: string;
+    })
+  | (BasePromoSlide & {
+      kind: 'product';
+      image: string;
+      price: number;
+      product: Laptop;
+    })
+  | (BasePromoSlide & {
+      kind: 'editorial';
+      ctaUrl: string;
+    });
+
+const DEFAULT_BANNER_IMAGE = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1400';
+
+const hasText = (value: unknown) => Boolean(String(value ?? '').trim());
+
+const toValidDate = (value: unknown) => {
+  if (!hasText(value)) return null;
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getBannerPriority = (banner: CmsBannerRecord) => {
+  const raw = Number(banner.priority);
+  return Number.isFinite(raw) ? raw : 999;
+};
+
+const isScheduledBannerActive = (banner: CmsBannerRecord, now: Date) => {
+  if (String(banner.status || '').trim() !== 'Actif') return false;
+  const start = toValidDate(banner.startDate);
+  const end = toValidDate(banner.endDate);
+  if (start && now < start) return false;
+  if (end && now > end) return false;
+  return true;
+};
+
 export default function CatalogView({
   laptops,
   onSelectLaptopForQuote,
@@ -29,11 +107,24 @@ export default function CatalogView({
   const siteCMS = cms?.siteCMS || {};
   const heroTitle = siteCMS.heroTitle || 'Excellence';
   const heroSubtitle = siteCMS.heroSubtitle || "Découvrez le summum des ordinateurs portables de seconde main premium.";
-  const homepageBanners = (Array.isArray(cms?.banners) ? cms.banners : []).filter(
-    (b: any) => String(b?.type || '').trim() === 'Homepage Banner' && String(b?.status || '').trim() === 'Actif',
-  );
-  const advertisementBanners = (Array.isArray(cms?.banners) ? cms.banners : []).filter(
-    (b: any) => String(b?.type || '').trim() === 'Advertisement Banner' && String(b?.status || '').trim() === 'Actif',
+  const cmsBanners: CmsBannerRecord[] = Array.isArray(cms?.banners) ? cms.banners : [];
+  const now = new Date();
+  const activeAdvertisementCandidates = cmsBanners
+    .filter((banner) => String(banner?.type || '').trim() === 'Advertisement Banner')
+    .filter((banner) => isScheduledBannerActive(banner, now))
+    .sort((a, b) => {
+      const priorityDiff = getBannerPriority(a) - getBannerPriority(b);
+      if (priorityDiff !== 0) return priorityDiff;
+      const aStart = toValidDate(a.startDate)?.getTime() || 0;
+      const bStart = toValidDate(b.startDate)?.getTime() || 0;
+      return bStart - aStart;
+    });
+  const highestPriority = activeAdvertisementCandidates[0] ? getBannerPriority(activeAdvertisementCandidates[0]) : null;
+  const activeAdvertisements = highestPriority === null
+    ? []
+    : activeAdvertisementCandidates.filter((banner) => getBannerPriority(banner) === highestPriority);
+  const homepageBanners = cmsBanners.filter(
+    (banner) => String(banner?.type || '').trim() === 'Homepage Banner' && isScheduledBannerActive(banner, now),
   );
 
   // Filters state
@@ -45,7 +136,13 @@ export default function CatalogView({
   const [showOnlyFavourites, setShowOnlyFavourites] = useState<boolean>(false);
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(5000000);
-  const [activeHomepageBannerIndex, setActiveHomepageBannerIndex] = useState(0);
+  const [activePromoIndex, setActivePromoIndex] = useState(0);
+  const [isPromoPaused, setIsPromoPaused] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  );
+  const [failedAssetUrls, setFailedAssetUrls] = useState<Record<string, boolean>>({});
+  const resumeRotationTimeoutRef = useRef<number | null>(null);
 
   // Auto-scroll to shared laptop card on mount if ?laptop=ID exists in URL
   useEffect(() => {
@@ -67,17 +164,11 @@ export default function CatalogView({
   }, []);
 
   useEffect(() => {
-    const bannersToShow = homepageBanners.length > 0 ? homepageBanners : advertisementBanners;
-    if (!bannersToShow.length) return;
-    if (bannersToShow.length === 1) {
-      setActiveHomepageBannerIndex(0);
-      return;
-    }
-    const interval = window.setInterval(() => {
-      setActiveHomepageBannerIndex((prev) => (prev + 1) % bannersToShow.length);
-    }, 6500);
-    return () => window.clearInterval(interval);
-  }, [homepageBanners.length, advertisementBanners.length]);
+    const handleResize = () => setIsMobileViewport(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleShare = (laptop: Laptop) => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?laptop=${laptop.id}#laptop-card-${laptop.id}`;
@@ -163,6 +254,230 @@ export default function CatalogView({
       .replace('XAF', 'FCFA');
   };
 
+  const eligiblePromotedProducts = [...laptops]
+    .filter((laptop) => hasText(laptop.image))
+    .filter((laptop) => hasText(laptop.brand) && hasText(laptop.model))
+    .filter((laptop) => laptop.stockQuantity > 0 || laptop.status === 'Arrivage imminent')
+    .sort((a, b) => {
+      const getScore = (item: Laptop) =>
+        (item.isFeatured ? 4 : 0) +
+        (item.isRecommended ? 3 : 0) +
+        (item.isPopular ? 2 : 0) +
+        (item.status === 'Disponible' ? 1 : 0);
+      const scoreDiff = getScore(b) - getScore(a);
+      if (scoreDiff !== 0) return scoreDiff;
+      return b.stockQuantity - a.stockQuantity;
+    })
+    .slice(0, 8);
+
+  const advertisementSlides: PromoSlide[] = activeAdvertisements.map((banner) => ({
+    id: String(banner.id),
+    kind: 'advertisement',
+    title: String(banner.title || banner.advertiserName || 'Promotion partenaire').trim(),
+    subtitle: String(banner.subtitle || banner.advertiserName || 'Campagne sponsorisée').trim(),
+    description: String(banner.description || banner.subtitle || '').trim(),
+    image: String(banner.image || '').trim(),
+    mobileImage: String(banner.mobileImage || '').trim() || undefined,
+    logo: String(banner.logo || '').trim() || undefined,
+    ctaText: String(banner.ctaText || 'Découvrir l’offre').trim(),
+    ctaUrl: String(banner.link || '').trim(),
+    badge: 'Campagne sponsorisée',
+    advertiserName: String(banner.advertiserName || 'Partenaire').trim(),
+    priority: getBannerPriority(banner),
+    targetType: String(banner.targetType || 'external').trim(),
+    trackingCode: String(banner.trackingCode || '').trim() || undefined,
+    meta: [
+      `Priorité ${getBannerPriority(banner)}`,
+      toValidDate(banner.endDate) ? `Jusqu'au ${new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(toValidDate(banner.endDate) as Date)}` : 'Sans date de fin',
+    ],
+  }));
+
+  const productSlides: PromoSlide[] = eligiblePromotedProducts.map((laptop) => ({
+    id: String(laptop.id),
+    kind: 'product',
+    title: `${laptop.brand} ${laptop.model}`.trim(),
+    subtitle: laptop.shortDescription || `${laptop.processor} • ${laptop.ram} • ${laptop.storage}`,
+    description: laptop.description || `Configuration ${laptop.status.toLowerCase()} pour étudiants, créatifs et professionnels.`,
+    image: String(laptop.image || '').trim(),
+    ctaText: laptop.status === 'Arrivage imminent' ? 'Réserver maintenant' : 'Voir le produit',
+    badge: laptop.isFeatured ? 'Produit mis en avant' : 'Sélection catalogue',
+    price: laptop.price,
+    product: laptop,
+    meta: [laptop.processor, laptop.ram, laptop.storage],
+  }));
+
+  const gracefulFallbackSlides: PromoSlide[] = homepageBanners.length > 0
+    ? homepageBanners.map((banner) => ({
+        id: String(banner.id),
+        kind: 'editorial',
+        title: String(banner.title || heroTitle).trim(),
+        subtitle: String(banner.subtitle || heroSubtitle).trim(),
+        description: String(banner.description || siteCMS.welcomeText || siteCMS.aboutText || heroSubtitle).trim(),
+        image: String(banner.image || '').trim() || DEFAULT_BANNER_IMAGE,
+        mobileImage: String(banner.mobileImage || '').trim() || undefined,
+        ctaText: String(banner.ctaText || 'Explorer la sélection').trim(),
+        ctaUrl: String(banner.link || '#catalog-grid-anchor').trim(),
+        badge: 'Promotion maison',
+        meta: ['Collection premium', 'Contenu éditorial'],
+      }))
+    : [
+        {
+          id: 'editorial-default',
+          kind: 'editorial',
+          title: heroTitle,
+          subtitle: heroSubtitle,
+          description: String(siteCMS.welcomeText || siteCMS.aboutText || 'Découvrez nos machines sélectionnées avec soin, prêtes à équiper vos études et vos projets.').trim(),
+          image: eligiblePromotedProducts[0]?.image || DEFAULT_BANNER_IMAGE,
+          ctaText: 'Découvrir la collection',
+          ctaUrl: '#catalog-grid-anchor',
+          badge: 'Sélection premium',
+          meta: ['Toujours actif', 'Orienté catalogue'],
+        },
+      ];
+
+  const promoSlides = advertisementSlides.length > 0
+    ? advertisementSlides
+    : productSlides.length > 0
+      ? productSlides
+      : gracefulFallbackSlides;
+
+  const currentPromoSlide = promoSlides[activePromoIndex] || promoSlides[0];
+  const isShowingAdvertisements = advertisementSlides.length > 0;
+  const isShowingProductFallback = !advertisementSlides.length && productSlides.length > 0;
+
+  useEffect(() => {
+    if (activePromoIndex < promoSlides.length) return;
+    setActivePromoIndex(0);
+  }, [activePromoIndex, promoSlides.length]);
+
+  const emitPromoEvent = (eventName: string, slide: PromoSlide, extra?: Record<string, unknown>) => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.dispatchEvent(new CustomEvent('herve:promo-banner', {
+        detail: {
+          event: eventName,
+          slideId: slide.id,
+          kind: slide.kind,
+          advertiserName: slide.kind === 'advertisement' ? slide.advertiserName : null,
+          productId: slide.kind === 'product' ? slide.product.id : null,
+          trackingCode: slide.kind === 'advertisement' ? slide.trackingCode || null : null,
+          timestamp: new Date().toISOString(),
+          ...extra,
+        },
+      }));
+    } catch {
+      // Tracking is intentionally optional for now.
+    }
+  };
+
+  useEffect(() => {
+    if (!currentPromoSlide) return;
+    emitPromoEvent(currentPromoSlide.kind === 'advertisement' ? 'advertisement_view' : 'promo_slide_view', currentPromoSlide, {
+      position: activePromoIndex,
+    });
+  }, [activePromoIndex, currentPromoSlide?.id]);
+
+  useEffect(() => {
+    if (isPromoPaused || promoSlides.length <= 1) return;
+    const interval = window.setInterval(() => {
+      setActivePromoIndex((prev) => (prev + 1) % promoSlides.length);
+    }, 5500);
+    return () => window.clearInterval(interval);
+  }, [isPromoPaused, promoSlides.length]);
+
+  useEffect(() => () => {
+    if (resumeRotationTimeoutRef.current) {
+      window.clearTimeout(resumeRotationTimeoutRef.current);
+    }
+  }, []);
+
+  const scheduleRotationResume = (delay = 8500) => {
+    setIsPromoPaused(true);
+    if (resumeRotationTimeoutRef.current) {
+      window.clearTimeout(resumeRotationTimeoutRef.current);
+    }
+    resumeRotationTimeoutRef.current = window.setTimeout(() => {
+      setIsPromoPaused(false);
+      resumeRotationTimeoutRef.current = null;
+    }, delay);
+  };
+
+  const handlePromoHover = (paused: boolean) => {
+    if (resumeRotationTimeoutRef.current && paused) {
+      window.clearTimeout(resumeRotationTimeoutRef.current);
+      resumeRotationTimeoutRef.current = null;
+    }
+    setIsPromoPaused(paused);
+  };
+
+  const goToPromoSlide = (index: number) => {
+    setActivePromoIndex(index);
+    scheduleRotationResume();
+  };
+
+  const goToAdjacentPromoSlide = (direction: 1 | -1) => {
+    setActivePromoIndex((prev) => {
+      const nextIndex = (prev + direction + promoSlides.length) % promoSlides.length;
+      return nextIndex;
+    });
+    scheduleRotationResume();
+  };
+
+  const resolvePromoImage = (slide: PromoSlide | undefined) => {
+    if (!slide) return '';
+    const primary = isMobileViewport && hasText(slide.mobileImage) ? String(slide.mobileImage) : String(slide.image || '');
+    const secondary = primary === String(slide.image || '') ? String(slide.mobileImage || '') : String(slide.image || '');
+    if (primary && !failedAssetUrls[primary]) return primary;
+    if (secondary && !failedAssetUrls[secondary]) return secondary;
+    return '';
+  };
+
+  const currentPromoImage = resolvePromoImage(currentPromoSlide);
+  const currentPromoLogo =
+    currentPromoSlide?.kind === 'advertisement' &&
+    currentPromoSlide.logo &&
+    !failedAssetUrls[currentPromoSlide.logo]
+      ? currentPromoSlide.logo
+      : '';
+
+  const handlePromoAssetError = (url?: string) => {
+    if (!url) return;
+    setFailedAssetUrls((prev) => ({ ...prev, [url]: true }));
+  };
+
+  const handlePromoAction = (slide: PromoSlide) => {
+    scheduleRotationResume();
+
+    if (slide.kind === 'product') {
+      emitPromoEvent('product_click', slide);
+      onSelectLaptopForDetails(slide.product);
+      return;
+    }
+
+    const targetUrl = String(slide.ctaUrl || '').trim();
+    emitPromoEvent(slide.kind === 'advertisement' ? 'advertisement_click' : 'editorial_click', slide, {
+      targetUrl,
+    });
+
+    if (!targetUrl) {
+      document.getElementById('catalog-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    if (targetUrl.startsWith('#')) {
+      document.querySelector(targetUrl)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    const isExternal = /^https?:\/\//i.test(targetUrl) || slide.kind === 'advertisement' || ('targetType' in slide && slide.targetType === 'external');
+    if (isExternal) {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    window.location.assign(targetUrl);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 relative overflow-hidden" id="catalog-view-container">
       {/* Decorative Elegant Watermark "Herve_eShop" in the background */}
@@ -170,195 +485,230 @@ export default function CatalogView({
         Herve_eShop
       </div>
 
-      {/* HERO BANNER - Exact replication of uploaded capture theme */}
-      <section className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center py-8 md:py-16 border-b border-warm-cream-dark/60 z-10">
-        {/* Left Column Text details */}
-        <div className="lg:col-span-5 flex flex-col justify-center text-left">
-          <div className="flex items-center gap-2 mb-4 md:mb-6">
-            <span className="w-2.5 h-2.5 rounded-full bg-luxe-copper animate-ping"></span>
-            <span className="type-kicker text-luxe-copper">
-              Premium arrivals
-            </span>
-          </div>
+      <section className="relative py-8 md:py-12 border-b border-warm-cream-dark/60 z-10">
+        <div
+          className="relative overflow-hidden rounded-[2rem] border border-luxe-dark/8 bg-luxe-dark text-white shadow-[0_30px_90px_rgba(33,24,18,0.18)]"
+          onMouseEnter={() => handlePromoHover(true)}
+          onMouseLeave={() => handlePromoHover(false)}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(217,119,6,0.18),transparent_34%)]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-luxe-dark via-[#2a211b] to-[#171311]" />
 
-          <h2 className="type-hero max-w-xl text-luxe-dark">
-            {heroTitle.split('\n')[0]} <br />
-            <span className="text-luxe-copper font-semibold">
-              {(heroTitle.split('\n')[1] || '').trim() || 'Redefined.'}
-            </span>
-          </h2>
-
-          <p className="type-body mt-5 md:mt-7 text-luxe-muted max-w-xl">
-            {heroSubtitle}
-          </p>
-
-          <div className="mt-8 md:mt-10 flex flex-wrap gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                const anchor = document.getElementById('catalog-grid-anchor');
-                anchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="type-button inline-flex items-center justify-center bg-luxe-dark text-warm-cream px-6 py-4 rounded-full shadow-lg hover:bg-luxe-copper transition-all transform hover:-translate-y-0.5 active:translate-y-0"
-              id="discover-collection-btn"
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPromoSlide?.id || 'promo-fallback'}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="relative grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-10 p-5 md:p-8 xl:p-10"
             >
-              Découvrir la Collection
-              <ChevronRight className="w-4 h-4 ml-1.5" />
-            </button>
-          </div>
-        </div>
+              <div className="xl:col-span-5 flex flex-col justify-between text-left min-h-[280px] md:min-h-[360px]">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-5">
+                    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+                      currentPromoSlide?.kind === 'advertisement'
+                        ? 'bg-white/8 border-white/15 text-white'
+                        : currentPromoSlide?.kind === 'product'
+                          ? 'bg-luxe-copper/20 border-luxe-copper/30 text-luxe-gold'
+                          : 'bg-white/8 border-white/15 text-white'
+                    }`}>
+                      <span className="w-2 h-2 rounded-full bg-current opacity-80" />
+                      <span className="type-badge text-current">{currentPromoSlide?.badge}</span>
+                    </span>
+                    {currentPromoSlide?.kind === 'advertisement' && (
+                      <span className="type-meta text-white/70">
+                        {currentPromoSlide.advertiserName}
+                      </span>
+                    )}
+                    {currentPromoSlide?.kind === 'product' && (
+                      <span className="type-meta text-white/70">
+                        Fallback automatique du catalogue
+                      </span>
+                    )}
+                  </div>
 
-        {/* Right Column Laptop Mock frame matching screen capture details */}
-        <div className="lg:col-span-7 relative flex justify-center">
-          <div className="relative w-full aspect-[4/3] rounded-2xl bg-gradient-to-br from-warm-cream to-warm-cream-dark p-4 md:p-8 flex items-center justify-center shadow-lg border border-warm-cream-dark/60 overflow-hidden">
-            {/* Ambient inner soft lighting shadow */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_100%)]"></div>
+                  <h2 className="type-hero max-w-[12ch] text-white">
+                    {currentPromoSlide?.title || heroTitle}
+                  </h2>
 
-            {homepageBanners.length ? (
-              <div className="relative w-full h-full rounded-xl overflow-hidden border border-white/50 shadow-inner">
-                <AnimatePresence mode="wait">
-                  <motion.a
-                    key={String(homepageBanners[activeHomepageBannerIndex]?.id || activeHomepageBannerIndex)}
-                    href={String(homepageBanners[activeHomepageBannerIndex]?.link || '#catalog-grid-anchor')}
-                    className="absolute inset-0 block"
-                    initial={{ opacity: 0, scale: 1.01 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.99 }}
-                    transition={{ duration: 0.45 }}
+                  <p className="type-subtitle mt-4 max-w-2xl text-white/82">
+                    {currentPromoSlide?.subtitle || heroSubtitle}
+                  </p>
+
+                  <p className="type-body mt-4 max-w-2xl text-white/68">
+                    {currentPromoSlide?.description || heroSubtitle}
+                  </p>
+
+                  {currentPromoSlide?.kind === 'product' && (
+                    <div className="mt-6 inline-flex items-baseline gap-3">
+                      <span className="type-price text-white">
+                        {formatPrice(currentPromoSlide.price)}
+                      </span>
+                      <span className="type-meta text-white/65">
+                        Produit du catalogue disponible immédiatement
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="mt-6 flex flex-wrap gap-2.5">
+                    {currentPromoSlide?.meta?.map((item) => (
+                      <span
+                        key={item}
+                        className="type-meta px-3 py-1.5 rounded-full border border-white/12 bg-white/7 text-white/78"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => currentPromoSlide && handlePromoAction(currentPromoSlide)}
+                    className="type-button inline-flex items-center gap-2 rounded-full bg-white text-luxe-dark px-5 py-3.5 hover:bg-luxe-gold transition-colors shadow-lg"
                   >
-                    <img
-                      src={String(homepageBanners[activeHomepageBannerIndex]?.image || '')}
-                      alt={String(homepageBanners[activeHomepageBannerIndex]?.title || 'Bannière')}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                    <div className="absolute bottom-5 left-5 right-5 text-left">
-                      <div className="type-kicker text-white/80">
-                        Publicité
-                      </div>
-                      <div className="mt-2 text-xl md:text-2xl font-bold tracking-tight text-white leading-tight">
-                        {String(homepageBanners[activeHomepageBannerIndex]?.title || '').trim()}
-                      </div>
-                      {homepageBanners[activeHomepageBannerIndex]?.subtitle && (
-                        <div className="type-meta mt-1.5 text-white/85 max-w-lg">
-                          {String(homepageBanners[activeHomepageBannerIndex]?.subtitle || '').trim()}
+                    {currentPromoSlide?.ctaText || 'Découvrir'}
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      scheduleRotationResume();
+                      document.getElementById('catalog-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="type-button inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/6 text-white px-5 py-3.5 hover:bg-white/10 transition-colors"
+                  >
+                    Explorer le catalogue
+                    <Globe2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="xl:col-span-7">
+                <div className="relative h-full min-h-[320px] md:min-h-[420px] rounded-[1.6rem] overflow-hidden border border-white/10 bg-white/6">
+                  {currentPromoImage ? (
+                    <button
+                      type="button"
+                      onClick={() => currentPromoSlide && handlePromoAction(currentPromoSlide)}
+                      className="absolute inset-0 block w-full h-full text-left"
+                    >
+                      <img
+                        src={currentPromoImage}
+                        alt={currentPromoSlide?.title || 'Promotion'}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={() => handlePromoAssetError(currentPromoImage)}
+                      />
+                    </button>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]">
+                      <div className="text-center px-6">
+                        <div className="type-kicker text-luxe-gold">Visuel promotionnel</div>
+                        <div className="type-section-title text-white mt-3">
+                          {currentPromoSlide?.kind === 'advertisement' ? 'Campagne active' : 'Produit en vitrine'}
                         </div>
-                      )}
-                      <div className="type-badge mt-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full text-luxe-dark border border-white/50">
-                        Voir l’offre <ChevronRight className="w-3.5 h-3.5" />
+                        <p className="type-body text-white/70 mt-3 max-w-md">
+                          Le contenu promotionnel reste accessible même si un visuel externe n'est pas disponible.
+                        </p>
                       </div>
                     </div>
-                  </motion.a>
-                </AnimatePresence>
+                  )}
 
-                {homepageBanners.length > 1 && (
-                  <div className="absolute top-4 left-4 flex items-center gap-1.5">
-                    {homepageBanners.slice(0, 7).map((b: any, idx: number) => {
-                      const active = idx === activeHomepageBannerIndex;
-                      return (
-                        <button
-                          key={String(b?.id || idx)}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setActiveHomepageBannerIndex(idx);
-                          }}
-                          className={`w-2 h-2 rounded-full border ${active ? 'bg-white border-white' : 'bg-white/30 border-white/60'}`}
-                          title={String(b?.title || 'Bannière')}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ) : advertisementBanners.length > 0 ? (
-              <div className="relative w-full h-full rounded-xl overflow-hidden border border-white/50 shadow-inner">
-                <AnimatePresence mode="wait">
-                  <motion.a
-                    key={String(advertisementBanners[activeHomepageBannerIndex]?.id || activeHomepageBannerIndex)}
-                    href={String(advertisementBanners[activeHomepageBannerIndex]?.link || '#catalog-grid-anchor')}
-                    className="absolute inset-0 block"
-                    initial={{ opacity: 0, scale: 1.01 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.99 }}
-                    transition={{ duration: 0.45 }}
-                  >
-                    <img
-                      src={String(advertisementBanners[activeHomepageBannerIndex]?.image || '')}
-                      alt={String(advertisementBanners[activeHomepageBannerIndex]?.title || 'Publicité')}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                    <div className="absolute bottom-5 left-5 right-5 text-left">
-                      <div className="type-kicker text-white/80">
-                        Publicité
-                      </div>
-                      <div className="mt-2 text-xl md:text-2xl font-bold tracking-tight text-white leading-tight">
-                        {String(advertisementBanners[activeHomepageBannerIndex]?.title || '').trim()}
-                      </div>
-                      {advertisementBanners[activeHomepageBannerIndex]?.subtitle && (
-                        <div className="type-meta mt-1.5 text-white/85 max-w-lg">
-                          {String(advertisementBanners[activeHomepageBannerIndex]?.subtitle || '').trim()}
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/18 to-black/12" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+
+                  <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-4">
+                    <div className="inline-flex flex-col gap-2">
+                      <span className="type-kicker text-white/70">
+                        {isShowingAdvertisements ? 'Sponsored placement' : isShowingProductFallback ? 'Product fallback mode' : 'Editorial fallback'}
+                      </span>
+                      {currentPromoSlide?.kind === 'advertisement' && (
+                        <div className="inline-flex items-center gap-2 rounded-full bg-white/12 backdrop-blur-md px-3 py-2 border border-white/10">
+                          {currentPromoLogo ? (
+                            <img
+                              src={currentPromoLogo}
+                              alt={currentPromoSlide.advertiserName}
+                              className="w-8 h-8 rounded-full object-cover bg-white"
+                              referrerPolicy="no-referrer"
+                              onError={() => handlePromoAssetError(currentPromoLogo)}
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-white/12 border border-white/10 flex items-center justify-center">
+                              <ExternalLink className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          <div className="text-left">
+                            <div className="type-badge text-white">{currentPromoSlide.advertiserName}</div>
+                            <div className="type-meta text-white/65">Emplacement prioritaire</div>
+                          </div>
                         </div>
                       )}
-                      <div className="type-badge mt-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full text-luxe-dark border border-white/50">
-                        Voir l'offre <ChevronRight className="w-3.5 h-3.5" />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => goToAdjacentPromoSlide(-1)}
+                        className="w-11 h-11 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
+                        aria-label="Previous slide"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => goToAdjacentPromoSlide(1)}
+                        className="w-11 h-11 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
+                        aria-label="Next slide"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <div className="max-w-xl">
+                      <div className="type-kicker text-white/70">
+                        {currentPromoSlide?.kind === 'advertisement'
+                          ? 'Annonce active'
+                          : currentPromoSlide?.kind === 'product'
+                            ? 'Produit sélectionné'
+                            : 'Collection mise en avant'}
+                      </div>
+                      <div className="mt-2 text-xl md:text-2xl font-bold tracking-tight text-white leading-tight">
+                        {currentPromoSlide?.title}
+                      </div>
+                      <div className="type-meta mt-2 text-white/76">
+                        {currentPromoSlide?.kind === 'product'
+                          ? currentPromoSlide.subtitle
+                          : currentPromoSlide?.description || currentPromoSlide?.subtitle}
                       </div>
                     </div>
-                  </motion.a>
-                </AnimatePresence>
 
-                {advertisementBanners.length > 1 && (
-                  <div className="absolute top-4 left-4 flex items-center gap-1.5">
-                    {advertisementBanners.slice(0, 7).map((b: any, idx: number) => {
-                      const active = idx === activeHomepageBannerIndex;
-                      return (
-                        <button
-                          key={String(b?.id || idx)}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setActiveHomepageBannerIndex(idx);
-                          }}
-                          className={`w-2 h-2 rounded-full border ${active ? 'bg-white border-white' : 'bg-white/30 border-white/60'}`}
-                          title={String(b?.title || 'Publicité')}
-                        />
-                      );
-                    })}
+                    {promoSlides.length > 1 && (
+                      <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                        {promoSlides.slice(0, 7).map((slide, idx) => {
+                          const active = idx === activePromoIndex;
+                          return (
+                            <button
+                              key={slide.id}
+                              type="button"
+                              onClick={() => goToPromoSlide(idx)}
+                              className={`h-2.5 rounded-full transition-all ${
+                                active ? 'w-9 bg-white' : 'w-2.5 bg-white/35 hover:bg-white/55'
+                              }`}
+                              aria-label={`Go to slide ${idx + 1}`}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-            ) : (
-              <img
-                src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1200"
-                alt="Premium Apple MacBook Cover"
-                className="w-4/5 h-auto object-contain rounded-lg drop-shadow-[0_25px_40px_rgba(0,0,0,0.18)] transform -rotate-2 hover:rotate-0 transition-transform duration-700"
-                referrerPolicy="no-referrer"
-              />
-            )}
-
-            {/* Float badge 100% verified import on laptops */}
-            <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 bg-white/90 backdrop-blur-md px-4 py-3 rounded-lg border border-warm-cream-dark/50 flex gap-4 shadow-lg">
-              <div className="text-center">
-                <p className="text-sm md:text-base font-bold tracking-tight text-luxe-copper">100%</p>
-                <p className="type-badge text-luxe-muted">Certifié</p>
-              </div>
-              <div className="w-px bg-warm-cream-dark"></div>
-              <div className="text-center">
-                <p className="text-sm md:text-base font-bold tracking-tight text-luxe-copper">USA</p>
-                <p className="type-badge text-luxe-muted">Importé</p>
-              </div>
-            </div>
-            
-            {/* Floating indicator */}
-            <div className="absolute top-6 right-6 flex flex-col gap-2">
-              <span className="w-9 h-9 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-md border border-white/50 text-luxe-dark hover:text-luxe-copper cursor-pointer transition-colors">
-                <Globe2 className="w-4 h-4" />
-              </span>
-            </div>
-          </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </section>
 
