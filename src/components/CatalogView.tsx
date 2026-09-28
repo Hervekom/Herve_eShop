@@ -32,6 +32,9 @@ export default function CatalogView({
   const homepageBanners = (Array.isArray(cms?.banners) ? cms.banners : []).filter(
     (b: any) => String(b?.type || '').trim() === 'Homepage Banner' && String(b?.status || '').trim() === 'Actif',
   );
+  const advertisementBanners = (Array.isArray(cms?.banners) ? cms.banners : []).filter(
+    (b: any) => String(b?.type || '').trim() === 'Advertisement Banner' && String(b?.status || '').trim() === 'Actif',
+  );
 
   // Filters state
   const [selectedBrand, setSelectedBrand] = useState<string>('All');
@@ -64,16 +67,17 @@ export default function CatalogView({
   }, []);
 
   useEffect(() => {
-    if (!homepageBanners.length) return;
-    if (homepageBanners.length === 1) {
+    const bannersToShow = homepageBanners.length > 0 ? homepageBanners : advertisementBanners;
+    if (!bannersToShow.length) return;
+    if (bannersToShow.length === 1) {
       setActiveHomepageBannerIndex(0);
       return;
     }
     const interval = window.setInterval(() => {
-      setActiveHomepageBannerIndex((prev) => (prev + 1) % homepageBanners.length);
+      setActiveHomepageBannerIndex((prev) => (prev + 1) % bannersToShow.length);
     }, 6500);
     return () => window.clearInterval(interval);
-  }, [homepageBanners.length]);
+  }, [homepageBanners.length, advertisementBanners.length]);
 
   const handleShare = (laptop: Laptop) => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?laptop=${laptop.id}#laptop-card-${laptop.id}`;
@@ -262,6 +266,64 @@ export default function CatalogView({
                           }}
                           className={`w-2 h-2 rounded-full border ${active ? 'bg-white border-white' : 'bg-white/30 border-white/60'}`}
                           title={String(b?.title || 'Bannière')}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : advertisementBanners.length > 0 ? (
+              <div className="relative w-full h-full rounded-xl overflow-hidden border border-white/50 shadow-inner">
+                <AnimatePresence mode="wait">
+                  <motion.a
+                    key={String(advertisementBanners[activeHomepageBannerIndex]?.id || activeHomepageBannerIndex)}
+                    href={String(advertisementBanners[activeHomepageBannerIndex]?.link || '#catalog-grid-anchor')}
+                    className="absolute inset-0 block"
+                    initial={{ opacity: 0, scale: 1.01 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.99 }}
+                    transition={{ duration: 0.45 }}
+                  >
+                    <img
+                      src={String(advertisementBanners[activeHomepageBannerIndex]?.image || '')}
+                      alt={String(advertisementBanners[activeHomepageBannerIndex]?.title || 'Publicité')}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    <div className="absolute bottom-5 left-5 right-5 text-left">
+                      <div className="text-[10px] uppercase tracking-[0.25em] font-bold text-white/80">
+                        Publicité
+                      </div>
+                      <div className="mt-2 font-serif font-extrabold text-xl md:text-2xl text-white leading-tight">
+                        {String(advertisementBanners[activeHomepageBannerIndex]?.title || '').trim()}
+                      </div>
+                      {advertisementBanners[activeHomepageBannerIndex]?.subtitle && (
+                        <div className="mt-1.5 text-xs text-white/85 leading-relaxed max-w-lg">
+                          {String(advertisementBanners[activeHomepageBannerIndex]?.subtitle || '').trim()}
+                        </div>
+                      )}
+                      <div className="mt-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full text-[10px] uppercase tracking-widest font-extrabold text-luxe-dark border border-white/50">
+                        Voir l'offre <ChevronRight className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </motion.a>
+                </AnimatePresence>
+
+                {advertisementBanners.length > 1 && (
+                  <div className="absolute top-4 left-4 flex items-center gap-1.5">
+                    {advertisementBanners.slice(0, 7).map((b: any, idx: number) => {
+                      const active = idx === activeHomepageBannerIndex;
+                      return (
+                        <button
+                          key={String(b?.id || idx)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setActiveHomepageBannerIndex(idx);
+                          }}
+                          className={`w-2 h-2 rounded-full border ${active ? 'bg-white border-white' : 'bg-white/30 border-white/60'}`}
+                          title={String(b?.title || 'Publicité')}
                         />
                       );
                     })}

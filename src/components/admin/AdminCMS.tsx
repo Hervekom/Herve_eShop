@@ -793,14 +793,15 @@ export default function AdminCMS({
                   <div className="space-y-1">
                     <label className="font-bold text-luxe-dark">Type de Bannière</label>
                     <select
-                      value={currentBanner.type}
-                      onChange={(e) => setCurrentBanner((p: any) => ({ ...p, type: e.target.value }))}
-                      className="w-full p-2 rounded-xl border border-warm-cream bg-white text-xs"
-                    >
-                      <option value="Homepage Banner">Homepage Banner (Slider principal)</option>
-                      <option value="Promo Banner">Promo Banner (Encadré promotionnel)</option>
-                      <option value="Announcement Banner">Announcement Banner (Ruban haut de page)</option>
-                    </select>
+                value={currentBanner.type}
+                onChange={(e) => setCurrentBanner((p: any) => ({ ...p, type: e.target.value }))}
+                className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
+              >
+                <option value="Homepage Banner">Homepage Banner (Slider principal)</option>
+                <option value="Promo Banner">Promo Banner (Encadré promotionnel)</option>
+                <option value="Announcement Banner">Announcement Banner (Ruban haut de page)</option>
+                <option value="Advertisement Banner">Advertisement Banner (Publicité programmée)</option>
+              </select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
