@@ -73,6 +73,15 @@ type PromoSlide =
       ctaUrl: string;
     });
 
+type PromoImageOrientation = 'panorama' | 'landscape' | 'square' | 'portrait' | 'tall-portrait';
+
+type PromoImageMetrics = {
+  width: number;
+  height: number;
+  ratio: number;
+  orientation: PromoImageOrientation;
+};
+
 const DEFAULT_BANNER_IMAGE = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1400';
 
 const hasText = (value: unknown) => Boolean(String(value ?? '').trim());
@@ -98,6 +107,81 @@ const normalizeImageFit = (value: unknown): 'cover' | 'contain' | undefined => {
 const normalizeImagePosition = (value: unknown) => {
   const normalized = String(value || '').trim();
   return normalized || undefined;
+};
+
+const buildPromoImageMetrics = (width: number, height: number): PromoImageMetrics => {
+  const safeWidth = Math.max(1, Number(width || 1));
+  const safeHeight = Math.max(1, Number(height || 1));
+  const ratio = safeWidth / safeHeight;
+  let orientation: PromoImageOrientation = 'square';
+
+  if (ratio >= 2.15) orientation = 'panorama';
+  else if (ratio > 1.12) orientation = 'landscape';
+  else if (ratio >= 0.88) orientation = 'square';
+  else if (ratio >= 0.62) orientation = 'portrait';
+  else orientation = 'tall-portrait';
+
+  return {
+    width: safeWidth,
+    height: safeHeight,
+    ratio,
+    orientation,
+  };
+};
+
+const getFallbackPromoMetrics = (slide?: PromoSlide) => {
+  if (!slide) return buildPromoImageMetrics(1600, 760);
+  if (slide.kind === 'product') return buildPromoImageMetrics(1080, 1080);
+  if (slide.kind === 'advertisement') return buildPromoImageMetrics(1600, 720);
+  return buildPromoImageMetrics(1600, 820);
+};
+
+const getPromoImageFramePreset = (metrics: PromoImageMetrics, viewportWidth: number) => {
+  const isMobile = viewportWidth < 768;
+  const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
+
+  if (isMobile) {
+    switch (metrics.orientation) {
+      case 'panorama':
+        return { widthPercent: 100, maxHeight: 210, minHeight: 150 };
+      case 'landscape':
+        return { widthPercent: 100, maxHeight: 238, minHeight: 170 };
+      case 'square':
+        return { widthPercent: 86, maxHeight: 280, minHeight: 210 };
+      case 'portrait':
+        return { widthPercent: 70, maxHeight: 335, minHeight: 250 };
+      default:
+        return { widthPercent: 62, maxHeight: 360, minHeight: 270 };
+    }
+  }
+
+  if (isTablet) {
+    switch (metrics.orientation) {
+      case 'panorama':
+        return { widthPercent: 100, maxHeight: 250, minHeight: 170 };
+      case 'landscape':
+        return { widthPercent: 100, maxHeight: 300, minHeight: 210 };
+      case 'square':
+        return { widthPercent: 76, maxHeight: 340, minHeight: 260 };
+      case 'portrait':
+        return { widthPercent: 58, maxHeight: 410, minHeight: 300 };
+      default:
+        return { widthPercent: 50, maxHeight: 430, minHeight: 320 };
+    }
+  }
+
+  switch (metrics.orientation) {
+    case 'panorama':
+      return { widthPercent: 100, maxHeight: 285, minHeight: 175 };
+    case 'landscape':
+      return { widthPercent: 96, maxHeight: 335, minHeight: 215 };
+    case 'square':
+      return { widthPercent: 72, maxHeight: 360, minHeight: 260 };
+    case 'portrait':
+      return { widthPercent: 54, maxHeight: 445, minHeight: 320 };
+    default:
+      return { widthPercent: 48, maxHeight: 470, minHeight: 340 };
+  }
 };
 
 const isScheduledBannerActive = (banner: CmsBannerRecord, now: Date) => {
@@ -154,11 +238,13 @@ export default function CatalogView({
   const [maxPrice, setMaxPrice] = useState<number>(5000000);
   const [activePromoIndex, setActivePromoIndex] = useState(0);
   const [isPromoPaused, setIsPromoPaused] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  const [viewportWidth, setViewportWidth] = useState<number>(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1280,
   );
   const [failedAssetUrls, setFailedAssetUrls] = useState<Record<string, boolean>>({});
+  const [promoImageMetricsByUrl, setPromoImageMetricsByUrl] = useState<Record<string, PromoImageMetrics>>({});
   const resumeRotationTimeoutRef = useRef<number | null>(null);
+  const isMobileViewport = viewportWidth < 768;
 
   // Auto-scroll to shared laptop card on mount if ?laptop=ID exists in URL
   useEffect(() => {
@@ -180,7 +266,7 @@ export default function CatalogView({
   }, []);
 
   useEffect(() => {
-    const handleResize = () => setIsMobileViewport(window.innerWidth < 768);
+    const handleResize = () => setViewportWidth(window.innerWidth);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -464,13 +550,26 @@ export default function CatalogView({
       ? currentPromoSlide.logo
       : '';
 
-  const currentPromoImageFit = currentPromoSlide?.imageFit || (currentPromoSlide?.kind === 'product' ? 'contain' : 'cover');
-  const currentPromoImagePosition = currentPromoSlide?.imagePosition || 'center center';
-  const promoImageUsesContain = currentPromoImageFit === 'contain';
-
   const handlePromoAssetError = (url?: string) => {
     if (!url) return;
     setFailedAssetUrls((prev) => ({ ...prev, [url]: true }));
+  };
+
+  const registerPromoImageMetrics = (url: string | undefined, width: number, height: number) => {
+    if (!url || !width || !height) return;
+    const nextMetrics = buildPromoImageMetrics(width, height);
+    setPromoImageMetricsByUrl((prev) => {
+      const current = prev[url];
+      if (
+        current &&
+        current.width === nextMetrics.width &&
+        current.height === nextMetrics.height &&
+        current.orientation === nextMetrics.orientation
+      ) {
+        return prev;
+      }
+      return { ...prev, [url]: nextMetrics };
+    });
   };
 
   const handlePromoAction = (slide: PromoSlide) => {
@@ -506,6 +605,41 @@ export default function CatalogView({
     window.location.assign(targetUrl);
   };
 
+  useEffect(() => {
+    if (!currentPromoImage || promoImageMetricsByUrl[currentPromoImage]) return;
+    const probe = new Image();
+    probe.onload = () => {
+      registerPromoImageMetrics(currentPromoImage, probe.naturalWidth, probe.naturalHeight);
+    };
+    probe.onerror = () => {
+      handlePromoAssetError(currentPromoImage);
+    };
+    probe.src = currentPromoImage;
+  }, [currentPromoImage, promoImageMetricsByUrl]);
+
+  const currentPromoMetrics = currentPromoImage
+    ? promoImageMetricsByUrl[currentPromoImage] || getFallbackPromoMetrics(currentPromoSlide)
+    : getFallbackPromoMetrics(currentPromoSlide);
+  const currentPromoImageFit = currentPromoSlide?.imageFit || 'contain';
+  const currentPromoImagePosition = currentPromoSlide?.imagePosition || 'center center';
+  const promoImageUsesContain = currentPromoImageFit !== 'cover';
+  const promoImageFramePreset = getPromoImageFramePreset(currentPromoMetrics, viewportWidth);
+  const promoImageFrameStyle: React.CSSProperties = {
+    width: `${promoImageFramePreset.widthPercent}%`,
+    maxWidth: '100%',
+    maxHeight: `${promoImageFramePreset.maxHeight}px`,
+    minHeight: `${promoImageFramePreset.minHeight}px`,
+    aspectRatio: `${currentPromoMetrics.width} / ${currentPromoMetrics.height}`,
+  };
+  const promoImageColumnClass =
+    currentPromoMetrics.orientation === 'portrait' || currentPromoMetrics.orientation === 'tall-portrait'
+      ? 'lg:col-span-6'
+      : 'lg:col-span-7';
+  const promoTextColumnClass =
+    currentPromoMetrics.orientation === 'portrait' || currentPromoMetrics.orientation === 'tall-portrait'
+      ? 'lg:col-span-6'
+      : 'lg:col-span-5';
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 relative overflow-hidden" id="catalog-view-container">
       {/* Decorative Elegant Watermark "Herve_eShop" in the background */}
@@ -531,7 +665,7 @@ export default function CatalogView({
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="relative grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 p-4 md:p-5 lg:p-6"
             >
-              <div className="lg:col-span-5 flex flex-col justify-between text-left">
+              <div className={`${promoTextColumnClass} flex flex-col justify-between text-left`}>
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-3.5">
                     <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${
@@ -614,12 +748,15 @@ export default function CatalogView({
                 </div>
               </div>
 
-              <div className="lg:col-span-7">
-                <div className={`relative h-[210px] sm:h-[235px] md:h-[280px] lg:h-[315px] xl:h-[332px] rounded-[1.35rem] overflow-hidden border border-white/10 ${
+              <div className={`${promoImageColumnClass} flex items-center justify-center lg:justify-end`}>
+                <div
+                  className={`relative rounded-[1.35rem] overflow-hidden border border-white/10 ${
                   promoImageUsesContain
                     ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(245,242,237,0.96)_62%,rgba(232,223,210,0.9))]'
                     : 'bg-white/6'
-                }`}>
+                  }`}
+                  style={promoImageFrameStyle}
+                >
                   {currentPromoImage ? (
                     <button
                       type="button"
@@ -633,6 +770,13 @@ export default function CatalogView({
                         alt={currentPromoSlide?.title || 'Promotion'}
                         className={`w-full h-full ${promoImageUsesContain ? 'object-contain' : 'object-cover'} ${promoImageUsesContain ? 'rounded-[1rem]' : 'absolute inset-0'}`}
                         style={{ objectPosition: currentPromoImagePosition }}
+                        onLoad={(event) => {
+                          registerPromoImageMetrics(
+                            currentPromoImage,
+                            event.currentTarget.naturalWidth,
+                            event.currentTarget.naturalHeight,
+                          );
+                        }}
                         referrerPolicy="no-referrer"
                         onError={() => handlePromoAssetError(currentPromoImage)}
                       />
