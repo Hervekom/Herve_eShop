@@ -610,8 +610,16 @@ export default function CatalogView({
         </div>
       </section>
 
-      {/* CATALOG GRID */}
-      <section className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 min-h-[300px]" id="catalog-section-grid">
+      {/* CATALOG GRID - LabCraft Style */}
+      <section className="mt-12" id="catalog-section-grid">
+        <div className="mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Notre Collection</h2>
+          <p className="text-gray-600 max-w-2xl">
+            Découvrez notre sélection exclusive d'ordinateurs portables premium, soigneusement sélectionnés pour leur performance exceptionnelle et leur qualité irréprochable.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
         <AnimatePresence mode="popLayout">
           {sortedLaptops.length === 0 ? (
             <motion.div
@@ -658,172 +666,87 @@ export default function CatalogView({
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   key={laptop.id}
                   id={`laptop-card-${laptop.id}`}
-                  className="group flex flex-col bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300"
+                  className="group flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300"
                 >
-                  {/* Image Section - Style moderne */}
+                  {/* Image Section - LabCraft Style */}
                   <div 
                     onClick={() => onSelectLaptopForDetails(laptop)}
-                    className="relative aspect-[16/10] bg-gray-100 overflow-hidden border-b border-gray-200 cursor-pointer group/img"
-                    title="Cliquez pour voir les photos additionnelles, la vidéo démo et les avis clients"
+                    className="relative aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer"
+                    title="Cliquez pour voir les détails du produit"
                   >
                     <img
                       src={laptop.image}
                       alt={`${laptop.brand} ${laptop.model}`}
-                      className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
                     />
-
-                    {/* Boutons d'action */}
-                    <div className="absolute top-3 right-3 flex flex-col gap-2 z-20">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleFavourite(laptop.id);
-                        }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm select-none cursor-pointer ${
-                          favouriteIds.includes(laptop.id)
-                            ? 'bg-red-500 text-white hover:bg-red-600'
-                            : 'bg-white text-gray-600 hover:text-red-500 hover:bg-gray-50'
-                        }`}
-                        title={favouriteIds.includes(laptop.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
-                        id={`toggle-fav-${laptop.id}`}
-                      >
-                        <Heart className={`w-4 h-4 ${favouriteIds.includes(laptop.id) ? 'fill-current' : ''}`} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleShare(laptop);
-                        }}
-                        className="w-8 h-8 rounded-full bg-white text-gray-600 hover:text-blue-600 hover:bg-gray-50 flex items-center justify-center transition-all shadow-sm select-none cursor-pointer"
-                        title="Partager cet article"
-                        id={`share-btn-${laptop.id}`}
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
                     
-                    {/* Badges */}
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                      <span className="bg-white text-xs font-medium text-gray-700 px-2 py-1 rounded-full border border-gray-300 shadow-xs">
-                        Import {laptop.source}
-                      </span>
-                      <span className="bg-gray-800 text-white text-xs font-medium px-2 py-1 rounded-full">
-                        {laptop.condition}
-                      </span>
-                    </div>
-
-                    {/* ID overlay */}
-                    <div className="absolute bottom-3 right-3 bg-white px-2 py-1 rounded text-xs font-mono text-gray-600 border border-gray-300 shadow-sm">
-                      ID: {laptop.id.slice(0, 8)}
+                    {/* Status Badge */}
+                    <div className="absolute top-3 left-3">
+                      {isOutOfStock ? (
+                        <span className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                          Rupture
+                        </span>
+                      ) : isIncoming ? (
+                        <span className="bg-yellow-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                          Arrivage
+                        </span>
+                      ) : (
+                        <span className="bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                          En Stock
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Details Section */}
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div 
-                        onClick={() => onSelectLaptopForDetails(laptop)}
-                        className="cursor-pointer text-left"
-                        title="Cliquer pour voir les détails de cette machine"
-                      >
-                        {/* Brand & Name */}
-                        <div className="flex justify-between items-start">
-                          <h4 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {laptop.brand} {laptop.model}
-                          </h4>
-                        </div>
+                  {/* Product Details - LabCraft Style */}
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div 
+                      onClick={() => onSelectLaptopForDetails(laptop)}
+                      className="cursor-pointer text-left"
+                      title="Cliquer pour voir les détails de cette machine"
+                    >
+                      {/* Product Title */}
+                      <h4 className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
+                        {laptop.brand} {laptop.model}
+                      </h4>
 
-                        {/* Évaluation */}
-                        <div className="mt-1 flex items-center gap-1 select-none">
-                          <div className="flex items-center text-yellow-500">
-                            <Star className="w-4 h-4 fill-current" />
-                            <Star className="w-4 h-4 fill-current" />
-                            <Star className="w-4 h-4 fill-current" />
-                            <Star className="w-4 h-4 fill-current" />
-                            <Star className="w-4 h-4 fill-current" />
-                          </div>
-                          <span className="text-xs text-gray-500 font-medium ml-1">
-                            4.9
-                          </span>
+                      {/* Key Specifications */}
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                          <span className="font-medium">Processeur:</span>
+                          <span>{laptop.processor}</span>
                         </div>
-
-                        {/* Statut de stock */}
-                        <div className="mt-3">
-                          {isOutOfStock ? (
-                            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 text-xs font-medium px-3 py-1 rounded-full">
-                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                              Rupture de stock
-                            </span>
-                          ) : isIncoming ? (
-                            <span className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-700 text-xs font-medium px-3 py-1 rounded-full">
-                              <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                              Arrivage imminent
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-medium px-3 py-1 rounded-full">
-                              <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                              En Stock ({laptop.stockQuantity})
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                          <span className="font-medium">RAM:</span>
+                          <span>{laptop.ram}</span>
                         </div>
-
-                      {/* Technical Specifications highlights - Style moderne */}
-                      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-3 flex flex-col gap-2 font-sans">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600 font-medium">Processeur</span>
-                          <span className="text-gray-900 font-semibold text-right max-w-[180px] break-words">{laptop.processor}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600 font-medium">Mémoire RAM</span>
-                          <span className="text-gray-900 font-semibold font-mono">{laptop.ram}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600 font-medium">Disque SSD</span>
-                          <span className="text-gray-900 font-semibold font-mono">{laptop.storage}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600 font-medium">Écran</span>
-                          <span className="text-gray-900 font-semibold">{laptop.screenSize}</span>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-medium">Stockage:</span>
+                          <span>{laptop.storage}</span>
                         </div>
                       </div>
 
-                      {/* Description concise */}
-                      <p className="mt-3 text-xs text-gray-600 leading-relaxed">
-                        {laptop.description}
-                      </p>
+                      {/* Price */}
+                      <div className="mt-4">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {formatPrice(laptop.price)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          TTC - Livraison incluse
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Call To Action Row - Style moderne */}
-                    <div className="mt-5 pt-4 border-t border-gray-200 flex flex-col gap-3">
-                      <div className="flex justify-between items-center w-full">
-                        <div className="flex flex-col text-left">
-                          <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Prix</span>
-                          <span className="text-lg font-bold text-gray-900 tracking-tight">
-                            {formatPrice(laptop.price)}
-                          </span>
-                        </div>
-
-                        {/* Bouton détails */}
-                        <button
-                          type="button"
-                          onClick={() => onSelectLaptopForDetails(laptop)}
-                          className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none"
-                          id={`details-link-${laptop.id}`}
-                        >
-                          Voir détails
-                        </button>
-                      </div>
-
+                    {/* Action Buttons - LabCraft Style */}
+                    <div className="px-5 pb-5">
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => onAddToCart(laptop)}
-                          className={`flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 rounded-lg transition-all ${
+                          className={`flex-1 inline-flex items-center justify-center gap-2 text-sm font-medium py-3 rounded-lg transition-all ${
                             isOutOfStock
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                               : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
                           }`}
                           disabled={isOutOfStock}
@@ -831,15 +754,15 @@ export default function CatalogView({
                           id={`add-to-cart-btn-${laptop.id}`}
                         >
                           <ShoppingCart className="w-4 h-4" />
-                          Panier
+                          Ajouter
                         </button>
 
                         <button
                           type="button"
                           onClick={() => onSelectLaptopForQuote(laptop)}
-                          className={`flex-1 inline-flex items-center justify-center text-xs font-medium py-2.5 rounded-lg transition-all border ${
+                          className={`flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-lg transition-all border ${
                             isOutOfStock
-                              ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                              ? 'bg-gray-200 border-gray-300 text-gray-500 cursor-not-allowed'
                               : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
                           }`}
                           disabled={isOutOfStock}
@@ -848,6 +771,16 @@ export default function CatalogView({
                           {isIncoming ? 'Réserver' : 'Devis'}
                         </button>
                       </div>
+                      
+                      {/* Quick View Button */}
+                      <button
+                        type="button"
+                        onClick={() => onSelectLaptopForDetails(laptop)}
+                        className="mt-3 w-full text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none py-2"
+                        id={`details-link-${laptop.id}`}
+                      >
+                        Voir les détails complets →
+                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -855,6 +788,7 @@ export default function CatalogView({
             })
           )}
         </AnimatePresence>
+        </div>
       </section>
 
       {/* WHY CHOOSE HERVE_ESHOP ADVANTAGE */}
