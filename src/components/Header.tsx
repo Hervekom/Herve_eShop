@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Bell, Search, ShoppingCart, User } from 'lucide-react';
 import HerveLogo from './HerveLogo';
 
@@ -31,9 +31,46 @@ export default function Header({
     siteCMS.announcementText ||
     "Nouveaux arrivages d'ordinateurs MacBook, Dell & ThinkPad importés directement d'Amérique !";
   const headerStatus = contactCMS.openingHours || "Akwa Showroom • Ouvert";
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const delta = currentScrollY - lastScrollYRef.current;
+      const reachedTop = currentScrollY <= 16;
+
+      setIsAtTop(reachedTop);
+
+      if (reachedTop) {
+        setIsHeaderVisible(true);
+        lastScrollYRef.current = 0;
+        return;
+      }
+
+      if (Math.abs(delta) < 8) return;
+
+      if (delta > 0 && currentScrollY > 120) {
+        setIsHeaderVisible(false);
+      } else if (delta < 0) {
+        setIsHeaderVisible(true);
+      }
+
+      lastScrollYRef.current = currentScrollY;
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <header className="border-b border-warm-cream-dark/80 bg-warm-cream/95 sticky top-0 z-40 backdrop-blur-sm shadow-xs">
+    <header
+      className={`sticky top-0 z-40 border-b border-warm-cream-dark/80 bg-warm-cream/95 backdrop-blur-sm transition-transform duration-300 ease-out will-change-transform ${
+        isHeaderVisible ? 'translate-y-0' : '-translate-y-[calc(100%+1px)]'
+      } ${isAtTop ? 'shadow-none' : 'shadow-xs'}`}
+    >
       <div className="w-full bg-gradient-to-r from-luxe-orange to-luxe-gold text-white py-1.5 px-4 shadow-sm select-none">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-center sm:text-left">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
