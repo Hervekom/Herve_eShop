@@ -485,9 +485,9 @@ export default function CatalogView({
         Herve_eShop
       </div>
 
-      <section className="relative py-8 md:py-12 border-b border-warm-cream-dark/60 z-10">
+      <section className="relative py-4 md:py-6 border-b border-warm-cream-dark/60 z-10">
         <div
-          className="relative overflow-hidden rounded-[2rem] border border-luxe-dark/8 bg-luxe-dark text-white shadow-[0_30px_90px_rgba(33,24,18,0.18)]"
+          className="relative overflow-hidden rounded-[1.75rem] border border-luxe-dark/8 bg-luxe-dark text-white shadow-[0_22px_65px_rgba(33,24,18,0.16)]"
           onMouseEnter={() => handlePromoHover(true)}
           onMouseLeave={() => handlePromoHover(false)}
         >
@@ -501,12 +501,12 @@ export default function CatalogView({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -16 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="relative grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-10 p-5 md:p-8 xl:p-10"
+              className="relative grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 p-4 md:p-5 lg:p-6"
             >
-              <div className="xl:col-span-5 flex flex-col justify-between text-left min-h-[280px] md:min-h-[360px]">
+              <div className="lg:col-span-5 flex flex-col justify-between text-left">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-5">
-                    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+                  <div className="flex flex-wrap items-center gap-2 mb-3.5">
+                    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${
                       currentPromoSlide?.kind === 'advertisement'
                         ? 'bg-white/8 border-white/15 text-white'
                         : currentPromoSlide?.kind === 'product'
@@ -517,31 +517,31 @@ export default function CatalogView({
                       <span className="type-badge text-current">{currentPromoSlide?.badge}</span>
                     </span>
                     {currentPromoSlide?.kind === 'advertisement' && (
-                      <span className="type-meta text-white/70">
+                      <span className="type-meta text-white/68">
                         {currentPromoSlide.advertiserName}
                       </span>
                     )}
                     {currentPromoSlide?.kind === 'product' && (
-                      <span className="type-meta text-white/70">
+                      <span className="type-meta text-white/68">
                         Fallback automatique du catalogue
                       </span>
                     )}
                   </div>
 
-                  <h2 className="type-hero max-w-[12ch] text-white">
+                  <h2 className="max-w-[13ch] text-white text-[clamp(1.8rem,3.2vw,3rem)] leading-[0.95] font-extrabold tracking-[-0.04em]">
                     {currentPromoSlide?.title || heroTitle}
                   </h2>
 
-                  <p className="type-subtitle mt-4 max-w-2xl text-white/82">
+                  <p className="mt-3 max-w-xl text-white/82 text-[0.95rem] md:text-[1rem] leading-relaxed font-medium">
                     {currentPromoSlide?.subtitle || heroSubtitle}
                   </p>
 
-                  <p className="type-body mt-4 max-w-2xl text-white/68">
+                  <p className="type-body mt-2.5 max-w-xl text-white/66 line-clamp-3">
                     {currentPromoSlide?.description || heroSubtitle}
                   </p>
 
                   {currentPromoSlide?.kind === 'product' && (
-                    <div className="mt-6 inline-flex items-baseline gap-3">
+                    <div className="mt-4 inline-flex items-baseline gap-2.5 flex-wrap">
                       <span className="type-price text-white">
                         {formatPrice(currentPromoSlide.price)}
                       </span>
@@ -551,11 +551,11 @@ export default function CatalogView({
                     </div>
                   )}
 
-                  <div className="mt-6 flex flex-wrap gap-2.5">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {currentPromoSlide?.meta?.map((item) => (
                       <span
                         key={item}
-                        className="type-meta px-3 py-1.5 rounded-full border border-white/12 bg-white/7 text-white/78"
+                        className="type-meta px-2.5 py-1 rounded-full border border-white/12 bg-white/7 text-white/76"
                       >
                         {item}
                       </span>
@@ -563,11 +563,11 @@ export default function CatalogView({
                   </div>
                 </div>
 
-                <div className="mt-8 flex flex-wrap items-center gap-3">
+                <div className="mt-5 flex flex-wrap items-center gap-2.5">
                   <button
                     type="button"
                     onClick={() => currentPromoSlide && handlePromoAction(currentPromoSlide)}
-                    className="type-button inline-flex items-center gap-2 rounded-full bg-white text-luxe-dark px-5 py-3.5 hover:bg-luxe-gold transition-colors shadow-lg"
+                    className="type-button inline-flex items-center gap-2 rounded-full bg-white text-luxe-dark px-4 py-2.75 hover:bg-luxe-gold transition-colors shadow-lg"
                   >
                     {currentPromoSlide?.ctaText || 'Découvrir'}
                     <ChevronRight className="w-4 h-4" />
@@ -578,7 +578,7 @@ export default function CatalogView({
                       scheduleRotationResume();
                       document.getElementById('catalog-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
-                    className="type-button inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/6 text-white px-5 py-3.5 hover:bg-white/10 transition-colors"
+                    className="type-button inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/6 text-white px-4 py-2.75 hover:bg-white/10 transition-colors"
                   >
                     Explorer le catalogue
                     <Globe2 className="w-4 h-4" />
@@ -586,8 +586,8 @@ export default function CatalogView({
                 </div>
               </div>
 
-              <div className="xl:col-span-7">
-                <div className="relative h-full min-h-[320px] md:min-h-[420px] rounded-[1.6rem] overflow-hidden border border-white/10 bg-white/6">
+              <div className="lg:col-span-7">
+                <div className="relative h-[220px] sm:h-[250px] md:h-[290px] lg:h-[320px] xl:h-[340px] rounded-[1.35rem] overflow-hidden border border-white/10 bg-white/6">
                   {currentPromoImage ? (
                     <button
                       type="button"
@@ -597,7 +597,7 @@ export default function CatalogView({
                       <img
                         src={currentPromoImage}
                         alt={currentPromoSlide?.title || 'Promotion'}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-cover object-center"
                         referrerPolicy="no-referrer"
                         onError={() => handlePromoAssetError(currentPromoImage)}
                       />
@@ -619,24 +619,24 @@ export default function CatalogView({
                   <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/18 to-black/12" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
 
-                  <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-4">
+                  <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-3">
                     <div className="inline-flex flex-col gap-2">
                       <span className="type-kicker text-white/70">
                         {isShowingAdvertisements ? 'Sponsored placement' : isShowingProductFallback ? 'Product fallback mode' : 'Editorial fallback'}
                       </span>
                       {currentPromoSlide?.kind === 'advertisement' && (
-                        <div className="inline-flex items-center gap-2 rounded-full bg-white/12 backdrop-blur-md px-3 py-2 border border-white/10">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-white/12 backdrop-blur-md px-2.5 py-1.5 border border-white/10">
                           {currentPromoLogo ? (
                             <img
                               src={currentPromoLogo}
                               alt={currentPromoSlide.advertiserName}
-                              className="w-8 h-8 rounded-full object-cover bg-white"
+                              className="w-7 h-7 rounded-full object-cover bg-white"
                               referrerPolicy="no-referrer"
                               onError={() => handlePromoAssetError(currentPromoLogo)}
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-white/12 border border-white/10 flex items-center justify-center">
-                              <ExternalLink className="w-4 h-4 text-white" />
+                            <div className="w-7 h-7 rounded-full bg-white/12 border border-white/10 flex items-center justify-center">
+                              <ExternalLink className="w-3.5 h-3.5 text-white" />
                             </div>
                           )}
                           <div className="text-left">
@@ -651,24 +651,24 @@ export default function CatalogView({
                       <button
                         type="button"
                         onClick={() => goToAdjacentPromoSlide(-1)}
-                        className="w-11 h-11 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
+                        className="w-9 h-9 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
                         aria-label="Previous slide"
                       >
-                        <ArrowLeft className="w-4 h-4" />
+                        <ArrowLeft className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => goToAdjacentPromoSlide(1)}
-                        className="w-11 h-11 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
+                        className="w-9 h-9 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
                         aria-label="Next slide"
                       >
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                    <div className="max-w-xl">
+                  <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
+                    <div className="max-w-lg">
                       <div className="type-kicker text-white/70">
                         {currentPromoSlide?.kind === 'advertisement'
                           ? 'Annonce active'
@@ -676,10 +676,10 @@ export default function CatalogView({
                             ? 'Produit sélectionné'
                             : 'Collection mise en avant'}
                       </div>
-                      <div className="mt-2 text-xl md:text-2xl font-bold tracking-tight text-white leading-tight">
+                      <div className="mt-1.5 text-lg sm:text-xl md:text-[1.6rem] font-bold tracking-tight text-white leading-tight">
                         {currentPromoSlide?.title}
                       </div>
-                      <div className="type-meta mt-2 text-white/76">
+                      <div className="type-meta mt-1.5 text-white/74 line-clamp-2">
                         {currentPromoSlide?.kind === 'product'
                           ? currentPromoSlide.subtitle
                           : currentPromoSlide?.description || currentPromoSlide?.subtitle}
@@ -695,8 +695,8 @@ export default function CatalogView({
                               key={slide.id}
                               type="button"
                               onClick={() => goToPromoSlide(idx)}
-                              className={`h-2.5 rounded-full transition-all ${
-                                active ? 'w-9 bg-white' : 'w-2.5 bg-white/35 hover:bg-white/55'
+                              className={`h-2 rounded-full transition-all ${
+                                active ? 'w-7 bg-white' : 'w-2 bg-white/35 hover:bg-white/55'
                               }`}
                               aria-label={`Go to slide ${idx + 1}`}
                             />
