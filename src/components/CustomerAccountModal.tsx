@@ -1,15 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  X, Check, Laptop, Sparkles, PhoneCall, Mail, MapPin, Bell,
-  User, LogOut, Loader2, Lock, Eye, EyeOff, Edit, ClipboardList, RefreshCw
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ClipboardList,
+  Edit,
+  Eye,
+  EyeOff,
+  Heart,
+  Laptop,
+  Loader2,
+  Lock,
+  LogOut,
+  Mail,
+  MapPin,
+  PhoneCall,
+  RefreshCw,
+  Settings,
+  Shield,
+  Sparkles,
+  User,
+  X,
 } from 'lucide-react';
 import API, { getCachedGuestUser, getGuestToken } from '../lib/api';
-import { QuoteRequest } from '../types';
+import { Laptop as LaptopProduct, QuoteRequest } from '../types';
 
 interface CustomerAccountModalProps {
   onClose: () => void;
   onSuccess: (user: any) => void;
   triggerToast: (title: string, message: string, type?: string) => void;
+  initialSection?: 'overview' | 'orders' | 'favorites' | 'settings';
+  favouriteProducts?: LaptopProduct[];
+  onOpenFavourite?: (laptop: LaptopProduct) => void;
 }
 
 const CAMEROON_CITIES = [
@@ -29,37 +48,31 @@ const CAMEROON_CITIES = [
 export default function CustomerAccountModal({
   onClose,
   onSuccess,
-  triggerToast
+  triggerToast,
+  initialSection = 'overview',
+  favouriteProducts = [],
+  onOpenFavourite,
 }: CustomerAccountModalProps) {
   const [activeTab, setActiveTab] = useState<'login' | 'register' | 'dashboard'>('login');
-  
-  // Auth Form parameters
-  const [identifier, setIdentifier] = useState(''); // Email or Phone for login
+  const [dashboardSection, setDashboardSection] = useState<'overview' | 'orders' | 'favorites' | 'settings'>(initialSection);
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  
-  // Register parameters
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regCity, setRegCity] = useState('Douala');
   const [regPassword, setRegPassword] = useState('');
-
-  // Edit profile parameters
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editCity, setEditCity] = useState('');
   const [editPassword, setEditPassword] = useState('');
-
-  // UI state keys
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
   const [selectedQuoteDetail, setSelectedQuoteDetail] = useState<QuoteRequest | null>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const cached = getCachedGuestUser();
@@ -67,37 +80,16 @@ export default function CustomerAccountModal({
     if (cached && token) {
       setCurrentUser(cached);
       setActiveTab('dashboard');
+      setDashboardSection(initialSection);
       fetchProfileData();
-      fetchNotifications();
     }
-  }, []);
+  }, [initialSection]);
 
-  const fetchNotifications = async () => {
-    try {
-      const token = getGuestToken();
-      if (!token) {
-        setNotifications([]);
-        setUnreadNotifications(0);
-        return;
-      }
-      const res = await API.getCustomerNotifications();
-      const list = Array.isArray(res?.notifications) ? res.notifications : [];
-      setNotifications(list);
-      setUnreadNotifications(Number(res?.unreadCount || 0));
-    } catch {
-      setNotifications([]);
-      setUnreadNotifications(0);
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      setDashboardSection(initialSection);
     }
-  };
-
-  const markAllNotificationsRead = async () => {
-    try {
-      await API.markCustomerNotificationsRead();
-      await fetchNotifications();
-    } catch (err) {
-      triggerToast('Erreur', (err as Error).message, 'danger');
-    }
-  };
+  }, [initialSection, activeTab]);
 
   const fetchProfileData = async () => {
     try {
@@ -106,8 +98,6 @@ export default function CustomerAccountModal({
       if (res.success) {
         setCurrentUser(res.user);
         setQuotes(res.orders || []);
-        
-        // Populate edit status fields
         setEditName(res.user.name || '');
         setEditEmail(res.user.email || '');
         setEditPhone(res.user.phone || '');
@@ -133,13 +123,13 @@ export default function CustomerAccountModal({
       if (res.success) {
         setCurrentUser(res.user);
         setActiveTab('dashboard');
+        setDashboardSection(initialSection);
         onSuccess(res.user);
-        triggerToast('Connexion réussie ! 👋', `Bienvenue de retour, ${res.user.name}!`, 'success');
+        triggerToast('Connexion réussie', `Bienvenue de retour, ${res.user.name}.`, 'success');
         fetchProfileData();
-        fetchNotifications();
       }
     } catch (err) {
-      triggerToast('Erreur d\'identification ❌', (err as Error).message, 'danger');
+      triggerToast('Erreur d\'identification', (err as Error).message, 'danger');
     } finally {
       setLoading(false);
     }
@@ -172,8 +162,9 @@ export default function CustomerAccountModal({
         if (res.token) {
           setCurrentUser(res.user);
           setActiveTab('dashboard');
+          setDashboardSection(initialSection);
           onSuccess(res.user);
-          triggerToast('Compte créé avec succès ! 🎉', `Votre espace client Herve_eShop a été configuré, ${res.user.name}.`, 'success');
+          triggerToast('Compte créé avec succès', `Votre espace client Herve_eShop a été configuré pour ${res.user.name}.`, 'success');
           fetchProfileData();
         } else {
           try {
@@ -182,10 +173,10 @@ export default function CustomerAccountModal({
             if (loginRes.success) {
               setCurrentUser(loginRes.user);
               setActiveTab('dashboard');
+              setDashboardSection(initialSection);
               onSuccess(loginRes.user);
-              triggerToast('Compte créé et connecté ! 🎉', `Bienvenue, ${loginRes.user.name}.`, 'success');
+              triggerToast('Compte créé et connecté', `Bienvenue, ${loginRes.user.name}.`, 'success');
               fetchProfileData();
-              fetchNotifications();
             }
           } catch {
             setActiveTab('login');
@@ -194,7 +185,7 @@ export default function CustomerAccountModal({
         }
       }
     } catch (err) {
-      triggerToast('Échec d\'inscription ❌', (err as Error).message, 'danger');
+      triggerToast('Échec d\'inscription', (err as Error).message, 'danger');
     } finally {
       setLoading(false);
     }
@@ -224,11 +215,12 @@ export default function CustomerAccountModal({
         setCurrentUser(res.user);
         setIsEditingProfile(false);
         setEditPassword('');
-        triggerToast('Profil mis à jour ! 💾', 'Vos modifications ont été enregistrées avec succès.', 'success');
+        onSuccess(res.user);
+        triggerToast('Profil mis à jour', 'Vos modifications ont été enregistrées avec succès.', 'success');
         fetchProfileData();
       }
     } catch (err) {
-      triggerToast('Mise à jour échouée ❌', (err as Error).message, 'danger');
+      triggerToast('Mise à jour échouée', (err as Error).message, 'danger');
     } finally {
       setLoading(false);
     }
@@ -238,11 +230,9 @@ export default function CustomerAccountModal({
     API.logoutCustomer();
     setCurrentUser(null);
     setQuotes([]);
-    setNotifications([]);
-    setUnreadNotifications(0);
     setActiveTab('login');
     onSuccess(null);
-    triggerToast('Déconnexion ! 🚪', 'Vous avez été déconnecté de votre espace client.', 'info');
+    triggerToast('Déconnexion', 'Vous avez été déconnecté de votre espace client.', 'info');
   };
 
   const formatPrice = (price: number) => {
@@ -271,13 +261,137 @@ export default function CustomerAccountModal({
     }
   };
 
+  const stats = useMemo(() => {
+    const totalOrders = quotes.length;
+    const pendingOrders = quotes.filter((quote) => quote.status !== 'Livré' && quote.status !== 'Refusé').length;
+    const deliveredOrders = quotes.filter((quote) => quote.status === 'Livré').length;
+    return { totalOrders, pendingOrders, deliveredOrders };
+  }, [quotes]);
+
+  const openProfileEditor = () => {
+    setIsEditingProfile(true);
+    setDashboardSection('settings');
+    setEditName(currentUser?.name || '');
+    setEditEmail(currentUser?.email || '');
+    setEditPhone(currentUser?.phone || '');
+    setEditCity(currentUser?.city || 'Douala');
+    setEditPassword('');
+  };
+
+  const renderProfileForm = () => (
+    <form onSubmit={handleUpdateProfile} className="bg-white border border-luxe-gold/20 rounded-2xl p-5 space-y-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-warm-cream-dark/60 pb-3">
+        <div>
+          <h6 className="type-card-title !text-[1.05rem] text-luxe-dark">Account Settings</h6>
+          <p className="type-meta text-luxe-muted mt-1">
+            Update your personal details and security information.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsEditingProfile(false)}
+          className="type-button px-3 py-2 rounded-xl border border-warm-cream-dark text-luxe-muted hover:text-luxe-dark hover:bg-warm-cream"
+        >
+          Close
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="edit-name" className="field-label block text-luxe-dark mb-1.5">
+            Full name
+          </label>
+          <input
+            type="text"
+            id="edit-name"
+            required
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark bg-white"
+            disabled={loading}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="edit-city" className="field-label block text-luxe-dark mb-1.5">
+            City
+          </label>
+          <select
+            id="edit-city"
+            value={editCity}
+            onChange={(e) => setEditCity(e.target.value)}
+            className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark bg-white"
+            disabled={loading}
+          >
+            {CAMEROON_CITIES.map((city) => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="edit-email" className="field-label block text-luxe-dark mb-1.5">
+            Email address
+          </label>
+          <input
+            type="email"
+            id="edit-email"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
+            className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark bg-white"
+            disabled={loading}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="edit-phone" className="field-label block text-luxe-dark mb-1.5">
+            Phone number
+          </label>
+          <input
+            type="text"
+            id="edit-phone"
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
+            className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark bg-white"
+            disabled={loading}
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label htmlFor="edit-pass" className="field-label block text-luxe-dark mb-1.5">
+            New password
+          </label>
+          <input
+            type="password"
+            id="edit-pass"
+            value={editPassword}
+            onChange={(e) => setEditPassword(e.target.value)}
+            placeholder="Leave blank to keep your current password"
+            className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark bg-white"
+            disabled={loading}
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={loading}
+          className="type-button inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-luxe-dark text-white hover:bg-luxe-copper"
+        >
+          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+          Save changes
+        </button>
+      </div>
+    </form>
+  );
+
   return (
     <div className="fixed inset-0 bg-luxe-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div 
-        className="bg-warm-cream w-full max-w-2xl rounded-3xl border border-luxe-gold/30 shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
+        className="bg-warm-cream w-full max-w-5xl rounded-3xl border border-luxe-gold/30 shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
         id="customer-account-modal-container"
       >
-        {/* Banner header decoration */}
         <div className="bg-gradient-to-r from-luxe-dark via-luxe-copper to-luxe-dark py-4 px-6 md:px-8 text-white flex justify-between items-center relative select-none">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-luxe-gold to-luxe-orange"></div>
           <div className="flex items-center gap-3">
@@ -286,7 +400,7 @@ export default function CustomerAccountModal({
             </span>
             <div>
               <h4 className="type-section-title !text-[clamp(1.45rem,2vw,1.85rem)] text-warm-cream">
-                {activeTab === 'dashboard' ? 'Espace Personnel' : 'Espace Client'}
+                {activeTab === 'dashboard' ? 'Personal Area' : 'Customer Account'}
               </h4>
               <p className="field-label text-luxe-gold/80">
                 {activeTab === 'dashboard' ? `Herve_eShop • ${currentUser?.name}` : 'Herve_eShop Cameroun'}
@@ -303,22 +417,21 @@ export default function CustomerAccountModal({
           </button>
         </div>
 
-        {/* Modal content body */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8" id="customer-modal-inner-scroll">
           {activeTab === 'login' && (
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="text-center mb-6">
                 <Sparkles className="w-8 h-8 text-luxe-gold mx-auto mb-2 animate-bounce" />
-                <h5 className="type-card-title !text-xl text-luxe-dark">Accéder à mon espace sécurisé</h5>
+                <h5 className="type-card-title !text-xl text-luxe-dark">Access your personal dashboard</h5>
                 <p className="type-meta text-luxe-muted mt-1 max-w-sm mx-auto">
-                  Consultez l'historique complet et suivez en direct l'état de préparation de vos demandes de devis d'ordinateurs d'importation.
+                  Manage your profile, review your order history, save favorites, and keep your account information up to date.
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div>
                   <label htmlFor="login-identity-input" className="field-label block text-luxe-dark mb-1.5">
-                    Adresse Email ou Numéro de Téléphone
+                    Email address or phone number
                   </label>
                   <div className="relative">
                     <input
@@ -326,7 +439,7 @@ export default function CustomerAccountModal({
                       id="login-identity-input"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="e.g. jean@gmail.com ou 677889900"
+                      placeholder="e.g. jean@gmail.com or 677889900"
                       className="field-input w-full pl-10 pr-4 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
@@ -338,7 +451,7 @@ export default function CustomerAccountModal({
 
                 <div>
                   <label htmlFor="login-password-input" className="field-label block text-luxe-dark mb-1.5">
-                    Mot de passe
+                    Password
                   </label>
                   <div className="relative">
                     <input
@@ -346,7 +459,7 @@ export default function CustomerAccountModal({
                       id="login-password-input"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Saisissez votre mot de passe"
+                      placeholder="Enter your password"
                       className="field-input w-full pl-10 pr-10 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
@@ -373,15 +486,15 @@ export default function CustomerAccountModal({
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Vérification en cours...
+                    Checking your account...
                   </>
                 ) : (
-                  'Se connecter'
+                  'Sign in'
                 )}
               </button>
 
               <div className="text-center pt-4 border-t border-warm-cream-dark/60">
-                <span className="type-meta text-luxe-muted">Vous n'avez pas encore de compte utilisateur ?</span>
+                <span className="type-meta text-luxe-muted">Do you need a customer account?</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -390,7 +503,7 @@ export default function CustomerAccountModal({
                   }}
                   className="type-button block mx-auto mt-1 text-luxe-orange hover:text-luxe-dark transition-colors underline underline-offset-4"
                 >
-                  Créer un compte en 1 minute
+                  Create one in a minute
                 </button>
               </div>
             </form>
@@ -399,16 +512,16 @@ export default function CustomerAccountModal({
           {activeTab === 'register' && (
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="text-center mb-4">
-                <h5 className="type-card-title !text-xl text-luxe-dark">Créer un compte client gratuit</h5>
+                <h5 className="type-card-title !text-xl text-luxe-dark">Create your customer account</h5>
                 <p className="type-meta text-luxe-muted mt-1">
-                  Rejoignez la communauté d'Herve_eShop pour gérer au mieux vos envies d'équipements de qualité certifiée.
+                  Set up your personal area to manage orders, favorites, and account information.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="reg-name" className="field-label block text-luxe-dark mb-1">
-                    Nom complet *
+                    Full name *
                   </label>
                   <input
                     type="text"
@@ -416,7 +529,7 @@ export default function CustomerAccountModal({
                     required
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
-                    placeholder="e.g. Jean-Pierre Ngué"
+                    placeholder="e.g. Jean-Pierre Ngue"
                     className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                     disabled={loading}
                   />
@@ -424,7 +537,7 @@ export default function CustomerAccountModal({
 
                 <div>
                   <label htmlFor="reg-city" className="field-label block text-luxe-dark mb-1">
-                    Ville de résidence *
+                    City *
                   </label>
                   <select
                     id="reg-city"
@@ -441,7 +554,7 @@ export default function CustomerAccountModal({
 
                 <div>
                   <label htmlFor="reg-email" className="field-label block text-luxe-dark mb-1">
-                    Adresse Email (Optionnel *)
+                    Email address (Optional)
                   </label>
                   <input
                     type="email"
@@ -456,7 +569,7 @@ export default function CustomerAccountModal({
 
                 <div>
                   <label htmlFor="reg-phone" className="field-label block text-luxe-dark mb-1">
-                    Numéro de Téléphone (Optionnel *)
+                    Phone number (Optional)
                   </label>
                   <input
                     type="tel"
@@ -471,7 +584,7 @@ export default function CustomerAccountModal({
 
                 <div className="md:col-span-2">
                   <label htmlFor="reg-pass" className="field-label block text-luxe-dark mb-1">
-                    Mot de passe *
+                    Password *
                   </label>
                   <div className="relative">
                     <input
@@ -480,7 +593,7 @@ export default function CustomerAccountModal({
                       required
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Minimum 6 caractères"
+                      placeholder="Minimum 6 characters"
                       className="field-input w-full px-2.5 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
@@ -496,7 +609,7 @@ export default function CustomerAccountModal({
               </div>
 
               <p className="type-meta text-luxe-muted italic mt-2 text-center md:text-left">
-                * Note : Vous devez renseigner au moins une adresse email ou un numéro de téléphone pour pouvoir vous connecter ultérieurement.
+                Add at least one email address or phone number so you can sign in later.
               </p>
 
               <button
@@ -508,15 +621,15 @@ export default function CustomerAccountModal({
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Création en cours...
+                    Creating your account...
                   </>
                 ) : (
-                  'Confirmer mon inscription'
+                  'Create account'
                 )}
               </button>
 
               <div className="text-center pt-3 border-t border-warm-cream-dark/60 mt-4">
-                <span className="type-meta text-luxe-muted">Vous avez déjà configuré un compte ?</span>
+                <span className="type-meta text-luxe-muted">Already have an account?</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -525,320 +638,313 @@ export default function CustomerAccountModal({
                   }}
                   className="type-button block mx-auto mt-1 text-luxe-dark hover:text-luxe-orange underline underline-offset-4"
                 >
-                  Retourner à la connexion
+                  Go back to sign in
                 </button>
               </div>
             </form>
           )}
 
           {activeTab === 'dashboard' && currentUser && (
-            <div className="space-y-6">
-              {/* Profile Card Summary */}
-              <div className="bg-white rounded-2xl border border-warm-cream-dark p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm relative">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-luxe-copper/10 text-luxe-copper font-serif font-black flex items-center justify-center text-lg shadow-inner select-none uppercase">
-                    {currentUser.name ? currentUser.name.charAt(0) : 'C'}
+            <div className="grid grid-cols-1 xl:grid-cols-[260px,minmax(0,1fr)] gap-6">
+              <aside className="space-y-4">
+                <div className="bg-white rounded-2xl border border-warm-cream-dark p-5 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-luxe-copper/10 text-luxe-copper font-black flex items-center justify-center text-lg uppercase">
+                      {currentUser.name ? currentUser.name.charAt(0) : 'C'}
+                    </div>
+                    <div>
+                      <h5 className="type-card-title !text-[1.05rem] text-luxe-dark">
+                        {currentUser.name}
+                      </h5>
+                      <p className="type-meta text-luxe-muted mt-1">
+                        Personal dashboard
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h5 className="font-serif font-bold text-lg text-luxe-dark">Bonjour, {currentUser.name} 👋</h5>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 font-medium text-xs text-luxe-muted items-center">
-                      {currentUser.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3.5 h-3.5" />
-                          {currentUser.email}
-                        </span>
-                      )}
-                      {currentUser.phone && (
-                        <span className="flex items-center gap-1">
-                          <PhoneCall className="w-3.5 h-3.5" />
-                          {currentUser.phone}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5" />
-                        {currentUser.city}
-                      </span>
+
+                  <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-2xl bg-warm-cream px-3 py-3 border border-warm-cream-dark/70">
+                      <div className="type-card-title !text-[1rem] text-luxe-dark">{stats.totalOrders}</div>
+                      <div className="type-meta text-luxe-muted mt-1">Orders</div>
+                    </div>
+                    <div className="rounded-2xl bg-warm-cream px-3 py-3 border border-warm-cream-dark/70">
+                      <div className="type-card-title !text-[1rem] text-luxe-dark">{favouriteProducts.length}</div>
+                      <div className="type-meta text-luxe-muted mt-1">Favorites</div>
+                    </div>
+                    <div className="rounded-2xl bg-warm-cream px-3 py-3 border border-warm-cream-dark/70">
+                      <div className="type-card-title !text-[1rem] text-luxe-dark">{stats.pendingOrders}</div>
+                      <div className="type-meta text-luxe-muted mt-1">Open</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2 self-end md:self-auto w-full md:w-auto justify-end">
+                <div className="bg-white rounded-2xl border border-warm-cream-dark p-3 shadow-sm space-y-2">
+                  {[
+                    { id: 'overview', label: 'Overview', icon: User },
+                    { id: 'orders', label: 'Orders', icon: ClipboardList },
+                    { id: 'favorites', label: 'Favorites', icon: Heart },
+                    { id: 'settings', label: 'Settings', icon: Settings },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    const active = dashboardSection === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setDashboardSection(item.id as 'overview' | 'orders' | 'favorites' | 'settings')}
+                        className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors ${
+                          active
+                            ? 'bg-luxe-dark text-white shadow-sm'
+                            : 'text-luxe-dark hover:bg-warm-cream'
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 ${active ? 'text-luxe-gold' : 'text-luxe-copper'}`} />
+                        <span className="type-button">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="bg-white rounded-2xl border border-warm-cream-dark p-3 shadow-sm space-y-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsEditingProfile(!isEditingProfile);
-                      // Reset values
-                      setEditName(currentUser.name || '');
-                      setEditEmail(currentUser.email || '');
-                      setEditPhone(currentUser.phone || '');
-                      setEditCity(currentUser.city || 'Douala');
-                      setEditPassword('');
-                    }}
-                    className="p-2 text-xs font-bold rounded-xl border border-warm-cream-dark hover:bg-warm-cream-dark/30 text-luxe-dark flex items-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={openProfileEditor}
+                    className="w-full type-button flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-warm-cream-dark hover:bg-warm-cream text-luxe-dark"
                   >
-                    <Edit className="w-3.5 h-3.5" />
-                    Modifier Profil
+                    <Edit className="w-4 h-4" />
+                    Edit profile
                   </button>
-
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="p-2 text-xs font-bold rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="w-full type-button flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100"
                   >
-                    <LogOut className="w-3.5 h-3.5" />
-                    Déconnexion
+                    <LogOut className="w-4 h-4" />
+                    Sign out
                   </button>
                 </div>
-              </div>
+              </aside>
 
-              {/* Editing Profile Screen Toggle */}
-              {isEditingProfile && (
-                <form onSubmit={handleUpdateProfile} className="bg-white/80 border border-luxe-gold/20 rounded-2xl p-5 space-y-4 shadow-sm animate-in fade-in duration-300">
-                  <h6 className="font-serif font-bold text-sm text-luxe-dark border-b pb-2">Modifier mes coordonnées personnelles</h6>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="edit-name" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
-                        Nom complet
-                      </label>
-                      <input
-                        type="text"
-                        id="edit-name"
-                        required
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark bg-white"
-                        disabled={loading}
-                      />
-                    </div>
+              <div className="space-y-6">
+                {dashboardSection === 'overview' && (
+                  <>
+                    <div className="bg-white rounded-2xl border border-warm-cream-dark p-6 shadow-sm">
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div>
+                          <span className="type-kicker text-luxe-copper">Personal Profile</span>
+                          <h5 className="type-section-title !text-[clamp(1.5rem,2vw,2rem)] mt-2 text-luxe-dark">
+                            Manage your account details in one place
+                          </h5>
+                          <p className="type-meta text-luxe-muted mt-3 max-w-2xl">
+                            Your Personal Area focuses only on your account, orders, favorites, and settings. Notifications are available separately from the bell icon in the header.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={openProfileEditor}
+                          className="type-button inline-flex items-center gap-2 rounded-full bg-luxe-dark px-4 py-2.5 text-white hover:bg-luxe-copper"
+                        >
+                          <Edit className="w-4 h-4 text-luxe-gold" />
+                          Update profile
+                        </button>
+                      </div>
 
-                    <div>
-                      <label htmlFor="edit-city" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
-                        Ville
-                      </label>
-                      <select
-                        id="edit-city"
-                        value={editCity}
-                        onChange={(e) => setEditCity(e.target.value)}
-                        className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark bg-white font-medium"
-                        disabled={loading}
-                      >
-                        {CAMEROON_CITIES.map(city => (
-                          <option key={city} value={city}>{city}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="edit-email" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
-                        Adresse Email
-                      </label>
-                      <input
-                        type="email"
-                        id="edit-email"
-                        value={editEmail}
-                        onChange={(e) => setEditEmail(e.target.value)}
-                        className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark bg-white"
-                        disabled={loading}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="edit-phone" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
-                        Numéro de téléphone
-                      </label>
-                      <input
-                        type="text"
-                        id="edit-phone"
-                        value={editPhone}
-                        onChange={(e) => setEditPhone(e.target.value)}
-                        className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark bg-white"
-                        disabled={loading}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label htmlFor="edit-pass" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
-                        Nouveau mot de passe (Laisser vide si inchangé)
-                      </label>
-                      <input
-                        type="password"
-                        id="edit-pass"
-                        value={editPassword}
-                        onChange={(e) => setEditPassword(e.target.value)}
-                        placeholder="Nouveau mot de passe de sécurisation"
-                        className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark bg-white"
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 justify-end pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingProfile(false)}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-luxe-muted border border-warm-cream-dark hover:bg-neutral-100"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-luxe-gold hover:bg-luxe-dark shadow-sm flex items-center gap-1"
-                    >
-                      {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      Sauvegarder les modifications
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              <div className="bg-white rounded-2xl border border-warm-cream-dark p-5 shadow-sm space-y-3">
-                <div className="flex items-center justify-between border-b border-warm-cream-dark/60 pb-2">
-                  <h6 className="font-serif font-bold text-md text-luxe-dark flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-luxe-copper" />
-                    Notifications
-                    {unreadNotifications > 0 && (
-                      <span className="ml-1 inline-flex items-center justify-center bg-luxe-orange text-white text-[9px] font-black px-2 py-0.5 rounded-full">
-                        {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                      </span>
-                    )}
-                  </h6>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={fetchNotifications}
-                      className="p-1 px-2.5 rounded-lg border border-warm-cream-dark text-[10px] font-bold uppercase text-luxe-muted hover:text-luxe-dark bg-white hover:bg-neutral-50 flex items-center gap-1"
-                      title="Rafraîchir"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      Actualiser
-                    </button>
-                    <button
-                      type="button"
-                      onClick={markAllNotificationsRead}
-                      className="p-1 px-2.5 rounded-lg border border-warm-cream-dark text-[10px] font-bold uppercase text-luxe-muted hover:text-luxe-dark bg-white hover:bg-neutral-50"
-                      disabled={unreadNotifications <= 0}
-                    >
-                      Marquer comme lu
-                    </button>
-                  </div>
-                </div>
-
-                {notifications.length === 0 ? (
-                  <div className="text-xs text-luxe-muted">
-                    Aucune notification pour le moment.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {notifications.slice(0, 6).map((n: any) => (
-                      <div
-                        key={String(n.id)}
-                        className="p-3 rounded-xl border border-warm-cream-dark/70 bg-warm-cream/20"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="font-extrabold text-luxe-dark text-xs truncate">
-                              {String(n.title || 'Notification')}
-                            </div>
-                            {n.message && (
-                              <div className="text-[10px] text-luxe-muted mt-0.5 break-words">
-                                {String(n.message)}
-                              </div>
-                            )}
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-2xl border border-warm-cream-dark bg-warm-cream/50 p-4">
+                          <div className="type-badge text-luxe-muted">Contact</div>
+                          <div className="mt-3 space-y-2 type-meta text-luxe-dark">
+                            {currentUser.email && <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-luxe-copper" /> {currentUser.email}</div>}
+                            {currentUser.phone && <div className="flex items-center gap-2"><PhoneCall className="w-4 h-4 text-luxe-copper" /> {currentUser.phone}</div>}
+                            <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-luxe-copper" /> {currentUser.city || 'Not provided'}</div>
                           </div>
-                          {n.createdAt && (
-                            <div className="text-[9px] text-luxe-muted whitespace-nowrap font-mono">
-                              {new Date(String(n.createdAt)).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div className="rounded-2xl border border-warm-cream-dark bg-warm-cream/50 p-4">
+                          <div className="type-badge text-luxe-muted">Activity</div>
+                          <div className="mt-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="type-meta text-luxe-muted">Total orders</span>
+                              <span className="type-card-title !text-[1rem] text-luxe-dark">{stats.totalOrders}</span>
                             </div>
-                          )}
+                            <div className="flex items-center justify-between">
+                              <span className="type-meta text-luxe-muted">Pending orders</span>
+                              <span className="type-card-title !text-[1rem] text-luxe-dark">{stats.pendingOrders}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="type-meta text-luxe-muted">Saved favorites</span>
+                              <span className="type-card-title !text-[1rem] text-luxe-dark">{favouriteProducts.length}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                    {notifications.length > 6 && (
-                      <div className="text-[10px] text-luxe-muted">
-                        + {notifications.length - 6} autre(s)
+                    </div>
+
+                    {isEditingProfile && renderProfileForm()}
+                  </>
+                )}
+
+                {dashboardSection === 'orders' && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-warm-cream-dark/60 pb-3">
+                      <div>
+                        <h6 className="type-card-title !text-[1.1rem] text-luxe-dark flex items-center gap-2">
+                          <ClipboardList className="w-4 h-4 text-luxe-copper" />
+                          Order Tracking
+                        </h6>
+                        <p className="type-meta text-luxe-muted mt-1">
+                          Review your quotes and follow each request status.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={fetchProfileData}
+                        className="type-button inline-flex items-center gap-2 rounded-xl border border-warm-cream-dark bg-white px-3 py-2 hover:bg-warm-cream"
+                        title="Refresh"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Refresh
+                      </button>
+                    </div>
+
+                    {loading && quotes.length === 0 ? (
+                      <div className="text-center py-10">
+                        <Loader2 className="w-6 h-6 animate-spin text-luxe-gold mx-auto" />
+                        <p className="type-meta text-luxe-muted mt-2">Loading your order history...</p>
+                      </div>
+                    ) : quotes.length === 0 ? (
+                      <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-warm-cream-dark/80">
+                        <Laptop className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
+                        <p className="type-card-title !text-[1rem] text-luxe-dark">No orders yet</p>
+                        <p className="type-meta text-luxe-muted mt-2 max-w-xs mx-auto">
+                          Your submitted quotes and laptop requests will appear here automatically.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {quotes.map((q) => (
+                          <div
+                            key={q.id}
+                            className="p-4 bg-white hover:bg-neutral-50 rounded-2xl border border-warm-cream-dark hover:border-luxe-gold/30 transition-all shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3"
+                          >
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-mono text-xs font-bold text-luxe-copper uppercase tracking-wider select-all">
+                                  #{q.id}
+                                </span>
+                                <span className="text-[10px] text-luxe-muted">•</span>
+                                <span className="text-xs text-luxe-muted">
+                                  {new Date(q.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+
+                              <h6 className="type-card-title !text-[1rem] text-luxe-dark mt-2">
+                                {q.laptopBrand} {q.laptopModel}
+                              </h6>
+
+                              <div className="flex gap-2 items-center flex-wrap mt-1.5 text-[10px] text-luxe-muted">
+                                <span className="font-bold text-luxe-dark">{formatPrice(q.finalPrice)}</span>
+                                <span>•</span>
+                                <span>RAM: {q.customizations.ramUpgrade}</span>
+                                <span>•</span>
+                                <span>Storage: {q.customizations.storageUpgrade}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-stretch md:self-auto justify-between md:justify-end">
+                              <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${getStatusColor(q.status)}`}>
+                                {q.status}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedQuoteDetail(q)}
+                                className="type-button px-3 py-2 text-white bg-luxe-dark hover:bg-luxe-copper rounded-xl transition-colors cursor-pointer"
+                              >
+                                View details
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
                 )}
-              </div>
 
-              {/* Quotes / Order history section */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center border-b border-warm-cream-dark/60 pb-2">
-                  <h6 className="font-serif font-bold text-md text-luxe-dark flex items-center gap-2">
-                    <ClipboardList className="w-4 h-4 text-luxe-copper" />
-                    Suivi de mes devis d'ordinateurs
-                  </h6>
-                  <button
-                    type="button"
-                    onClick={fetchProfileData}
-                    className="p-1 px-2.5 rounded-lg border border-warm-cream-dark text-[10px] font-bold uppercase text-luxe-muted hover:text-luxe-dark bg-white hover:bg-neutral-50 flex items-center gap-1"
-                    title="Rafraîchir"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    Actualiser
-                  </button>
-                </div>
+                {dashboardSection === 'favorites' && (
+                  <div className="space-y-4">
+                    <div className="border-b border-warm-cream-dark/60 pb-3">
+                      <h6 className="type-card-title !text-[1.1rem] text-luxe-dark flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-luxe-copper" />
+                        Favorites
+                      </h6>
+                      <p className="type-meta text-luxe-muted mt-1">
+                        Reopen the products you saved for later.
+                      </p>
+                    </div>
 
-                {loading && quotes.length === 0 ? (
-                  <div className="text-center py-10">
-                    <Loader2 className="w-6 h-6 animate-spin text-luxe-gold mx-auto" />
-                    <p className="text-xs text-luxe-muted mt-2">Recherche de vos demandes de devis d'atelier en ligne...</p>
+                    {favouriteProducts.length === 0 ? (
+                      <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-warm-cream-dark/80">
+                        <Heart className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
+                        <p className="type-card-title !text-[1rem] text-luxe-dark">No saved favorites yet</p>
+                        <p className="type-meta text-luxe-muted mt-2 max-w-xs mx-auto">
+                          Save products from the catalog and they will appear here in your Personal Area.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {favouriteProducts.map((product) => (
+                          <div key={product.id} className="bg-white rounded-2xl border border-warm-cream-dark p-4 shadow-sm flex gap-4">
+                            <img
+                              src={product.image}
+                              alt={`${product.brand} ${product.model}`}
+                              className="w-20 h-20 rounded-2xl object-cover bg-warm-cream border border-warm-cream-dark/70"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="type-badge text-luxe-muted">{product.category}</p>
+                              <h6 className="type-card-title !text-[1rem] text-luxe-dark mt-1 truncate">
+                                {product.brand} {product.model}
+                              </h6>
+                              <p className="type-meta text-luxe-muted mt-1 line-clamp-2">
+                                {product.shortDescription || product.processor || product.description}
+                              </p>
+                              <div className="mt-3 flex items-center justify-between gap-3">
+                                <span className="type-card-title !text-[1rem] text-luxe-copper">
+                                  {formatPrice(product.price)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenFavourite?.(product)}
+                                  className="type-button px-3 py-2 rounded-xl bg-luxe-dark text-white hover:bg-luxe-copper"
+                                >
+                                  Open product
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : quotes.length === 0 ? (
-                  <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-warm-cream-dark/80">
-                    <Laptop className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
-                    <p className="text-xs font-bold text-luxe-dark">Aucune demande de devis enregistrée</p>
-                    <p className="text-[10px] text-luxe-muted mt-1 max-w-xs mx-auto">
-                      Vos devis s'afficheront instantanément ici dès que vous soumettrez une demande de personnalisation sur notre catalogue d'ordinateurs.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {quotes.map((q) => (
-                      <div 
-                        key={q.id}
-                        className="p-4 bg-white hover:bg-neutral-50 rounded-2xl border border-warm-cream-dark hover:border-luxe-gold/30 transition-all shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3"
-                      >
+                )}
+
+                {dashboardSection === 'settings' && (
+                  <div className="space-y-4">
+                    <div className="bg-white rounded-2xl border border-warm-cream-dark p-6 shadow-sm">
+                      <div className="flex items-start justify-between gap-4">
                         <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-mono text-xs font-bold text-luxe-copper uppercase tracking-wider select-all">
-                              #{q.id}
-                            </span>
-                            <span className="text-[10px] text-luxe-muted">•</span>
-                            <span className="text-xs text-luxe-muted">
-                              {new Date(q.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                          
-                          <h6 className="font-serif font-bold text-sm text-luxe-dark mt-1">
-                            {q.laptopBrand} {q.laptopModel}
+                          <span className="type-kicker text-luxe-copper">Security & Preferences</span>
+                          <h6 className="type-section-title !text-[clamp(1.45rem,2vw,1.9rem)] mt-2 text-luxe-dark">
+                            Keep your account secure and current
                           </h6>
-
-                          <div className="flex gap-2 items-center flex-wrap mt-1.5 text-[10px] text-luxe-muted">
-                            <span className="font-bold text-luxe-dark">{formatPrice(q.finalPrice)}</span>
-                            <span>•</span>
-                            <span>RAM: {q.customizations.ramUpgrade}</span>
-                            <span>•</span>
-                            <span>Disque: {q.customizations.storageUpgrade}</span>
-                          </div>
+                          <p className="type-meta text-luxe-muted mt-3 max-w-2xl">
+                            Use this section to update your identity details, contact information, city, and password.
+                          </p>
                         </div>
-
-                        <div className="flex items-center gap-2 self-stretch md:self-auto justify-between md:justify-end">
-                          <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${getStatusColor(q.status)}`}>
-                            {q.status}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedQuoteDetail(q)}
-                            className="px-3 py-1.5 text-[10px] font-bold text-white bg-luxe-dark hover:bg-luxe-copper rounded-xl transition-colors cursor-pointer"
-                          >
-                            Détail
-                          </button>
+                        <div className="w-12 h-12 rounded-2xl bg-luxe-dark text-luxe-gold flex items-center justify-center shrink-0">
+                          <Shield className="w-5 h-5" />
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    {renderProfileForm()}
                   </div>
                 )}
               </div>
@@ -846,14 +952,13 @@ export default function CustomerAccountModal({
           )}
         </div>
 
-        {/* Selected Quote Detail Panel Modal Slider Overlay */}
         {selectedQuoteDetail && (
           <div className="fixed inset-0 bg-black/40 z-60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-warm-cream max-w-md w-full rounded-3xl border border-luxe-gold p-6 space-y-4 shadow-xl">
               <div className="flex justify-between items-center border-b pb-2">
                 <h6 className="font-serif font-bold text-sm text-luxe-dark flex items-center gap-1">
                   <Laptop className="w-4 h-4 text-luxe-copper" />
-                  Détails du Devis #{selectedQuoteDetail.id}
+                  Order details #{selectedQuoteDetail.id}
                 </h6>
                 <button
                   type="button"
@@ -867,36 +972,36 @@ export default function CustomerAccountModal({
               <div className="space-y-3.5 text-xs text-luxe-dark">
                 <div className="grid grid-cols-2 gap-2 border-b pb-2">
                   <div>
-                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">État du Devis</span>
+                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Order status</span>
                     <span className={`inline-block px-2 py-0.5 mt-0.5 rounded-full text-[9px] font-black border ${getStatusColor(selectedQuoteDetail.status)}`}>
                       {selectedQuoteDetail.status}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Prix final estimé</span>
+                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Estimated total</span>
                     <span className="font-extrabold text-luxe-orange text-sm">{formatPrice(selectedQuoteDetail.finalPrice)}</span>
                   </div>
                 </div>
 
                 <div>
-                  <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Modèle sélectionné</span>
+                  <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Selected model</span>
                   <span className="font-extrabold text-luxe-dark">{selectedQuoteDetail.laptopBrand} {selectedQuoteDetail.laptopModel}</span>
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-warm-cream-dark/60 space-y-1.5">
-                  <span className="block text-[10px] text-luxe-muted uppercase font-black tracking-wider border-b pb-1">Spécifications personnalisées :</span>
+                  <span className="block text-[10px] text-luxe-muted uppercase font-black tracking-wider border-b pb-1">Custom specifications</span>
                   <div>
-                    <span className="text-luxe-muted font-bold">Mémoire vive (RAM) :</span> {selectedQuoteDetail.customizations.ramUpgrade}
+                    <span className="text-luxe-muted font-bold">RAM:</span> {selectedQuoteDetail.customizations.ramUpgrade}
                   </div>
                   <div>
-                    <span className="text-luxe-muted font-bold">Autre stockage SSD :</span> {selectedQuoteDetail.customizations.storageUpgrade}
+                    <span className="text-luxe-muted font-bold">Storage:</span> {selectedQuoteDetail.customizations.storageUpgrade}
                   </div>
                   <div>
-                    <span className="text-luxe-muted font-bold">Plateforme Système OS :</span> {selectedQuoteDetail.customizations.osOption}
+                    <span className="text-luxe-muted font-bold">Operating system:</span> {selectedQuoteDetail.customizations.osOption}
                   </div>
                   {selectedQuoteDetail.customizations.accessories && selectedQuoteDetail.customizations.accessories.length > 0 && (
                     <div>
-                      <span className="text-luxe-muted font-bold block">Accessoires & extensions :</span>
+                      <span className="text-luxe-muted font-bold block">Accessories:</span>
                       <ul className="list-disc pl-4 space-y-0.5 mt-1 text-[11px]">
                         {selectedQuoteDetail.customizations.accessories.map((acc, idx) => (
                           <li key={idx}>{acc}</li>
@@ -908,7 +1013,7 @@ export default function CustomerAccountModal({
 
                 {selectedQuoteDetail.additionalNotes && (
                   <div>
-                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Notes transmises à Hervé</span>
+                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Customer notes</span>
                     <p className="bg-white p-2.5 rounded-xl border italic mt-1 text-[11px] leading-relaxed">
                       "{selectedQuoteDetail.additionalNotes}"
                     </p>
@@ -921,7 +1026,7 @@ export default function CustomerAccountModal({
                 onClick={() => setSelectedQuoteDetail(null)}
                 className="w-full py-2 bg-luxe-dark text-white rounded-xl text-xs uppercase font-extrabold cursor-pointer"
               >
-                Fermer l'aperçu
+                Close
               </button>
             </div>
           </div>

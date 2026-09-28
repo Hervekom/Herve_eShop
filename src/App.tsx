@@ -13,9 +13,10 @@ import HerveLogo from './components/HerveLogo';
 import QuoteRequestModal from './components/QuoteRequestModal';
 import LaptopDetailModal from './components/LaptopDetailModal';
 import CustomerAccountModal from './components/CustomerAccountModal';
+import NotificationCenter from './components/NotificationCenter';
 import AdminPanel from './components/admin/AdminPanel';
 import API from './lib/api';
-import { Laptop, QuoteRequest, RealtimeNotification, QuoteStatus, LaptopStatus } from './types';
+import { CustomerNotification, Laptop, QuoteRequest, QuoteStatus, LaptopStatus } from './types';
 
 type AppErrorBoundaryProps = {
   children: React.ReactNode;
@@ -94,7 +95,8 @@ export default function App() {
 
   // --- Core Persistent State Hookup ---
   const [quotes, setQuotes] = useState<QuoteRequest[]>([]);
-  const [notifications, setNotifications] = useState<RealtimeNotification[]>([]);
+  const [customerNotifications, setCustomerNotifications] = useState<CustomerNotification[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   // UI Active State Tab selectors
   const [role, setRole] = useState<'client' | 'admin'>(() => {
@@ -125,6 +127,8 @@ export default function App() {
 
   // --- Customer / User Account State ---
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const [accountInitialSection, setAccountInitialSection] = useState<'overview' | 'orders' | 'favorites' | 'settings'>('overview');
   const [activeCustomerUser, setActiveCustomerUser] = useState<any>(() => {
     try {
       const saved = localStorage.getItem('herve_eshop_customer_user');
@@ -157,6 +161,40 @@ export default function App() {
       setCheckoutCity(activeCustomerUser.city || '');
     }
   }, [activeCustomerUser]);
+
+  const syncCustomerNotifications = async () => {
+    if (!activeCustomerUser?.id) {
+      setCustomerNotifications([]);
+      setUnreadNotificationCount(0);
+      return;
+    }
+    try {
+      const res = await API.getCustomerNotifications();
+      const next = Array.isArray(res?.notifications) ? res.notifications : [];
+      setCustomerNotifications(next);
+      setUnreadNotificationCount(Number(res?.unreadCount || 0));
+    } catch {
+      setCustomerNotifications([]);
+      setUnreadNotificationCount(0);
+    }
+  };
+
+  useEffect(() => {
+    if (!activeCustomerUser?.id) {
+      setCustomerNotifications([]);
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    syncCustomerNotifications();
+    const interval = window.setInterval(() => {
+      syncCustomerNotifications();
+    }, 15000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [activeCustomerUser?.id]);
 
   const cartCount = cartItems.reduce((sum, it) => sum + Number(it.quantity || 0), 0);
   const cartTotal = cartItems.reduce((sum, it) => sum + Number(it.product.price || 0) * Number(it.quantity || 0), 0);
@@ -374,20 +412,7 @@ export default function App() {
 
       // Reload fresh state from DB (stock subtract, orders history, state values)
       await loadServerData();
-
-      // Create confirmation system notification
-      const newNotif: RealtimeNotification = {
-        id: `notif-${Date.now()}`,
-        quoteId: newQuote.id,
-        clientEmail: newQuote.clientEmail,
-        title: 'Demande de devis enregistrée ! 📥',
-        message: `Votre demande pour le ${newQuote.laptopBrand} ${newQuote.laptopModel} (${formatPrice(newQuote.finalPrice)}) est reçue par Hervé.`,
-        status: 'Demande reçue',
-        timestamp: new Date().toISOString(),
-        isRead: false
-      };
-
-      setNotifications((prev) => [newNotif, ...prev]);
+      await syncCustomerNotifications();
       setSelectedLaptopForQuote(null);
 
       // Prompt user on screen
@@ -407,6 +432,98 @@ export default function App() {
       .replace('XAF', 'FCFA');
   };
 
+  const openAccountArea = (section: 'overview' | 'orders' | 'favorites' | 'settings' = 'overview') => {
+    setAccountInitialSection(section);
+    setIsAccountModalOpen(true);
+  };
+
+  const handleMarkOneNotificationRead = async (notificationId: string) => {
+    try {
+      await API.markCustomerNotificationRead(notificationId);
+      setCustomerNotifications((prev) =>
+        prev.map((item) => (item.id === notificationId ? { ...item, isRead: true } : item))
+      );
+      setUnreadNotificationCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      triggerToastAlert('Unable to update notification', (err as Error).message, 'danger');
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await API.markCustomerNotificationsRead();
+      setCustomerNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+      setUnreadNotificationCount(0);
+    } catch (err) {
+      triggerToastAlert('Unable to update notifications', (err as Error).message, 'danger');
+    }
+  };
+
+  const handleOpenNotification = async (notification: CustomerNotification) => {
+    if (!notification.isRead) {
+      await handleMarkOneNotificationRead(notification.id);
+    }
+
+    const link = String(notification.link || '').trim();
+    const relatedType = String(notification.relatedContentType || notification.metadata?.source || '').trim().toLowerCase();
+    const relatedId = String(notification.relatedContentId || notification.metadata?.productId || '').trim();
+
+    if (relatedType.includes('order') || relatedType.includes('quote') || notification.metadata?.orderId) {
+      setIsNotificationCenterOpen(false);
+      openAccountArea('orders');
+      return;
+    }
+
+    if (relatedType.includes('account') || relatedType.includes('register')) {
+      setIsNotificationCenterOpen(false);
+      openAccountArea('settings');
+      return;
+    }
+
+    if (relatedType.includes('product') || relatedId) {
+      const product = laptops.find((item) => item.id === relatedId);
+      if (product) {
+        setSelectedLaptopForDetails(product);
+        setIsNotificationCenterOpen(false);
+        return;
+      }
+    }
+
+    if (link.startsWith('app://personal-area/orders')) {
+      setIsNotificationCenterOpen(false);
+      openAccountArea('orders');
+      return;
+    }
+
+    if (link.startsWith('app://personal-area/settings')) {
+      setIsNotificationCenterOpen(false);
+      openAccountArea('settings');
+      return;
+    }
+
+    if (link.startsWith('app://personal-area/favorites')) {
+      setIsNotificationCenterOpen(false);
+      openAccountArea('favorites');
+      return;
+    }
+
+    if (link.startsWith('#')) {
+      setIsNotificationCenterOpen(false);
+      const target = document.querySelector(link);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    if (link) {
+      setIsNotificationCenterOpen(false);
+      if (/^https?:\/\//i.test(link)) {
+        window.open(link, '_blank', 'noopener,noreferrer');
+      } else {
+        window.location.assign(link);
+      }
+    }
+  };
+
   // SWITCH RENDER IF ROLE IS ADMIN
   if (role === 'admin') {
     return (
@@ -417,14 +534,7 @@ export default function App() {
         }} 
       />
     );
-  }  // Notification center operations
-  const handleClearNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
-  };
+  }
 
   return (
     <AppErrorBoundary>
@@ -433,9 +543,11 @@ export default function App() {
       <Header
         onSearchChange={setSearchValue}
         searchValue={searchValue}
-        onOpenAccountModal={() => setIsAccountModalOpen(true)}
+        onOpenAccountModal={() => openAccountArea('overview')}
+        onOpenNotificationCenter={() => setIsNotificationCenterOpen(true)}
         onOpenCart={() => setIsCartOpen(true)}
         cartCount={cartCount}
+        unreadNotificationCount={unreadNotificationCount}
         activeUser={activeCustomerUser}
         cms={clientData}
       />
@@ -485,7 +597,7 @@ export default function App() {
         
         {/* CLIENT TESTIMONIALS & TRUST BUILDING SECTION */}
         <Testimonials
-          onRequireLogin={() => setIsAccountModalOpen(true)}
+          onRequireLogin={() => openAccountArea('overview')}
           onTriggerToast={triggerToastAlert}
         />
 
@@ -506,7 +618,19 @@ export default function App() {
       {isAccountModalOpen && (
         <CustomerAccountModal
           onClose={() => setIsAccountModalOpen(false)}
-          onSuccess={(user) => setActiveCustomerUser(user)}
+          onSuccess={(user) => {
+            setActiveCustomerUser(user);
+            if (!user) {
+              setCustomerNotifications([]);
+              setUnreadNotificationCount(0);
+            }
+          }}
+          initialSection={accountInitialSection}
+          favouriteProducts={laptops.filter((laptop) => favouriteIds.includes(laptop.id))}
+          onOpenFavourite={(laptop) => {
+            setSelectedLaptopForDetails(laptop);
+            setIsAccountModalOpen(false);
+          }}
           triggerToast={(title, message, type) => {
             setActiveToast({
               id: Date.now().toString(),
@@ -521,6 +645,18 @@ export default function App() {
         />
       )}
 
+      {isNotificationCenterOpen && (
+        <NotificationCenter
+          notifications={customerNotifications}
+          unreadCount={unreadNotificationCount}
+          onClose={() => setIsNotificationCenterOpen(false)}
+          onRefresh={syncCustomerNotifications}
+          onMarkAllAsRead={handleMarkAllNotificationsRead}
+          onMarkOneAsRead={handleMarkOneNotificationRead}
+          onOpenNotification={handleOpenNotification}
+        />
+      )}
+
       {/* LAPTOP SHOWCASE DETAIL MODAL */}
       <LaptopDetailModal
         laptop={selectedLaptopForDetails}
@@ -531,7 +667,7 @@ export default function App() {
         onSelectLaptopForQuote={handleSelectLaptopForQuote}
         onTriggerToast={triggerToastAlert}
         onAddToCart={handleAddToCart}
-        onRequireLogin={() => setIsAccountModalOpen(true)}
+        onRequireLogin={() => openAccountArea('overview')}
         whatsAppPhone={clientData?.contactCMS?.whatsAppPhone}
       />
 

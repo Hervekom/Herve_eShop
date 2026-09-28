@@ -1188,6 +1188,118 @@ async function extractCustomerUser(req: express.Request, supabase: SupabaseLike)
   };
 }
 
+function notificationBelongsToUser(row: any, user: any, emailKey: string, phoneKey: string) {
+  if (!row || !user) return false;
+  const uid = String(row?.user_id || row?.userId || '').trim();
+  if (uid && uid === user.id) return true;
+
+  const meta = row?.metadata || {};
+  const metaCustomerId = String(meta?.customerId || '').trim();
+  if (metaCustomerId && metaCustomerId === user.id) return true;
+
+  const metaEmail = normalizeEmail(meta?.customerEmail);
+  const metaPhone = String(meta?.customerPhone || '').trim();
+  const emailMatch = emailKey ? metaEmail && metaEmail === emailKey : false;
+  const phoneMatch = phoneKey ? phonesMatch(metaPhone, phoneKey) : false;
+  return emailMatch || phoneMatch;
+}
+
+async function listNotificationRecipients(adminDb: SupabaseLike, audienceInput: any, userIdsInput?: any) {
+  const audience = String(audienceInput || 'logged_in_users').trim() || 'logged_in_users';
+  const specificIds = Array.isArray(userIdsInput)
+    ? userIdsInput.map((value: any) => String(value || '').trim()).filter(Boolean)
+    : [];
+
+  const users = await listAllAuthUsers(adminDb);
+  let adminIds = new Set<string>();
+  try {
+    const { data: adminRows } = await adminDb.from('admin_users').select('user_id');
+    adminIds = new Set((adminRows || []).map((row: any) => String(row?.user_id || '').trim()).filter(Boolean));
+  } catch {
+  }
+
+  const recipients = users
+    .filter((user: any) => !adminIds.has(String(user?.id || '').trim()))
+    .map((user: any) => {
+      const metadata = user?.user_metadata || {};
+      return {
+        id: String(user?.id || '').trim(),
+        email: normalizeEmail(metadata.customer_email || user?.email || ''),
+        phone: String(metadata.phone || user?.phone || '').trim(),
+        name: String(metadata.name || metadata.username || user?.email || 'Client').trim(),
+        city: String(metadata.city || '').trim(),
+      };
+    })
+    .filter((user: any) => user.id);
+
+  if (audience === 'specific_users') {
+    if (!specificIds.length) return [];
+    return recipients.filter((user: any) => specificIds.includes(user.id));
+  }
+
+  if (audience === 'customers' || audience === 'logged_in_users' || audience === 'all_users') {
+    return recipients;
+  }
+
+  return recipients;
+}
+
+async function publishNotificationToAudience(adminDb: SupabaseLike, payload: Record<string, any>) {
+  try {
+    const recipients = await listNotificationRecipients(adminDb, payload?.audience, payload?.userIds);
+    if (!recipients.length) return;
+
+    const baseMetadata = payload?.metadata && typeof payload.metadata === 'object' ? payload.metadata : {};
+    const common = {
+      title: String(payload?.title || '').trim() || 'Notification',
+      message: payload?.message !== undefined && payload?.message !== null ? String(payload.message) : '',
+      type: String(payload?.type || 'system').trim() || 'system',
+      priority: String(payload?.priority || 'normal').trim() || 'normal',
+      image: payload?.image ? String(payload.image) : null,
+      icon: payload?.icon ? String(payload.icon) : null,
+      link: payload?.link ? String(payload.link) : null,
+      related_content_id: payload?.relatedContentId ? String(payload.relatedContentId) : null,
+      relatedContentId: payload?.relatedContentId ? String(payload.relatedContentId) : null,
+      related_content_type: payload?.relatedContentType ? String(payload.relatedContentType) : null,
+      relatedContentType: payload?.relatedContentType ? String(payload.relatedContentType) : null,
+    };
+
+    for (const recipient of recipients) {
+      await insertNotificationBestEffort(adminDb, {
+        ...common,
+        user_id: recipient.id,
+        userId: recipient.id,
+        metadata: {
+          ...baseMetadata,
+          audience: String(payload?.audience || 'logged_in_users'),
+          customerId: recipient.id,
+          customerEmail: recipient.email || null,
+          customerPhone: recipient.phone || null,
+        },
+      });
+    }
+  } catch {
+    return;
+  }
+}
+
+function resolveNotificationTypeFromBannerType(type: any) {
+  const normalized = String(type || '').trim().toLowerCase();
+  if (normalized.includes('promo') || normalized.includes('advertisement')) return 'promotion';
+  if (normalized.includes('announcement')) return 'announcement';
+  return 'system';
+}
+
+function buildProductNotificationLink(productId: string) {
+  const id = String(productId || '').trim();
+  return id ? `/?laptop=${encodeURIComponent(id)}#laptop-card-${encodeURIComponent(id)}` : '/#catalog-grid-anchor';
+}
+
+function buildBannerNotificationLink(link: any) {
+  const normalized = String(link || '').trim();
+  return normalized || '/#catalog-view-container';
+}
+
 export function registerCompatRoutes(app: express.Express, supabase: SupabaseLike, supabaseAdmin: SupabaseLike) {
   const db = supabase as SupabaseLike;
   const adminDb = supabaseAdmin as SupabaseLike;
@@ -2038,24 +2150,13 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           if (seen.has(id)) return false;
           seen.add(id);
         }
-
-        const uid = String(row?.user_id || row?.userId || '').trim();
-        if (uid && uid === user.id) return true;
-
-        const meta = row?.metadata;
-        const metaCustomerId = String(meta?.customerId || '').trim();
-        if (metaCustomerId && metaCustomerId === user.id) return true;
-
-        const metaEmail = normalizeEmail(meta?.customerEmail);
-        const metaPhone = String(meta?.customerPhone || '').trim();
-        const emailMatch = emailKey ? metaEmail && metaEmail === emailKey : false;
-        const phoneMatch = phoneKey ? phonesMatch(metaPhone, phoneKey) : false;
-        return emailMatch || phoneMatch;
+        return notificationBelongsToUser(row, user, emailKey, phoneKey);
       });
 
       const notifications = filteredRows.map((row: any) => {
         const isRead = Boolean(row.is_read ?? row.isRead ?? false);
         const createdAt = row.created_at || row.createdAt || row.date || row.updated_at || row.updatedAt || new Date().toISOString();
+        const metadata = row.metadata || {};
         return {
           id: row.id,
           title: row.title || 'Notification',
@@ -2063,7 +2164,13 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           type: row.type || 'info',
           isRead,
           createdAt,
-          metadata: row.metadata || null,
+          priority: row.priority || metadata.priority || 'normal',
+          image: row.image || metadata.image || null,
+          icon: row.icon || metadata.icon || null,
+          link: row.link || metadata.link || null,
+          relatedContentType: row.related_content_type || row.relatedContentType || metadata.relatedContentType || metadata.source || null,
+          relatedContentId: row.related_content_id || row.relatedContentId || metadata.relatedContentId || metadata.orderId || metadata.productId || null,
+          metadata,
         };
       });
 
@@ -2082,6 +2189,29 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       }
       const emailKey = normalizeEmail(user.email);
       const phoneKey = normalizePhoneDigits(user.phone);
+      const requestedIds = Array.isArray(req.body?.ids)
+        ? req.body.ids.map((value: any) => String(value || '').trim()).filter(Boolean)
+        : [];
+
+      if (requestedIds.length) {
+        try {
+          const lookup = await adminDb.from('notifications').select('*').in('id', requestedIds);
+          if (!lookup.error) {
+            const idsToMark = (lookup.data || [])
+              .filter((row: any) => notificationBelongsToUser(row, user, emailKey, phoneKey))
+              .map((row: any) => String(row?.id || '').trim())
+              .filter(Boolean);
+            if (idsToMark.length) {
+              const markSpecific = await adminDb.from('notifications').update({ is_read: true }).in('id', idsToMark);
+              if (markSpecific.error && isMissingColumnError(markSpecific.error, 'is_read')) {
+                await adminDb.from('notifications').update({ isRead: true }).in('id', idsToMark);
+              }
+            }
+            return res.json({ success: true });
+          }
+        } catch {
+        }
+      }
 
       let attempt: any = await adminDb.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
       if (attempt.error && isMissingColumnError(attempt.error, 'user_id')) {
@@ -2122,6 +2252,44 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           }
         }
       } catch {
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.put('/api/client/notifications/:id/read', async (req, res) => {
+    try {
+      const user = await extractCustomerUser(req, supabase);
+      if (!user) {
+        return res.status(401).json({ error: 'Session client invalide ou expirée.' });
+      }
+      const notificationId = String(req.params.id || '').trim();
+      if (!notificationId) {
+        return res.status(400).json({ error: 'Notification introuvable.' });
+      }
+
+      const emailKey = normalizeEmail(user.email);
+      const phoneKey = normalizePhoneDigits(user.phone);
+      const lookup = await adminDb.from('notifications').select('*').eq('id', notificationId).limit(1);
+      if (lookup.error) {
+        if (isMissingTableError(lookup.error)) return res.json({ success: true });
+        throw lookup.error;
+      }
+      const row = (lookup.data || [])[0];
+      if (!row) return res.json({ success: true });
+      if (!notificationBelongsToUser(row, user, emailKey, phoneKey)) {
+        return res.status(403).json({ error: 'Notification non autorisée.' });
+      }
+
+      let updateAttempt: any = await adminDb.from('notifications').update({ is_read: true }).eq('id', notificationId);
+      if (updateAttempt.error && isMissingColumnError(updateAttempt.error, 'is_read')) {
+        updateAttempt = await adminDb.from('notifications').update({ isRead: true }).eq('id', notificationId);
+      }
+      if (updateAttempt.error && !isMissingTableError(updateAttempt.error)) {
+        throw updateAttempt.error;
       }
 
       res.json({ success: true });
@@ -2383,6 +2551,32 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         entityId: data.id,
         entityType: 'Product',
       });
+      try {
+        const product = mapLaptopRowToFrontend(data);
+        if (payload.notificationEnabled !== false && product?.status !== 'Rupture') {
+          await publishNotificationToAudience(adminDb, {
+            title: String(payload.notificationTitle || 'New product available').trim(),
+            message: String(
+              payload.notificationMessage ||
+                `${product.brand} ${product.model} is now available in the catalog for ${Number(product.price || 0).toLocaleString('fr-FR')} FCFA.`
+            ).trim(),
+            type: 'product',
+            link: buildProductNotificationLink(product.id),
+            image: product.image || null,
+            relatedContentType: 'product',
+            relatedContentId: product.id,
+            priority: payload.notificationPriority || 'normal',
+            audience: payload.notificationAudience || 'logged_in_users',
+            userIds: payload.notificationUserIds || [],
+            metadata: {
+              source: 'admin_product_create',
+              productId: product.id,
+              productName: `${product.brand} ${product.model}`,
+            },
+          });
+        }
+      } catch {
+      }
       res.json({ success: true, product: mapLaptopRowToFrontend(data) });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -2435,6 +2629,32 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         entityId: req.params.id,
         entityType: 'Product',
       });
+      try {
+        const product = mapLaptopRowToFrontend(data);
+        if (payload.notificationEnabled === true && product?.status !== 'Rupture') {
+          await publishNotificationToAudience(adminDb, {
+            title: String(payload.notificationTitle || 'Product updated').trim(),
+            message: String(
+              payload.notificationMessage ||
+                `${product.brand} ${product.model} has been updated in the catalog.`
+            ).trim(),
+            type: 'product',
+            link: buildProductNotificationLink(product.id),
+            image: product.image || null,
+            relatedContentType: 'product',
+            relatedContentId: product.id,
+            priority: payload.notificationPriority || 'normal',
+            audience: payload.notificationAudience || 'logged_in_users',
+            userIds: payload.notificationUserIds || [],
+            metadata: {
+              source: 'admin_product_update',
+              productId: product.id,
+              productName: `${product.brand} ${product.model}`,
+            },
+          });
+        }
+      } catch {
+      }
       res.json({ success: true, product: mapLaptopRowToFrontend(data) });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -3076,13 +3296,62 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     const banner = { id: `banner-${Date.now()}`, ...req.body };
     bannersStore.unshift(banner);
     await persistCmsToDb(adminDb, 'banners_store', bannersStore);
+    try {
+      const type = String(banner?.type || '').trim();
+      if (String(banner?.status || '').trim() === 'Actif' && ['Advertisement Banner', 'Promo Banner', 'Announcement Banner', 'Homepage Banner'].includes(type)) {
+        await publishNotificationToAudience(adminDb, {
+          title: String(banner.notificationTitle || banner.title || 'New campaign available').trim(),
+          message: String(banner.notificationMessage || banner.subtitle || banner.description || 'A new campaign is now live.').trim(),
+          type: resolveNotificationTypeFromBannerType(type),
+          link: buildBannerNotificationLink(banner.link),
+          image: banner.mobileImage || banner.image || null,
+          relatedContentType: 'banner',
+          relatedContentId: banner.id,
+          priority: banner.notificationPriority || 'normal',
+          audience: banner.notificationAudience || 'logged_in_users',
+          userIds: banner.notificationUserIds || [],
+          metadata: {
+            source: 'admin_banner_create',
+            bannerId: banner.id,
+            bannerType: type,
+          },
+        });
+      }
+    } catch {
+    }
     res.json({ success: true, banner });
   });
 
   app.put('/api/admin/banners/:id', requireCompatAdmin, async (req, res) => {
+    const previous = bannersStore.find((banner) => banner.id === req.params.id) || null;
     bannersStore = bannersStore.map((banner) => banner.id === req.params.id ? { ...banner, ...req.body } : banner);
     await persistCmsToDb(adminDb, 'banners_store', bannersStore);
-    res.json({ success: true, banner: bannersStore.find((banner) => banner.id === req.params.id) });
+    const updatedBanner = bannersStore.find((banner) => banner.id === req.params.id);
+    try {
+      const type = String(updatedBanner?.type || '').trim();
+      const becameActive = String(previous?.status || '').trim() !== 'Actif' && String(updatedBanner?.status || '').trim() === 'Actif';
+      if (updatedBanner && ['Advertisement Banner', 'Promo Banner', 'Announcement Banner', 'Homepage Banner'].includes(type) && (becameActive || updatedBanner?.notifyUsers === true)) {
+        await publishNotificationToAudience(adminDb, {
+          title: String(updatedBanner.notificationTitle || updatedBanner.title || 'Campaign updated').trim(),
+          message: String(updatedBanner.notificationMessage || updatedBanner.subtitle || updatedBanner.description || 'A promotion has been updated.').trim(),
+          type: resolveNotificationTypeFromBannerType(type),
+          link: buildBannerNotificationLink(updatedBanner.link),
+          image: updatedBanner.mobileImage || updatedBanner.image || null,
+          relatedContentType: 'banner',
+          relatedContentId: updatedBanner.id,
+          priority: updatedBanner.notificationPriority || 'normal',
+          audience: updatedBanner.notificationAudience || 'logged_in_users',
+          userIds: updatedBanner.notificationUserIds || [],
+          metadata: {
+            source: 'admin_banner_update',
+            bannerId: updatedBanner.id,
+            bannerType: type,
+          },
+        });
+      }
+    } catch {
+    }
+    res.json({ success: true, banner: updatedBanner });
   });
 
   app.delete('/api/admin/banners/:id', requireCompatAdmin, async (req, res) => {
@@ -3141,6 +3410,28 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       };
       const { data, error } = await adminDb.from('blog_posts').insert([insertPayload]).select().single();
       if (error) throw error;
+      try {
+        if (payload.status === 'Publié' && payload.notificationEnabled !== false) {
+          await publishNotificationToAudience(adminDb, {
+            title: String(payload.notificationTitle || payload.title || 'New announcement available').trim(),
+            message: String(payload.notificationMessage || insertPayload.excerpt || 'A new update is available.').trim(),
+            type: 'announcement',
+            link: String(payload.link || '/#buying-guides-section').trim(),
+            image: payload.image || null,
+            relatedContentType: 'blog_post',
+            relatedContentId: data.id,
+            priority: payload.notificationPriority || 'normal',
+            audience: payload.notificationAudience || 'logged_in_users',
+            userIds: payload.notificationUserIds || [],
+            metadata: {
+              source: 'admin_blog_create',
+              blogPostId: data.id,
+              category: payload.category || 'Conseils',
+            },
+          });
+        }
+      } catch {
+      }
       res.json({ success: true, post: mapBlogRowToFrontend(data) });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -3150,6 +3441,8 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   app.put('/api/admin/blog/:id', requireCompatAdmin, async (req, res) => {
     try {
       const payload = req.body || {};
+      const previousAttempt = await adminDb.from('blog_posts').select('*').eq('id', req.params.id).limit(1);
+      const previous = (previousAttempt.data || [])[0] || null;
       const updatePayload = {
         title: payload.title,
         category: payload.category,
@@ -3161,6 +3454,29 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       };
       const { data, error } = await adminDb.from('blog_posts').update(updatePayload).eq('id', req.params.id).select().single();
       if (error) throw error;
+      try {
+        const becamePublished = !Boolean(previous?.is_published) && payload.status === 'Publié';
+        if (becamePublished || payload.notificationEnabled === true) {
+          await publishNotificationToAudience(adminDb, {
+            title: String(payload.notificationTitle || payload.title || 'New announcement available').trim(),
+            message: String(payload.notificationMessage || updatePayload.excerpt || 'A new update is available.').trim(),
+            type: 'announcement',
+            link: String(payload.link || '/#buying-guides-section').trim(),
+            image: payload.image || null,
+            relatedContentType: 'blog_post',
+            relatedContentId: req.params.id,
+            priority: payload.notificationPriority || 'normal',
+            audience: payload.notificationAudience || 'logged_in_users',
+            userIds: payload.notificationUserIds || [],
+            metadata: {
+              source: 'admin_blog_update',
+              blogPostId: req.params.id,
+              category: payload.category || previous?.category || 'Conseils',
+            },
+          });
+        }
+      } catch {
+      }
       res.json({ success: true, post: mapBlogRowToFrontend(data) });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });

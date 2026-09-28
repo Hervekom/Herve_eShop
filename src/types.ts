@@ -71,3 +71,19 @@ export interface RealtimeNotification {
   timestamp: string;
   isRead: boolean;
 }
+
+export interface CustomerNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'event' | 'announcement' | 'promotion' | 'product' | 'system' | 'order' | 'account' | string;
+  isRead: boolean;
+  createdAt: string;
+  priority?: 'low' | 'normal' | 'high' | string;
+  image?: string | null;
+  icon?: string | null;
+  link?: string | null;
+  relatedContentType?: string | null;
+  relatedContentId?: string | null;
+  metadata?: Record<string, any> | null;
+}

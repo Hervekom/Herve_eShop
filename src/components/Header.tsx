@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Bell, Search, ShoppingCart, User } from 'lucide-react';
 import HerveLogo from './HerveLogo';
-import API, { getGuestToken } from '../lib/api';
 
 interface HeaderProps {
   onSearchChange: (search: string) => void;
   searchValue: string;
   onOpenAccountModal: () => void;
+  onOpenNotificationCenter: () => void;
   onOpenCart: () => void;
   cartCount: number;
+  unreadNotificationCount: number;
   activeUser: any;
   cms?: any;
 }
@@ -17,8 +18,10 @@ export default function Header({
   onSearchChange,
   searchValue,
   onOpenAccountModal,
+  onOpenNotificationCenter,
   onOpenCart,
   cartCount,
+  unreadNotificationCount,
   activeUser,
   cms
 }: HeaderProps) {
@@ -28,36 +31,6 @@ export default function Header({
     siteCMS.announcementText ||
     "Nouveaux arrivages d'ordinateurs MacBook, Dell & ThinkPad importés directement d'Amérique !";
   const headerStatus = contactCMS.openingHours || "Akwa Showroom • Ouvert";
-
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    const token = getGuestToken();
-    if (!token) {
-      setUnreadCount(0);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const fetchUnread = async () => {
-      try {
-        const res = await API.getCustomerNotifications();
-        const next = Number(res?.unreadCount || 0);
-        if (!cancelled) setUnreadCount(next);
-      } catch {
-        if (!cancelled) setUnreadCount(0);
-      }
-    };
-
-    fetchUnread();
-    const interval = window.setInterval(fetchUnread, 15000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [activeUser?.id]);
 
   return (
     <header className="border-b border-warm-cream-dark/80 bg-warm-cream/95 sticky top-0 z-40 backdrop-blur-sm shadow-xs">
@@ -123,14 +96,14 @@ export default function Header({
 
           <button
             type="button"
-            onClick={onOpenAccountModal}
+            onClick={onOpenNotificationCenter}
             className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-warm-cream-dark hover:border-luxe-gold/60 hover:bg-warm-cream transition-all shadow-xs cursor-pointer select-none"
             title="Notifications"
           >
             <Bell className="w-4 h-4 text-luxe-dark" />
-            {unreadCount > 0 && (
+            {unreadNotificationCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-luxe-orange text-white text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border border-white">
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
               </span>
             )}
           </button>

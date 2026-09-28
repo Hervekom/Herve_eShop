@@ -251,7 +251,11 @@ export const API = {
     return res;
   },
   getCustomerNotifications: () => apiFetch('/api/client/notifications'),
-  markCustomerNotificationsRead: () => apiFetch('/api/client/notifications/read', {
+  markCustomerNotificationsRead: (ids?: string[]) => apiFetch('/api/client/notifications/read', {
+    method: 'PUT',
+    body: JSON.stringify(ids && ids.length ? { ids } : {})
+  }),
+  markCustomerNotificationRead: (id: string) => apiFetch(`/api/client/notifications/${encodeURIComponent(id)}/read`, {
     method: 'PUT'
   }),
 
