@@ -45,12 +45,12 @@ class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, AppErrorBo
         <div className="w-full max-w-xl bg-white rounded-3xl border border-warm-cream-dark/70 shadow-xl p-6 text-left space-y-4">
           <div className="flex items-center gap-2">
             <X className="w-5 h-5 text-red-600" />
-            <h2 className="font-serif font-extrabold text-luxe-dark">Erreur d'affichage</h2>
+            <h2 className="type-card-title text-luxe-dark">Erreur d'affichage</h2>
           </div>
-          <p className="text-xs text-luxe-muted">
+          <p className="type-meta text-luxe-muted">
             Une erreur a empêché l'ouverture de la fiche produit. Cliquez sur “Réinitialiser” puis rechargez la page.
           </p>
-          <div className="bg-warm-cream/60 border border-warm-cream-dark/60 rounded-2xl p-3 text-[11px] font-mono text-luxe-dark whitespace-pre-wrap">
+          <div className="bg-warm-cream/60 border border-warm-cream-dark/60 rounded-2xl p-3 type-meta font-mono text-luxe-dark whitespace-pre-wrap">
             {this.state.message}
           </div>
           <div className="flex gap-2">
@@ -69,14 +69,14 @@ class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, AppErrorBo
                 }
                 window.location.reload();
               }}
-              className="flex-1 bg-luxe-dark text-white hover:bg-luxe-copper transition-colors py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider"
+              className="type-button flex-1 bg-luxe-dark text-white hover:bg-luxe-copper transition-colors py-2.5 rounded-2xl"
             >
               Réinitialiser
             </button>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="flex-1 bg-white text-luxe-dark border border-warm-cream-dark hover:bg-warm-cream transition-colors py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider"
+              className="type-button flex-1 bg-white text-luxe-dark border border-warm-cream-dark hover:bg-warm-cream transition-colors py-2.5 rounded-2xl"
             >
               Recharger
             </button>
@@ -450,7 +450,7 @@ export default function App() {
             <span className="w-3.5 h-3.5 rounded-full bg-luxe-copper animate-ping inline-block"></span>
           </div>
           <div className="flex-1 text-left">
-            <h5 className="font-serif font-bold text-sm text-luxe-gold flex items-center justify-between">
+            <h5 className="type-card-title !text-sm text-luxe-gold flex items-center justify-between">
               {activeToast.title}
               <button 
                 onClick={() => setActiveToast(null)} 
@@ -459,10 +459,10 @@ export default function App() {
                 &times;
               </button>
             </h5>
-            <p className="text-xs text-warm-cream-dark/80 mt-1.5 leading-relaxed">
+            <p className="type-meta text-warm-cream-dark/80 mt-1.5">
               {activeToast.message}
             </p>
-            <span className="text-[9px] uppercase tracking-widest text-luxe-gold font-bold block mt-2 font-mono">
+            <span className="type-badge text-luxe-gold block mt-2 font-mono">
               Live Notification Loop • Herve_eShop
             </span>
           </div>
@@ -545,8 +545,8 @@ export default function App() {
             <div className="p-5 border-b border-warm-cream-dark/60 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-luxe-copper" />
-                <h3 className="font-serif font-bold text-luxe-dark">Panier</h3>
-                <span className="text-[11px] font-bold text-luxe-muted">({cartCount})</span>
+                <h3 className="type-card-title text-luxe-dark">Panier</h3>
+                <span className="type-meta text-luxe-muted">({cartCount})</span>
               </div>
               <button
                 type="button"
@@ -563,8 +563,8 @@ export default function App() {
                 {cartItems.length === 0 ? (
                   <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-warm-cream-dark/70">
                     <ShoppingCart className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
-                    <p className="text-xs font-bold text-luxe-dark">Votre panier est vide</p>
-                    <p className="text-[10px] text-luxe-muted mt-1">Ajoutez des articles depuis le catalogue.</p>
+                    <p className="type-card-title !text-sm text-luxe-dark">Votre panier est vide</p>
+                    <p className="type-meta text-luxe-muted mt-1">Ajoutez des articles depuis le catalogue.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -579,8 +579,8 @@ export default function App() {
                         <div className="flex-1">
                           <div className="flex justify-between items-start gap-2">
                             <div>
-                              <div className="text-xs font-bold text-luxe-dark">{it.product.brand} {it.product.model}</div>
-                              <div className="text-[10px] text-luxe-muted mt-0.5">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(it.product.price).replace('XAF', 'FCFA')}</div>
+                              <div className="type-card-title !text-sm text-luxe-dark">{it.product.brand} {it.product.model}</div>
+                              <div className="type-meta text-luxe-muted mt-0.5">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(it.product.price).replace('XAF', 'FCFA')}</div>
                             </div>
                             <button
                               type="button"
@@ -602,7 +602,7 @@ export default function App() {
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
-                              <span className="text-xs font-bold text-luxe-dark w-6 text-center">{it.quantity}</span>
+                              <span className="type-button text-luxe-dark w-6 text-center">{it.quantity}</span>
                               <button
                                 type="button"
                                 onClick={() => handleUpdateCartQty(it.product.id, it.quantity + 1)}
@@ -612,7 +612,7 @@ export default function App() {
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                            <div className="text-xs font-bold text-luxe-dark">
+                            <div className="type-button text-luxe-dark">
                               {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(it.product.price * it.quantity).replace('XAF', 'FCFA')}
                             </div>
                           </div>
@@ -625,8 +625,8 @@ export default function App() {
                 {cartItems.length > 0 && (
                   <div className="bg-white rounded-2xl border border-warm-cream-dark/60 p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-luxe-muted uppercase tracking-wider">Total</span>
-                      <span className="text-sm font-extrabold text-luxe-dark">
+                      <span className="field-label text-luxe-muted">Total</span>
+                      <span className="type-price !text-xl text-luxe-dark">
                         {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(cartTotal).replace('XAF', 'FCFA')}
                       </span>
                     </div>
@@ -635,30 +635,30 @@ export default function App() {
                         value={checkoutName}
                         onChange={(e) => setCheckoutName(e.target.value)}
                         placeholder="Nom complet"
-                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
+                        className="field-input w-full px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
                       />
                       <input
                         value={checkoutPhone}
                         onChange={(e) => setCheckoutPhone(e.target.value)}
                         placeholder="Téléphone"
-                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
+                        className="field-input w-full px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
                       />
                       <input
                         value={checkoutCity}
                         onChange={(e) => setCheckoutCity(e.target.value)}
                         placeholder="Ville"
-                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
+                        className="field-input w-full px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
                       />
                       <input
                         value={checkoutAddress}
                         onChange={(e) => setCheckoutAddress(e.target.value)}
                         placeholder="Adresse (quartier, rue...)"
-                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
+                        className="field-input w-full px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold"
                       />
                       <select
                         value={deliveryMethod}
                         onChange={(e) => setDeliveryMethod(e.target.value as any)}
-                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold md:col-span-2"
+                        className="field-input w-full px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold md:col-span-2"
                       >
                         <option value="delivery">Livraison</option>
                         <option value="pickup">Retrait en boutique</option>
@@ -667,12 +667,12 @@ export default function App() {
                         value={deliveryNotes}
                         onChange={(e) => setDeliveryNotes(e.target.value)}
                         placeholder="Note de livraison (facultatif)"
-                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold md:col-span-2 min-h-[80px]"
+                        className="field-input w-full px-3 py-2.5 rounded-xl border border-warm-cream-dark bg-warm-cream focus:outline-none focus:border-luxe-gold md:col-span-2 min-h-[80px]"
                       />
                       <button
                         type="submit"
                         disabled={isCheckingOut}
-                        className="md:col-span-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-luxe-dark hover:bg-luxe-copper text-white text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="type-button md:col-span-2 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-luxe-dark hover:bg-luxe-copper text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <ShoppingCart className="w-4 h-4" />
                         {isCheckingOut ? 'Envoi...' : 'Valider la commande'}
@@ -681,7 +681,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setIsAccountModalOpen(true)}
-                          className="md:col-span-2 text-[10px] font-bold text-luxe-copper hover:underline"
+                          className="type-meta md:col-span-2 text-luxe-copper hover:underline"
                         >
                           Se connecter pour suivre mes commandes
                         </button>
@@ -696,12 +696,12 @@ export default function App() {
       )}
 
       {/* FOOTER SECTION */}
-      <footer className="bg-luxe-dark text-warm-cream py-10 border-t border-white/5 select-none z-10 text-xs">
+      <footer className="bg-luxe-dark text-warm-cream py-10 border-t border-white/5 select-none z-10">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Logo brand info */}
           <div className="space-y-4 text-left flex flex-col items-start justify-start">
             <HerveLogo size="md" className="text-white hover:text-luxe-gold transition-colors -ml-4" />
-            <p className="text-warm-cream-dark/60 leading-relaxed max-w-sm">
+            <p className="type-body text-warm-cream-dark/70 max-w-sm">
               L'excellence du matériel informatique haut de gamme de seconde main importé au Cameroun. Traçabilité, configuration sur-mesure et service après-vente d'exception.
             </p>
             {socialLinks.length > 0 && (
@@ -724,27 +724,27 @@ export default function App() {
 
           {/* Quick links representation */}
           <div className="space-y-3 text-left">
-            <h5 className="font-serif text-xs uppercase tracking-wider text-luxe-gold font-bold">Nos Boutiques de Retrait</h5>
-            <ul className="space-y-2 text-warm-cream-dark/60">
-              <li>📍 <span className="font-bold">Douala</span> : {(clientData?.contactCMS?.address || 'Akwa, Face Boulangerie Zépol (Showroom principal)')}</li>
-              <li>📍 <span className="font-bold">Yaoundé</span> : Avenue Germaine, Immeuble Horizon</li>
-              <li>📞 <span className="font-bold">WhatsApp Secours</span> : {(clientData?.contactCMS?.whatsAppPhone || '+237 699 00 11 22')}</li>
+            <h5 className="field-label text-luxe-gold">Nos Boutiques de Retrait</h5>
+            <ul className="space-y-2 type-meta text-warm-cream-dark/70">
+              <li><span className="font-semibold text-warm-cream">Douala</span> : {(clientData?.contactCMS?.address || 'Akwa, Face Boulangerie Zépol (Showroom principal)')}</li>
+              <li><span className="font-semibold text-warm-cream">Yaoundé</span> : Avenue Germaine, Immeuble Horizon</li>
+              <li><span className="font-semibold text-warm-cream">WhatsApp Secours</span> : {(clientData?.contactCMS?.whatsAppPhone || '+237 699 00 11 22')}</li>
             </ul>
           </div>
 
           {/* Framework indicators */}
           <div className="space-y-3 text-left">
-            <h5 className="font-serif text-xs uppercase tracking-wider text-luxe-gold font-bold">Concept Application</h5>
-            <p className="text-warm-cream-dark/60 leading-relaxed">
+            <h5 className="field-label text-luxe-gold">Concept Application</h5>
+            <p className="type-meta text-warm-cream-dark/70">
               Propulsé par React, Tailwind CSS v4 et Vite. Permet d'administrer des stocks d'ordinateurs et d'émettre des devis d'importation en direct. Les modifications d'états sont simulées en temps réel.
             </p>
-            <p className="text-[10px] text-luxe-gold/70 font-mono italic">
+            <p className="type-meta text-luxe-gold/70 font-mono italic">
               Conçu d'après la charte graphique de la capture Herve_eShop Cameroon.
             </p>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10 pt-6 border-t border-white/10 text-center text-warm-cream-dark/40 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10 pt-6 border-t border-white/10 text-center type-meta text-warm-cream-dark/50 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p>© {new Date().getFullYear()} Herve_eShop Cameroon. Tous droits réservés. L'excellence au service de vos ambitions.</p>
         </div>
       </footer>

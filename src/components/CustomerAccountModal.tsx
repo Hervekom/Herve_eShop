@@ -285,10 +285,10 @@ export default function CustomerAccountModal({
               <User className="w-5 h-5 text-luxe-gold" />
             </span>
             <div>
-              <h4 className="font-serif font-bold text-lg md:text-xl tracking-tight text-warm-cream">
+              <h4 className="type-section-title !text-[clamp(1.45rem,2vw,1.85rem)] text-warm-cream">
                 {activeTab === 'dashboard' ? 'Espace Personnel' : 'Espace Client'}
               </h4>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-luxe-gold/80">
+              <p className="field-label text-luxe-gold/80">
                 {activeTab === 'dashboard' ? `Herve_eShop • ${currentUser?.name}` : 'Herve_eShop Cameroun'}
               </p>
             </div>
@@ -309,15 +309,15 @@ export default function CustomerAccountModal({
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="text-center mb-6">
                 <Sparkles className="w-8 h-8 text-luxe-gold mx-auto mb-2 animate-bounce" />
-                <h5 className="font-serif font-bold text-lg text-luxe-dark">Accéder à mon espace sécurisé</h5>
-                <p className="text-xs text-luxe-muted mt-1 max-w-sm mx-auto">
+                <h5 className="type-card-title !text-xl text-luxe-dark">Accéder à mon espace sécurisé</h5>
+                <p className="type-meta text-luxe-muted mt-1 max-w-sm mx-auto">
                   Consultez l'historique complet et suivez en direct l'état de préparation de vos demandes de devis d'ordinateurs d'importation.
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="login-identity-input" className="block text-xs font-bold uppercase tracking-wider text-luxe-dark mb-1.5">
+                  <label htmlFor="login-identity-input" className="field-label block text-luxe-dark mb-1.5">
                     Adresse Email ou Numéro de Téléphone
                   </label>
                   <div className="relative">
@@ -327,7 +327,7 @@ export default function CustomerAccountModal({
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       placeholder="e.g. jean@gmail.com ou 677889900"
-                      className="w-full text-sm pl-10 pr-4 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
+                      className="field-input w-full pl-10 pr-4 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
                     <div className="absolute left-3.5 top-3.5 text-luxe-muted">
@@ -337,7 +337,7 @@ export default function CustomerAccountModal({
                 </div>
 
                 <div>
-                  <label htmlFor="login-password-input" className="block text-xs font-bold uppercase tracking-wider text-luxe-dark mb-1.5">
+                  <label htmlFor="login-password-input" className="field-label block text-luxe-dark mb-1.5">
                     Mot de passe
                   </label>
                   <div className="relative">
@@ -347,7 +347,7 @@ export default function CustomerAccountModal({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Saisissez votre mot de passe"
-                      className="w-full text-sm pl-10 pr-10 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
+                      className="field-input w-full pl-10 pr-10 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
                     <div className="absolute left-3.5 top-3.5 text-luxe-muted">
@@ -367,7 +367,7 @@ export default function CustomerAccountModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-luxe-dark hover:bg-luxe-copper text-white font-bold tracking-wide text-xs uppercase transition-all duration-300 mt-6 shadow-md flex items-center justify-center gap-2"
+                className="type-button w-full py-3 rounded-xl bg-luxe-dark hover:bg-luxe-copper text-white transition-all duration-300 mt-6 shadow-md flex items-center justify-center gap-2"
                 id="submit-login-customer-btn"
               >
                 {loading ? (
@@ -381,14 +381,14 @@ export default function CustomerAccountModal({
               </button>
 
               <div className="text-center pt-4 border-t border-warm-cream-dark/60">
-                <span className="text-xs text-luxe-muted">Vous n'avez pas encore de compte utilisateur ?</span>
+                <span className="type-meta text-luxe-muted">Vous n'avez pas encore de compte utilisateur ?</span>
                 <button
                   type="button"
                   onClick={() => {
                     setActiveTab('register');
                     setShowPassword(false);
                   }}
-                  className="block mx-auto mt-1 font-extrabold text-luxe-orange hover:text-luxe-dark text-xs transition-colors underline underline-offset-4"
+                  className="type-button block mx-auto mt-1 text-luxe-orange hover:text-luxe-dark transition-colors underline underline-offset-4"
                 >
                   Créer un compte en 1 minute
                 </button>
@@ -399,15 +399,15 @@ export default function CustomerAccountModal({
           {activeTab === 'register' && (
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="text-center mb-4">
-                <h5 className="font-serif font-bold text-lg text-luxe-dark">Créer un compte client gratuit</h5>
-                <p className="text-xs text-luxe-muted mt-1">
+                <h5 className="type-card-title !text-xl text-luxe-dark">Créer un compte client gratuit</h5>
+                <p className="type-meta text-luxe-muted mt-1">
                   Rejoignez la communauté d'Herve_eShop pour gérer au mieux vos envies d'équipements de qualité certifiée.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="reg-name" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
+                  <label htmlFor="reg-name" className="field-label block text-luxe-dark mb-1">
                     Nom complet *
                   </label>
                   <input
@@ -417,20 +417,20 @@ export default function CustomerAccountModal({
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
                     placeholder="e.g. Jean-Pierre Ngué"
-                    className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
+                    className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                     disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="reg-city" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
+                  <label htmlFor="reg-city" className="field-label block text-luxe-dark mb-1">
                     Ville de résidence *
                   </label>
                   <select
                     id="reg-city"
                     value={regCity}
                     onChange={(e) => setRegCity(e.target.value)}
-                    className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white font-medium"
+                    className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                     disabled={loading}
                   >
                     {CAMEROON_CITIES.map(city => (
@@ -440,7 +440,7 @@ export default function CustomerAccountModal({
                 </div>
 
                 <div>
-                  <label htmlFor="reg-email" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
+                  <label htmlFor="reg-email" className="field-label block text-luxe-dark mb-1">
                     Adresse Email (Optionnel *)
                   </label>
                   <input
@@ -449,13 +449,13 @@ export default function CustomerAccountModal({
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     placeholder="e.g. jp.ngue@gmail.com"
-                    className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
+                    className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                     disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="reg-phone" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
+                  <label htmlFor="reg-phone" className="field-label block text-luxe-dark mb-1">
                     Numéro de Téléphone (Optionnel *)
                   </label>
                   <input
@@ -464,13 +464,13 @@ export default function CustomerAccountModal({
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
                     placeholder="e.g. +237 677 88 99 00"
-                    className="w-full text-xs p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
+                    className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                     disabled={loading}
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label htmlFor="reg-pass" className="block text-[10px] font-bold uppercase tracking-wider text-luxe-dark mb-1">
+                  <label htmlFor="reg-pass" className="field-label block text-luxe-dark mb-1">
                     Mot de passe *
                   </label>
                   <div className="relative">
@@ -481,7 +481,7 @@ export default function CustomerAccountModal({
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       placeholder="Minimum 6 caractères"
-                      className="w-full text-xs px-2.5 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
+                      className="field-input w-full px-2.5 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
                     <button
@@ -495,14 +495,14 @@ export default function CustomerAccountModal({
                 </div>
               </div>
 
-              <p className="text-[10px] text-luxe-muted italic mt-2 text-center md:text-left">
+              <p className="type-meta text-luxe-muted italic mt-2 text-center md:text-left">
                 * Note : Vous devez renseigner au moins une adresse email ou un numéro de téléphone pour pouvoir vous connecter ultérieurement.
               </p>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-luxe-orange hover:bg-luxe-dark text-white font-bold tracking-wide text-xs uppercase transition-all duration-300 mt-4 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="type-button w-full py-3 rounded-xl bg-luxe-orange hover:bg-luxe-dark text-white transition-all duration-300 mt-4 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 id="submit-register-customer-btn"
               >
                 {loading ? (
@@ -516,14 +516,14 @@ export default function CustomerAccountModal({
               </button>
 
               <div className="text-center pt-3 border-t border-warm-cream-dark/60 mt-4">
-                <span className="text-xs text-luxe-muted">Vous avez déjà configuré un compte ?</span>
+                <span className="type-meta text-luxe-muted">Vous avez déjà configuré un compte ?</span>
                 <button
                   type="button"
                   onClick={() => {
                     setActiveTab('login');
                     setShowPassword(false);
                   }}
-                  className="block mx-auto mt-1 font-extrabold text-luxe-dark hover:text-luxe-orange text-xs underline underline-offset-4"
+                  className="type-button block mx-auto mt-1 text-luxe-dark hover:text-luxe-orange underline underline-offset-4"
                 >
                   Retourner à la connexion
                 </button>

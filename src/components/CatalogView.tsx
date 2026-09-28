@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, Globe2, Tag, Layers, CheckCircle, ArrowUpDown, ChevronRight, Heart, Share2, ShoppingCart, Star } from 'lucide-react';
+import { SlidersHorizontal, Globe2, CheckCircle, ArrowUpDown, ChevronRight, Heart, ShoppingCart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Laptop, SourceCountry, LaptopStatus } from '../types';
 
@@ -166,7 +166,7 @@ export default function CatalogView({
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 relative overflow-hidden" id="catalog-view-container">
       {/* Decorative Elegant Watermark "Herve_eShop" in the background */}
-      <div className="absolute -left-10 top-1/3 opacity-[0.02] text-[18vw] font-serif font-black select-none pointer-events-none tracking-widest leading-none z-0">
+      <div className="absolute -left-10 top-1/3 opacity-[0.02] text-[18vw] font-black select-none pointer-events-none tracking-tight leading-none z-0">
         Herve_eShop
       </div>
 
@@ -176,19 +176,19 @@ export default function CatalogView({
         <div className="lg:col-span-5 flex flex-col justify-center text-left">
           <div className="flex items-center gap-2 mb-4 md:mb-6">
             <span className="w-2.5 h-2.5 rounded-full bg-luxe-copper animate-ping"></span>
-            <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.25em] text-luxe-copper">
-              Gold Standard Arrival
+            <span className="type-kicker text-luxe-copper">
+              Premium arrivals
             </span>
           </div>
 
-          <h2 className="text-4xl md:text-5.5.xl font-serif text-luxe-dark leading-[1.05] tracking-tight">
+          <h2 className="type-hero max-w-xl text-luxe-dark">
             {heroTitle.split('\n')[0]} <br />
-            <span className="text-luxe-copper font-serif font-medium italic">
+            <span className="text-luxe-copper font-semibold">
               {(heroTitle.split('\n')[1] || '').trim() || 'Redefined.'}
             </span>
           </h2>
 
-          <p className="mt-5 md:mt-7 text-xs sm:text-sm text-luxe-muted leading-relaxed max-w-md font-medium">
+          <p className="type-body mt-5 md:mt-7 text-luxe-muted max-w-xl">
             {heroSubtitle}
           </p>
 
@@ -199,7 +199,7 @@ export default function CatalogView({
                 const anchor = document.getElementById('catalog-grid-anchor');
                 anchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className="inline-flex items-center justify-center bg-luxe-dark text-warm-cream text-11px md:text-xs tracking-widest uppercase font-semibold px-6 py-4 rounded-full shadow-lg hover:bg-luxe-copper transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+              className="type-button inline-flex items-center justify-center bg-luxe-dark text-warm-cream px-6 py-4 rounded-full shadow-lg hover:bg-luxe-copper transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               id="discover-collection-btn"
             >
               Découvrir la Collection
@@ -234,18 +234,18 @@ export default function CatalogView({
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
                     <div className="absolute bottom-5 left-5 right-5 text-left">
-                      <div className="text-[10px] uppercase tracking-[0.25em] font-bold text-white/80">
+                      <div className="type-kicker text-white/80">
                         Publicité
                       </div>
-                      <div className="mt-2 font-serif font-extrabold text-xl md:text-2xl text-white leading-tight">
+                      <div className="mt-2 text-xl md:text-2xl font-bold tracking-tight text-white leading-tight">
                         {String(homepageBanners[activeHomepageBannerIndex]?.title || '').trim()}
                       </div>
                       {homepageBanners[activeHomepageBannerIndex]?.subtitle && (
-                        <div className="mt-1.5 text-xs text-white/85 leading-relaxed max-w-lg">
+                        <div className="type-meta mt-1.5 text-white/85 max-w-lg">
                           {String(homepageBanners[activeHomepageBannerIndex]?.subtitle || '').trim()}
                         </div>
                       )}
-                      <div className="mt-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full text-[10px] uppercase tracking-widest font-extrabold text-luxe-dark border border-white/50">
+                      <div className="type-badge mt-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full text-luxe-dark border border-white/50">
                         Voir l’offre <ChevronRight className="w-3.5 h-3.5" />
                       </div>
                     </div>
@@ -292,18 +292,18 @@ export default function CatalogView({
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
                     <div className="absolute bottom-5 left-5 right-5 text-left">
-                      <div className="text-[10px] uppercase tracking-[0.25em] font-bold text-white/80">
+                      <div className="type-kicker text-white/80">
                         Publicité
                       </div>
-                      <div className="mt-2 font-serif font-extrabold text-xl md:text-2xl text-white leading-tight">
+                      <div className="mt-2 text-xl md:text-2xl font-bold tracking-tight text-white leading-tight">
                         {String(advertisementBanners[activeHomepageBannerIndex]?.title || '').trim()}
                       </div>
                       {advertisementBanners[activeHomepageBannerIndex]?.subtitle && (
-                        <div className="mt-1.5 text-xs text-white/85 leading-relaxed max-w-lg">
+                        <div className="type-meta mt-1.5 text-white/85 max-w-lg">
                           {String(advertisementBanners[activeHomepageBannerIndex]?.subtitle || '').trim()}
                         </div>
                       )}
-                      <div className="mt-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full text-[10px] uppercase tracking-widest font-extrabold text-luxe-dark border border-white/50">
+                      <div className="type-badge mt-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full text-luxe-dark border border-white/50">
                         Voir l'offre <ChevronRight className="w-3.5 h-3.5" />
                       </div>
                     </div>
@@ -340,15 +340,15 @@ export default function CatalogView({
             )}
 
             {/* Float badge 100% verified import on laptops */}
-            <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 bg-white/90 backdrop-blur-md px-4 py-3 rounded-lg border border-warm-cream-dark/50 flex gap-4 shadow-lg animate-bounce duration-1000">
+            <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 bg-white/90 backdrop-blur-md px-4 py-3 rounded-lg border border-warm-cream-dark/50 flex gap-4 shadow-lg">
               <div className="text-center">
-                <p className="text-sm md:text-base font-bold text-luxe-copper font-serif">100%</p>
-                <p className="text-[8px] md:text-[9px] font-semibold text-luxe-muted uppercase tracking-wider">Certifié</p>
+                <p className="text-sm md:text-base font-bold tracking-tight text-luxe-copper">100%</p>
+                <p className="type-badge text-luxe-muted">Certifié</p>
               </div>
               <div className="w-px bg-warm-cream-dark"></div>
               <div className="text-center">
-                <p className="text-sm md:text-base font-bold text-luxe-copper font-serif">USA</p>
-                <p className="text-[8px] md:text-[9px] font-semibold text-luxe-muted uppercase tracking-wider">Importé</p>
+                <p className="text-sm md:text-base font-bold tracking-tight text-luxe-copper">USA</p>
+                <p className="type-badge text-luxe-muted">Importé</p>
               </div>
             </div>
             
@@ -366,15 +366,14 @@ export default function CatalogView({
       <span id="catalog-grid-anchor" className="block scroll-mt-24"></span>
       <section className="mt-12 md:mt-16 bg-white/80 border border-warm-cream-dark/80 rounded-2xl p-5 md:p-7 shadow-xs">
         <div className="flex flex-col gap-6">
-          {/* Header elements filter */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-warm-cream-dark/50 pb-4">
             <div>
-              <h3 className="text-base font-serif font-bold text-luxe-dark flex items-center gap-2">
+              <h3 className="type-card-title text-luxe-dark flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-luxe-copper" /> Filtrer le catalogue en temps réel
               </h3>
-              <p className="text-xs text-luxe-muted mt-0.5">Retrouvez l article tech qui correspond exactement a vos besoins.</p>
+              <p className="type-meta text-luxe-muted mt-1">Retrouvez l'article tech qui correspond exactement à vos besoins.</p>
             </div>
-            <div className="text-[11px] font-semibold text-luxe-muted bg-warm-cream px-3 py-1.5 rounded-full border border-warm-cream-dark">
+            <div className="type-badge text-luxe-muted bg-warm-cream px-3 py-1.5 rounded-full border border-warm-cream-dark">
               {sortedLaptops.length} article{sortedLaptops.length > 1 ? 's' : ''} trouve{sortedLaptops.length > 1 ? 's' : ''}
             </div>
           </div>
@@ -383,7 +382,7 @@ export default function CatalogView({
           <div className="flex flex-col gap-5 border-b border-warm-cream-dark/40 pb-5">
             {/* 1. Category & Favorites Filter Buttons */}
             <div className="flex flex-col gap-2">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-luxe-muted">Familles de produits et favoris</span>
+              <span className="field-label text-luxe-muted">Familles de produits et favoris</span>
               <div className="flex flex-wrap gap-2">
                 {productCategories.map((cat) => {
                   const isSelected = selectedCategory === cat;
@@ -396,7 +395,7 @@ export default function CatalogView({
                         setSelectedCategory(cat);
                         setShowOnlyFavourites(false); // Standard catalog view is restored when clicking category buttons
                       }}
-                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all border cursor-pointer select-none ${
+                      className={`type-button inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
                         isSelected && !showOnlyFavourites
                           ? 'bg-luxe-dark text-warm-cream border-luxe-dark shadow-sm scale-[1.02]'
                           : 'bg-warm-cream text-luxe-dark border-warm-cream-dark/70 hover:border-luxe-gold hover:bg-white'
@@ -416,7 +415,7 @@ export default function CatalogView({
                   onClick={() => {
                     setShowOnlyFavourites(!showOnlyFavourites);
                   }}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all border cursor-pointer select-none ${
+                  className={`type-button inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
                     showOnlyFavourites
                       ? 'bg-red-500 text-white border-red-500 shadow-sm scale-[1.02]'
                       : 'bg-red-50 text-red-600 border-red-200 hover:border-red-400 hover:bg-red-100'
@@ -431,7 +430,7 @@ export default function CatalogView({
 
             {/* 2. Brand Filter Buttons */}
             <div className="flex flex-col gap-2">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-luxe-muted font-sans font-semibold">Filtrer par Marque</span>
+              <span className="field-label text-luxe-muted">Filtrer par marque</span>
               <div className="flex flex-wrap gap-1.5">
                 {brands.map((brand) => {
                   const isSelected = selectedBrand === brand;
@@ -439,7 +438,7 @@ export default function CatalogView({
                     <button
                       key={brand}
                       onClick={() => setSelectedBrand(brand)}
-                      className={`inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all border cursor-pointer select-none ${
+                      className={`type-button inline-flex items-center px-3.5 py-2 rounded-lg transition-all border cursor-pointer select-none ${
                         isSelected
                           ? 'bg-luxe-gold text-luxe-dark border-luxe-gold shadow-sm scale-[1.02]'
                           : 'bg-warm-cream text-luxe-dark border-warm-cream-dark/60 hover:border-luxe-gold hover:bg-white'
@@ -456,10 +455,10 @@ export default function CatalogView({
             {/* 3. Budget & Price range slider */}
             <div className="flex flex-col gap-3 pt-2 border-t border-warm-cream-dark/40">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-luxe-muted font-sans font-semibold">
+                <span className="field-label text-luxe-muted">
                   Budget & Fourchette de prix (FCFA)
                 </span>
-                <div className="flex items-center gap-1 text-xs font-bold text-luxe-copper font-mono bg-warm-cream px-3 py-1 rounded-full border border-warm-cream-dark shadow-xs">
+                <div className="flex items-center gap-1 type-meta text-luxe-copper font-mono bg-warm-cream px-3 py-1.5 rounded-full border border-warm-cream-dark shadow-xs">
                   <span>{formatPrice(minPrice)}</span>
                   <span className="text-luxe-muted mx-1">à</span>
                   <span>{formatPrice(maxPrice)}</span>
@@ -469,12 +468,12 @@ export default function CatalogView({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-warm-cream/40 p-4 rounded-xl border border-warm-cream-dark/50">
                 {/* Min Price Slider */}
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center text-[10px] font-semibold text-luxe-muted">
+                  <div className="flex justify-between items-center type-badge text-luxe-muted">
                     <span>Prix Minimum</span>
                     <span className="font-mono text-luxe-dark font-bold">{formatPrice(minPrice)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-luxe-muted font-mono font-bold">0</span>
+                    <span className="type-badge text-luxe-muted font-mono">0</span>
                     <input
                       type="range"
                       min="0"
@@ -490,18 +489,18 @@ export default function CatalogView({
                       className="flex-1 h-2 bg-warm-cream-dark rounded-full appearance-none cursor-pointer accent-luxe-copper focus:outline-none focus:ring-1 focus:ring-luxe-gold"
                       id="price-range-min-slider"
                     />
-                    <span className="text-[10px] text-luxe-muted font-mono font-bold">5M</span>
+                    <span className="type-badge text-luxe-muted font-mono">5M</span>
                   </div>
                 </div>
 
                 {/* Max Price Slider */}
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center text-[10px] font-semibold text-luxe-muted">
+                  <div className="flex justify-between items-center type-badge text-luxe-muted">
                     <span>Prix Maximum</span>
                     <span className="font-mono text-luxe-dark font-bold">{formatPrice(maxPrice)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-luxe-muted font-mono font-bold">0</span>
+                    <span className="type-badge text-luxe-muted font-mono">0</span>
                     <input
                       type="range"
                       min="0"
@@ -517,14 +516,14 @@ export default function CatalogView({
                       className="flex-1 h-2 bg-warm-cream-dark rounded-full appearance-none cursor-pointer accent-luxe-copper focus:outline-none focus:ring-1 focus:ring-luxe-gold"
                       id="price-range-max-slider"
                     />
-                    <span className="text-[10px] text-luxe-muted font-mono font-bold">5M</span>
+                    <span className="type-badge text-luxe-muted font-mono">5M</span>
                   </div>
                 </div>
               </div>
 
               {/* Express popular budgets */}
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-[9px] uppercase tracking-wider font-extrabold text-luxe-muted mr-1">Raccourcis Budget :</span>
+                <span className="field-label text-luxe-muted mr-1">Raccourcis budget</span>
                 {[
                   { label: "Tous budgets", min: 0, max: 5000000 },
                   { label: "Moins de 600K", min: 0, max: 600000 },
@@ -540,7 +539,7 @@ export default function CatalogView({
                         setMinPrice(b.min);
                         setMaxPrice(b.max);
                       }}
-                      className={`text-[10px] font-extrabold px-3 py-1 rounded-full border transition-all cursor-pointer select-none ${
+                      className={`type-badge px-3 py-1.5 rounded-full border transition-all cursor-pointer select-none ${
                         isCurrent
                           ? 'bg-luxe-copper text-white border-luxe-copper shadow-xs'
                           : 'bg-white text-luxe-muted border-warm-cream-dark/60 hover:border-luxe-copper hover:text-luxe-copper'
@@ -558,11 +557,11 @@ export default function CatalogView({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Filter by Import Source */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase tracking-wider font-bold text-luxe-muted">Provenance d'Import</label>
+              <label className="field-label text-luxe-muted">Provenance d'import</label>
               <select
                 value={selectedSource}
                 onChange={(e) => setSelectedSource(e.target.value)}
-                className="w-full text-xs bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 text-gray-900 focus:outline-none focus:border-blue-500 font-medium"
+                className="field-input w-full bg-gray-50 border border-gray-300 rounded-lg py-2.5 px-3 text-gray-900 focus:outline-none focus:border-blue-500"
                 id="filter-source-select"
               >
                 <option value="All">Toutes provenances</option>
@@ -574,11 +573,11 @@ export default function CatalogView({
 
             {/* Filter by Live Stock Status */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase tracking-wider font-bold text-luxe-muted">Disponibilité</label>
+              <label className="field-label text-luxe-muted">Disponibilité</label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full text-xs bg-warm-cream border border-warm-cream-dark rounded-lg py-2 px-3 text-luxe-dark focus:outline-none focus:border-luxe-gold font-medium"
+                className="field-input w-full bg-warm-cream border border-warm-cream-dark rounded-lg py-2.5 px-3 text-luxe-dark focus:outline-none focus:border-luxe-gold"
                 id="filter-status-select"
               >
                 <option value="All">Tous les statuts</option>
@@ -590,12 +589,12 @@ export default function CatalogView({
 
             {/* Sort Order */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase tracking-wider font-bold text-luxe-muted">Trier par</label>
+              <label className="field-label text-luxe-muted">Trier par</label>
               <div className="relative">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full text-xs bg-warm-cream border border-warm-cream-dark rounded-lg py-2 px-3 text-luxe-dark focus:outline-none focus:border-luxe-gold font-medium appearance-none"
+                  className="field-input w-full bg-warm-cream border border-warm-cream-dark rounded-lg py-2.5 px-3 text-luxe-dark focus:outline-none focus:border-luxe-gold appearance-none"
                   id="sort-select"
                 >
                   <option value="default">Ordre alphabétique</option>
@@ -613,8 +612,8 @@ export default function CatalogView({
       {/* CATALOG GRID - LabCraft Style */}
       <section className="mt-12" id="catalog-section-grid">
         <div className="mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Notre Collection</h2>
-          <p className="text-gray-600 max-w-2xl">
+          <h2 className="type-section-title text-gray-900 mb-4">Notre Collection</h2>
+          <p className="type-subtitle text-gray-600 max-w-2xl">
             Découvrez notre sélection exclusive d'ordinateurs portables premium, soigneusement sélectionnés pour leur performance exceptionnelle et leur qualité irréprochable.
           </p>
         </div>
@@ -632,8 +631,8 @@ export default function CatalogView({
               key="no-matching-laptops"
             >
               <Globe2 className="w-10 h-10 text-luxe-muted mb-2 animate-pulse" />
-              <h4 className="font-serif text-base font-semibold text-luxe-dark">Aucun matériel ne correspond</h4>
-              <p className="text-xs text-luxe-muted mt-1 max-w-sm">
+              <h4 className="type-card-title text-luxe-dark">Aucun matériel ne correspond</h4>
+              <p className="type-meta text-luxe-muted mt-1 max-w-sm">
                 Réduisez vos filtres ou modifiez votre recherche pour découvrir d'autres modèles d'exception.
               </p>
               <button
@@ -666,7 +665,7 @@ export default function CatalogView({
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   key={laptop.id}
                   id={`laptop-card-${laptop.id}`}
-                  className="group flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300"
+                  className="group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300"
                 >
                   {/* Image Section - LabCraft Style */}
                   <div 
@@ -684,67 +683,79 @@ export default function CatalogView({
                     {/* Status Badge */}
                     <div className="absolute top-3 left-3">
                       {isOutOfStock ? (
-                        <span className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                        <span className="type-badge bg-red-500 text-white px-2.5 py-1 rounded-full">
                           Rupture
                         </span>
                       ) : isIncoming ? (
-                        <span className="bg-yellow-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                        <span className="type-badge bg-yellow-500 text-white px-2.5 py-1 rounded-full">
                           Arrivage
                         </span>
                       ) : (
-                        <span className="bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                        <span className="type-badge bg-green-500 text-white px-2.5 py-1 rounded-full">
                           En Stock
                         </span>
                       )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavourite(laptop.id);
+                      }}
+                      className={`absolute top-3 right-3 w-9 h-9 rounded-full border flex items-center justify-center backdrop-blur-sm transition-all ${
+                        favouriteIds.includes(laptop.id)
+                          ? 'bg-white text-red-500 border-white'
+                          : 'bg-white/85 text-luxe-dark border-white/90 hover:text-red-500'
+                      }`}
+                      id={`toggle-fav-${laptop.id}`}
+                      title={favouriteIds.includes(laptop.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    >
+                      <Heart className={`w-4 h-4 ${favouriteIds.includes(laptop.id) ? 'fill-current' : ''}`} />
+                    </button>
                   </div>
 
                   {/* Product Details - LabCraft Style */}
-                  <div className="p-5 flex-1 flex flex-col justify-between">
+                  <div className="p-5 flex-1 flex flex-col justify-between gap-5">
                     <div 
                       onClick={() => onSelectLaptopForDetails(laptop)}
                       className="cursor-pointer text-left"
                       title="Cliquer pour voir les détails de cette machine"
                     >
-                      {/* Product Title */}
-                      <h4 className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
+                      <h4 className="type-card-title text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
                         {laptop.brand} {laptop.model}
                       </h4>
 
-                      {/* Key Specifications */}
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                          <span className="font-medium">Processeur:</span>
+                      <div className="space-y-1.5">
+                        <div className="flex items-start gap-2 type-meta text-gray-600">
+                          <span className="font-semibold text-gray-800">Processeur:</span>
                           <span>{laptop.processor}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                          <span className="font-medium">RAM:</span>
+                        <div className="flex items-center gap-2 type-meta text-gray-600">
+                          <span className="font-semibold text-gray-800">RAM:</span>
                           <span>{laptop.ram}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">Stockage:</span>
+                        <div className="flex items-center gap-2 type-meta text-gray-600">
+                          <span className="font-semibold text-gray-800">Stockage:</span>
                           <span>{laptop.storage}</span>
                         </div>
                       </div>
 
-                      {/* Price */}
-                      <div className="mt-4">
-                        <div className="text-2xl font-bold text-gray-900">
+                      <div className="mt-5">
+                        <div className="type-price text-gray-900">
                           {formatPrice(laptop.price)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="type-meta text-gray-500 mt-1">
                           TTC - Livraison incluse
                         </div>
                       </div>
                     </div>
 
-                    {/* Action Buttons - LabCraft Style */}
-                    <div className="px-5 pb-5">
+                    <div>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => onAddToCart(laptop)}
-                          className={`flex-1 inline-flex items-center justify-center gap-2 text-sm font-medium py-3 rounded-lg transition-all ${
+                          className={`type-button flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
                             isOutOfStock
                               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                               : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
@@ -760,7 +771,7 @@ export default function CatalogView({
                         <button
                           type="button"
                           onClick={() => onSelectLaptopForQuote(laptop)}
-                          className={`flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-lg transition-all border ${
+                          className={`type-button flex-1 inline-flex items-center justify-center py-3 rounded-xl transition-all border ${
                             isOutOfStock
                               ? 'bg-gray-200 border-gray-300 text-gray-500 cursor-not-allowed'
                               : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
@@ -772,11 +783,10 @@ export default function CatalogView({
                         </button>
                       </div>
                       
-                      {/* Quick View Button */}
                       <button
                         type="button"
                         onClick={() => onSelectLaptopForDetails(laptop)}
-                        className="mt-3 w-full text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none py-2"
+                        className="type-meta mt-3 w-full text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none py-2"
                         id={`details-link-${laptop.id}`}
                       >
                         Voir les détails complets →
@@ -793,12 +803,12 @@ export default function CatalogView({
 
       {/* WHY CHOOSE HERVE_ESHOP ADVANTAGE */}
       <section className="mt-16 md:mt-24 bg-luxe-dark text-warm-cream rounded-3xl p-8 md:p-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 opacity-[0.03] text-[20vw] font-serif select-none pointer-events-none tracking-tight">
+        <div className="absolute top-0 right-0 opacity-[0.03] text-[20vw] font-black select-none pointer-events-none tracking-tight">
           Luxe
         </div>
         <div className="max-w-2xl text-left z-10 relative">
-          <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-luxe-gold">La Charte Confiance d'Hervé</span>
-          <h3 className="text-xl md:text-3xl font-serif mt-2 mb-6">
+          <span className="type-kicker text-luxe-gold">La Charte Confiance d'Hervé</span>
+          <h3 className="type-section-title mt-3 mb-6">
             Pourquoi choisir notre catalogue pour équiper vos études & projets ?
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">

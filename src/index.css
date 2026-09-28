@@ -1,10 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --text-hero: clamp(2.75rem, 5vw, 4.75rem);
+  --text-section-title: clamp(1.85rem, 3vw, 2.6rem);
+  --text-section-subtitle: clamp(1rem, 1.15vw, 1.1rem);
+  --text-card-title: 1.02rem;
+  --text-price: clamp(1.3rem, 1.6vw, 1.6rem);
+  --text-body: 0.97rem;
+  --text-meta: 0.82rem;
+  --tracking-label: 0.14em;
+  --tracking-tight-title: -0.04em;
+  --tracking-body: -0.012em;
+  --leading-body: 1.65;
+  --leading-copy: 1.72;
+  --leading-heading: 1.06;
   
   --color-warm-cream: #fbf9f5;
   --color-warm-cream-dark: #f5eedf;
@@ -21,6 +34,12 @@ body {
   background-color: var(--color-warm-cream);
   color: var(--color-luxe-dark);
   font-family: var(--font-sans);
+  font-feature-settings: "liga" 1, "kern" 1, "ss01" 1;
+  text-rendering: optimizeLegibility;
+  letter-spacing: var(--tracking-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-serif {
@@ -29,6 +48,121 @@ body {
 
 .font-mono {
   font-family: var(--font-mono);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.type-kicker {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.type-nav {
+  font-size: 0.875rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.type-hero {
+  font-size: var(--text-hero);
+  line-height: var(--leading-heading);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight-title);
+}
+
+.type-section-title {
+  font-size: var(--text-section-title);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.type-subtitle {
+  font-size: var(--text-section-subtitle);
+  line-height: var(--leading-copy);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.type-body {
+  font-size: var(--text-body);
+  line-height: var(--leading-copy);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.type-card-title {
+  font-size: var(--text-card-title);
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.type-price {
+  font-size: var(--text-price);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.type-meta {
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.type-button {
+  font-size: 0.9rem;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.type-badge {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.field-label {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field-input {
+  font-size: 0.92rem;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 640px) {
+  .type-hero {
+    font-size: clamp(2.3rem, 10vw, 3.2rem);
+    line-height: 1.02;
+  }
+
+  .type-section-title {
+    font-size: clamp(1.6rem, 7vw, 2rem);
+  }
+
+  .type-body {
+    font-size: 0.93rem;
+  }
 }
 
 /* Custom scrollbars that fit the luxury concept */

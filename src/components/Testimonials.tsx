@@ -160,14 +160,14 @@ export default function Testimonials({
         {/* Header Block with high contrast custom orange/gold details */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div className="text-left space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-luxe-orange/10 border border-luxe-orange/20 text-luxe-orange text-[10px] font-bold uppercase tracking-widest">
-              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-luxe-orange/10 border border-luxe-orange/20 text-luxe-orange type-badge">
+              <Sparkles className="w-3.5 h-3.5" />
               Garantie Confiance & Excellence
             </div>
-            <h2 className="font-serif text-3xl md:text-4xl font-extrabold tracking-tight text-luxe-dark">
-              Témoignages Clients <span className="text-luxe-orange font-sans">.</span>
+            <h2 className="type-section-title text-luxe-dark">
+              Témoignages Clients
             </h2>
-            <p className="text-sm text-luxe-muted max-w-xl leading-relaxed">
+            <p className="type-subtitle text-luxe-muted max-w-xl">
               Découvrez les retours authentiques de professionnels et particuliers qui nous font confiance à Douala, Yaoundé et dans tout le Cameroun pour leurs équipements informatiques d'exception.
             </p>
           </div>
@@ -177,7 +177,7 @@ export default function Testimonials({
             <button
               onClick={openForm}
               disabled={submitting}
-              className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wide border cursor-pointer select-none transition-all shadow-md active:scale-95 duration-200 ${
+              className={`type-button inline-flex items-center gap-2 px-5 py-3 rounded-xl border cursor-pointer select-none transition-all shadow-md active:scale-95 duration-200 ${
                 submitting
                   ? 'bg-warm-cream-dark border-warm-cream-dark text-luxe-muted cursor-not-allowed'
                   : 'bg-luxe-dark text-white border-luxe-dark hover:bg-luxe-orange hover:border-luxe-orange hover:shadow-luxe-orange/20'
@@ -194,26 +194,26 @@ export default function Testimonials({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 rounded-2xl bg-white border border-warm-cream-dark/50 shadow-xs mb-10 text-left">
           <div>
             <span className="block text-2xl font-extrabold text-luxe-orange">99.4%</span>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-luxe-muted">Clients Satisfaits</span>
+            <span className="type-badge text-luxe-muted">Clients Satisfaits</span>
           </div>
           <div>
             <span className="block text-2xl font-extrabold text-luxe-dark flex items-center gap-1">
               4.9 <Star className="w-4 h-4 fill-luxe-yellow text-luxe-yellow inline" />
             </span>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-luxe-muted">Note Globale Certifiée</span>
+            <span className="type-badge text-luxe-muted">Note Globale Certifiée</span>
           </div>
           <div>
             <span className="block text-2xl font-extrabold text-luxe-dark">+1,250</span>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-luxe-muted">Ordinateurs Livrés</span>
+            <span className="type-badge text-luxe-muted">Ordinateurs Livrés</span>
           </div>
           <div>
             <span className="block text-2xl font-extrabold text-luxe-gold">100%</span>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-luxe-muted">Importé USA d'Origine</span>
+            <span className="type-badge text-luxe-muted">Importé USA d'Origine</span>
           </div>
         </div>
 
         {loading && (
-          <div className="text-xs text-luxe-muted font-mono uppercase tracking-widest font-bold mb-6">
+          <div className="type-badge text-luxe-muted font-mono mb-6">
             Chargement des avis...
           </div>
         )}
@@ -245,11 +245,11 @@ export default function Testimonials({
                   ))}
                 </div>
 
-                <p className="text-xs text-luxe-muted italic mb-4 font-mono font-bold uppercase tracking-wider">
+                <p className="type-badge text-luxe-muted mb-4 font-mono">
                   Achat : {testimonial.product}
                 </p>
 
-                <p className="text-xs text-luxe-dark/90 leading-relaxed font-sans mb-6">
+                <p className="type-body text-luxe-dark/90 mb-6">
                   "{testimonial.comment}"
                 </p>
               </div>
@@ -261,7 +261,7 @@ export default function Testimonials({
                 </div>
                 
                 <div className="flex-1">
-                  <h4 className="font-serif font-bold text-xs text-luxe-dark flex items-center gap-1">
+                  <h4 className="type-card-title text-luxe-dark flex items-center gap-1">
                     {testimonial.name}
                     {testimonial.verified && (
                       <span title="Acheteur vérifié • Devis validé">
@@ -269,9 +269,9 @@ export default function Testimonials({
                       </span>
                     )}
                   </h4>
-                  <p className="text-[10px] text-luxe-muted font-medium flex justify-between items-center w-full">
+                  <p className="type-meta text-luxe-muted flex justify-between items-center w-full">
                     <span>{testimonial.city}, Cameroun</span>
-                    <span className="font-mono text-[9px] text-luxe-gold/80">{testimonial.date}</span>
+                    <span className="font-mono text-[0.7rem] text-luxe-gold/80">{testimonial.date}</span>
                   </p>
                 </div>
               </div>
@@ -285,11 +285,11 @@ export default function Testimonials({
         <div className="fixed inset-0 z-50 bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl border border-warm-cream-dark shadow-2xl p-5 text-left select-text">
             <div className="flex justify-between items-center border-b border-warm-cream pb-3 mb-4">
-              <h4 className="font-serif font-bold text-sm text-luxe-dark">Laisser un avis sur le service</h4>
+              <h4 className="type-card-title text-luxe-dark">Laisser un avis sur le service</h4>
               <button
                 type="button"
                 onClick={() => setFormOpen(false)}
-                className="text-luxe-muted hover:text-black font-serif text-lg font-bold"
+                className="text-luxe-muted hover:text-black text-lg font-bold"
                 title="Fermer"
               >
                 <X className="w-5 h-5" />
@@ -298,7 +298,7 @@ export default function Testimonials({
 
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="font-bold text-luxe-dark">Note</label>
+                <label className="field-label text-luxe-dark">Note</label>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, i) => {
                     const v = i + 1;
@@ -319,23 +319,23 @@ export default function Testimonials({
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-luxe-dark">Ville</label>
+                <label className="field-label text-luxe-dark">Ville</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
+                  className="field-input w-full p-3 rounded-xl border border-warm-cream"
                   placeholder="Douala, Yaoundé..."
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-luxe-dark">Votre avis</label>
+                <label className="field-label text-luxe-dark">Votre avis</label>
                 <textarea
                   rows={4}
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="w-full p-2 rounded-xl border border-warm-cream text-xs"
+                  className="field-input w-full p-3 rounded-xl border border-warm-cream"
                   placeholder="Parlez du service reçu..."
                 />
               </div>
@@ -344,7 +344,7 @@ export default function Testimonials({
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
-                  className="px-3.5 py-1.5 border border-grey rounded-xl font-bold font-sans"
+                  className="type-button px-4 py-2 border border-grey rounded-xl"
                   disabled={submitting}
                 >
                   Annuler
@@ -353,7 +353,7 @@ export default function Testimonials({
                   type="button"
                   onClick={submitServiceReview}
                   disabled={submitting}
-                  className="px-4.5 py-1.5 bg-luxe-copper hover:bg-luxe-dark text-white rounded-xl font-bold font-sans disabled:opacity-60"
+                  className="type-button px-5 py-2 bg-luxe-copper hover:bg-luxe-dark text-white rounded-xl disabled:opacity-60"
                 >
                   Publier
                 </button>

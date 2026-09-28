@@ -160,7 +160,7 @@ export default function QuoteRequestModal({
         <div className="md:w-5/12 bg-warm-cream p-6 md:p-8 flex flex-col justify-between border-r border-warm-cream-dark">
           <div>
             <div className="flex justify-between items-center mb-6">
-              <span className="bg-luxe-copper/10 text-luxe-copper text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+              <span className="type-badge bg-luxe-copper/10 text-luxe-copper px-2.5 py-1 rounded-full flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> Matériel sélectionné
               </span>
               <button onClick={onClose} className="md:hidden text-luxe-muted hover:text-luxe-dark">
@@ -176,17 +176,17 @@ export default function QuoteRequestModal({
                 referrerPolicy="no-referrer"
               />
               <div className="mt-3">
-                <h4 className="font-serif font-bold text-sm text-luxe-dark">
+                <h4 className="type-card-title text-luxe-dark">
                   {laptop.brand} {laptop.model}
                 </h4>
-                <p className="text-[11px] text-luxe-muted mt-0.5">Importé de {laptop.source} — Condition {laptop.condition}</p>
+                <p className="type-meta text-luxe-muted mt-1">Importé de {laptop.source} — Condition {laptop.condition}</p>
               </div>
             </div>
 
             {/* Technical Recap */}
             <div className="mt-6 space-y-2 text-xs">
-              <h5 className="font-bold text-luxe-muted uppercase tracking-wider text-[10px]">Fiche d'origine</h5>
-              <div className="bg-white/50 p-3 rounded-lg border border-warm-cream-dark/30 space-y-1.5 text-[11px]">
+              <h5 className="field-label text-luxe-muted">Fiche d'origine</h5>
+              <div className="bg-white/50 p-3 rounded-lg border border-warm-cream-dark/30 space-y-1.5 type-meta">
                 <div className="flex justify-between border-b border-warm-cream-dark/20 pb-1">
                   <span className="text-luxe-muted">Processeur</span>
                   <span className="font-medium text-luxe-dark">{laptop.processor}</span>
@@ -204,9 +204,9 @@ export default function QuoteRequestModal({
 
             {/* Price Calculations */}
             <div className="mt-6 bg-luxe-dark text-warm-cream p-4 rounded-xl shadow-xs">
-              <p className="text-[10px] uppercase font-bold tracking-widest text-luxe-gold">Montant Estimé du Devis</p>
-              <p className="text-2xl font-bold font-serif text-white mt-1">{formatPrice(finalPrice)}</p>
-              <div className="mt-3 space-y-1 border-t border-white/15 pt-2.5 text-[10px] text-warm-cream-dark/75">
+              <p className="field-label text-luxe-gold">Montant estimé du devis</p>
+              <p className="type-price text-white mt-1">{formatPrice(finalPrice)}</p>
+              <div className="mt-3 space-y-1 border-t border-white/15 pt-2.5 type-meta text-warm-cream-dark/75">
                 <div className="flex justify-between">
                   <span>Prix d'origine :</span>
                   <span>{formatPrice(laptop.price)}</span>
@@ -237,7 +237,7 @@ export default function QuoteRequestModal({
             </div>
           </div>
 
-          <div className="hidden md:block text-[10px] text-luxe-muted mt-6 border-t border-warm-cream-dark/50 pt-3">
+          <div className="hidden md:block type-meta text-luxe-muted mt-6 border-t border-warm-cream-dark/50 pt-3">
             Herve_eShop : Des offres claires, sans coûts cachés. Retrait disponible à Yaoundé & Douala ou livraison sécurisée à domicile.
           </div>
         </div>
@@ -247,8 +247,8 @@ export default function QuoteRequestModal({
           {/* Header Action */}
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-lg font-serif font-bold text-luxe-dark">Personnalisation & Devis</h3>
-              <p className="text-xs text-luxe-muted mt-0.5">Sélectionnez vos options d'upgrade de composants physiques.</p>
+              <h3 className="type-section-title !text-[clamp(1.5rem,2vw,1.9rem)] text-luxe-dark">Personnalisation & Devis</h3>
+              <p className="type-meta text-luxe-muted mt-1">Sélectionnez vos options d'upgrade de composants physiques.</p>
             </div>
             <button 
               type="button" 
@@ -264,107 +264,107 @@ export default function QuoteRequestModal({
           <div className="mt-6 space-y-5">
             {/* Step 1: Upgrades */}
             <div className="space-y-3.5">
-              <h4 className="text-[11px] uppercase tracking-wider font-bold text-luxe-gold">1. Amélioration des caractéristiques</h4>
+              <h4 className="field-label text-luxe-gold">1. Amélioration des caractéristiques</h4>
               
               {/* RAM Upgrades (Custom Radio Chips) */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-luxe-dark flex items-center justify-between">
+                <label className="type-meta font-semibold text-luxe-dark flex items-center justify-between">
                   <span>Augmenter la RAM de l'appareil</span>
-                  <span className="text-[10px] text-luxe-muted font-normal">Recommandé pour Virtualisation / Montage</span>
+                  <span className="type-meta !text-[0.74rem] text-luxe-muted font-normal">Recommandé pour Virtualisation / Montage</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setRamUpgrade('Aucune')}
-                    className={`p-2.5 text-xs rounded-lg border text-center font-medium transition-all ${
+                    className={`type-button p-2.5 rounded-lg border text-center transition-all ${
                       ramUpgrade === 'Aucune'
                         ? 'bg-luxe-dark text-warm-cream border-luxe-dark'
                         : 'bg-white text-luxe-dark border-warm-cream-dark hover:bg-warm-cream'
                     }`}
                   >
                     Origine
-                    <span className="block text-[9px] opacity-70">Sans frais</span>
+                    <span className="block text-[0.7rem] opacity-70">Sans frais</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setRamUpgrade('32GB')}
-                    className={`p-2.5 text-xs rounded-lg border text-center font-medium transition-all ${
+                    className={`type-button p-2.5 rounded-lg border text-center transition-all ${
                       ramUpgrade === '32GB'
                         ? 'bg-luxe-dark text-warm-cream border-luxe-dark'
                         : 'bg-white text-luxe-dark border-warm-cream-dark hover:bg-warm-cream'
                     }`}
                   >
                     32 Go
-                    <span className="block text-[9px] text-luxe-copper font-bold font-mono">+{formatPrice(PRICING.ram['32GB'])}</span>
+                    <span className="block text-[0.7rem] text-luxe-copper font-bold font-mono">+{formatPrice(PRICING.ram['32GB'])}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setRamUpgrade('64GB')}
-                    className={`p-2.5 text-xs rounded-lg border text-center font-medium transition-all ${
+                    className={`type-button p-2.5 rounded-lg border text-center transition-all ${
                       ramUpgrade === '64GB'
                         ? 'bg-luxe-dark text-warm-cream border-luxe-dark'
                         : 'bg-white text-luxe-dark border-warm-cream-dark hover:bg-warm-cream'
                     }`}
                   >
                     64 Go
-                    <span className="block text-[9px] text-luxe-copper font-bold font-mono">+{formatPrice(PRICING.ram['64GB'])}</span>
+                    <span className="block text-[0.7rem] text-luxe-copper font-bold font-mono">+{formatPrice(PRICING.ram['64GB'])}</span>
                   </button>
                 </div>
               </div>
 
               {/* Storage upgrades (Custom radio chips) */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-luxe-dark flex items-center justify-between">
+                <label className="type-meta font-semibold text-luxe-dark flex items-center justify-between">
                   <span>Augmenter l'espace de stockage</span>
-                  <span className="text-[10px] text-luxe-muted font-normal">SSD PCIe NVMe Haute Performance</span>
+                  <span className="type-meta !text-[0.74rem] text-luxe-muted font-normal">SSD PCIe NVMe Haute Performance</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setStorageUpgrade('Aucun')}
-                    className={`p-2.5 text-xs rounded-lg border text-center font-medium transition-all ${
+                    className={`type-button p-2.5 rounded-lg border text-center transition-all ${
                       storageUpgrade === 'Aucun'
                         ? 'bg-luxe-dark text-warm-cream border-luxe-dark'
                         : 'bg-white text-luxe-dark border-warm-cream-dark hover:bg-warm-cream'
                     }`}
                   >
                     Origine
-                    <span className="block text-[9px] opacity-70">Sans frais</span>
+                    <span className="block text-[0.7rem] opacity-70">Sans frais</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setStorageUpgrade('1TB SSD')}
-                    className={`p-2.5 text-xs rounded-lg border text-center font-medium transition-all ${
+                    className={`type-button p-2.5 rounded-lg border text-center transition-all ${
                       storageUpgrade === '1TB SSD'
                         ? 'bg-luxe-dark text-warm-cream border-luxe-dark'
                         : 'bg-white text-luxe-dark border-warm-cream-dark hover:bg-warm-cream'
                     }`}
                   >
                     1 To SSD
-                    <span className="block text-[9px] text-luxe-copper font-bold font-mono">+{formatPrice(PRICING.storage['1TB SSD'])}</span>
+                    <span className="block text-[0.7rem] text-luxe-copper font-bold font-mono">+{formatPrice(PRICING.storage['1TB SSD'])}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setStorageUpgrade('2TB SSD')}
-                    className={`p-2.5 text-xs rounded-lg border text-center font-medium transition-all ${
+                    className={`type-button p-2.5 rounded-lg border text-center transition-all ${
                       storageUpgrade === '2TB SSD'
                         ? 'bg-luxe-dark text-warm-cream border-luxe-dark'
                         : 'bg-white text-luxe-dark border-warm-cream-dark hover:bg-warm-cream'
                     }`}
                   >
                     2 To SSD
-                    <span className="block text-[9px] text-luxe-copper font-bold font-mono">+{formatPrice(PRICING.storage['2TB SSD'])}</span>
+                    <span className="block text-[0.7rem] text-luxe-copper font-bold font-mono">+{formatPrice(PRICING.storage['2TB SSD'])}</span>
                   </button>
                 </div>
               </div>
 
               {/* Prefetched preconfigured System software option */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-luxe-dark">Système d'exploitation souhaité</label>
+                <label className="field-label text-luxe-dark">Système d'exploitation souhaité</label>
                 <select
                   value={osOption}
                   onChange={(e) => setOsOption(e.target.value)}
-                  className="w-full text-xs bg-warm-cream border border-warm-cream-dark rounded-lg py-2 px-3 text-luxe-dark focus:outline-none focus:border-luxe-gold font-medium"
+                  className="field-input w-full bg-warm-cream border border-warm-cream-dark rounded-lg py-2.5 px-3 text-luxe-dark focus:outline-none focus:border-luxe-gold"
                   id="selection-os-select"
                 >
                   <option value="Windows d'origine / macOS natif">Conserver l'OS d'origine (Recommandé)</option>
@@ -376,7 +376,7 @@ export default function QuoteRequestModal({
 
               {/* Accessories Custom checkboxes */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-luxe-dark">Équipez votre ordinateur avec notre pack Accessoires</label>
+                <label className="field-label text-luxe-dark">Pack accessoires</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {Object.keys(PRICING.accessories).map((acc) => {
                     const price = PRICING.accessories[acc];
@@ -386,7 +386,7 @@ export default function QuoteRequestModal({
                         key={acc}
                         type="button"
                         onClick={() => toggleAccessory(acc)}
-                        className={`flex items-center justify-between p-2.5 text-[11px] rounded-lg border text-left font-medium transition-all cursor-pointer ${
+                        className={`field-input flex items-center justify-between p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-warm-cream-dark/50 border-luxe-copper text-luxe-dark shadow-xs'
                             : 'bg-white border-warm-cream-dark text-luxe-muted hover:bg-warm-cream'
@@ -410,12 +410,12 @@ export default function QuoteRequestModal({
 
             {/* Step 2: Customer Contact Info */}
             <div className="space-y-3.5 pt-4 border-t border-warm-cream-dark/50">
-              <h4 className="text-[11px] uppercase tracking-wider font-bold text-luxe-gold">2. Vos coordonnées de prospects</h4>
+              <h4 className="field-label text-luxe-gold">2. Vos coordonnées de prospects</h4>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Full name input */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-luxe-dark flex items-center gap-1">
+                  <span className="field-label text-luxe-dark flex items-center gap-1">
                     Nom complet <span className="text-luxe-copper">*</span>
                   </span>
                   <span className="relative">
@@ -427,19 +427,19 @@ export default function QuoteRequestModal({
                         setClientName(e.target.value);
                         if (errors.name) setErrors({ ...errors, name: '' });
                       }}
-                      className={`w-full py-2 px-3 pl-8 text-xs bg-warm-cream border rounded-lg focus:outline-none focus:border-luxe-gold font-medium text-luxe-dark ${
+                      className={`field-input w-full py-2.5 px-3 pl-8 bg-warm-cream border rounded-lg focus:outline-none focus:border-luxe-gold text-luxe-dark ${
                         errors.name ? 'border-red-400 focus:border-red-500' : 'border-warm-cream-dark'
                       }`}
                       id="quote-client-name"
                     />
                     <Sparkles className="w-3.5 h-3.5 text-luxe-gold absolute left-2.5 top-2.5" />
                   </span>
-                  {errors.name && <span className="text-[10px] text-red-500 font-semibold">{errors.name}</span>}
+                  {errors.name && <span className="type-meta !text-[0.74rem] text-red-500 font-semibold">{errors.name}</span>}
                 </div>
 
                 {/* Email input */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-luxe-dark flex items-center gap-1">
+                  <span className="field-label text-luxe-dark flex items-center gap-1">
                     Adresse Email <span className="text-luxe-copper">*</span>
                   </span>
                   <span className="relative">
@@ -451,19 +451,19 @@ export default function QuoteRequestModal({
                         setClientEmail(e.target.value);
                         if (errors.email) setErrors({ ...errors, email: '' });
                       }}
-                      className={`w-full py-2 px-3 pl-8 text-xs bg-warm-cream border rounded-lg focus:outline-none focus:border-luxe-gold font-medium text-luxe-dark ${
+                      className={`field-input w-full py-2.5 px-3 pl-8 bg-warm-cream border rounded-lg focus:outline-none focus:border-luxe-gold text-luxe-dark ${
                         errors.email ? 'border-red-400 focus:border-red-500' : 'border-warm-cream-dark'
                       }`}
                       id="quote-client-email"
                     />
                     <Mail className="w-3.5 h-3.5 text-luxe-muted absolute left-2.5 top-2.5" />
                   </span>
-                  {errors.email && <span className="text-[10px] text-red-500 font-semibold">{errors.email}</span>}
+                  {errors.email && <span className="type-meta !text-[0.74rem] text-red-500 font-semibold">{errors.email}</span>}
                 </div>
 
                 {/* Mobile / Whatsapp input */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-luxe-dark flex items-center gap-1">
+                  <span className="field-label text-luxe-dark flex items-center gap-1">
                     WhatsApp ou Téléphone <span className="text-luxe-copper">*</span>
                   </span>
                   <span className="relative">
@@ -475,26 +475,26 @@ export default function QuoteRequestModal({
                         setClientPhone(e.target.value);
                         if (errors.phone) setErrors({ ...errors, phone: '' });
                       }}
-                      className={`w-full py-2 px-3 pl-8 text-xs bg-warm-cream border rounded-lg focus:outline-none focus:border-luxe-gold font-medium text-luxe-dark ${
+                      className={`field-input w-full py-2.5 px-3 pl-8 bg-warm-cream border rounded-lg focus:outline-none focus:border-luxe-gold text-luxe-dark ${
                         errors.phone ? 'border-red-400 focus:border-red-500' : 'border-warm-cream-dark'
                       }`}
                       id="quote-client-phone"
                     />
                     <PhoneCall className="w-3.5 h-3.5 text-luxe-muted absolute left-2.5 top-2.5" />
                   </span>
-                  {errors.phone && <span className="text-[10px] text-red-500 font-semibold">{errors.phone}</span>}
+                  {errors.phone && <span className="type-meta !text-[0.74rem] text-red-500 font-semibold">{errors.phone}</span>}
                 </div>
 
                 {/* City select lists */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-luxe-dark flex items-center gap-1">
+                  <span className="field-label text-luxe-dark flex items-center gap-1">
                     Ville de Résidence <span className="text-luxe-copper">*</span>
                   </span>
                   <span className="relative">
                     <select
                       value={clientCity}
                       onChange={(e) => setClientCity(e.target.value)}
-                      className="w-full py-2 px-3 pl-8 text-xs bg-warm-cream border border-warm-cream-dark rounded-lg focus:outline-none focus:border-luxe-gold font-medium text-luxe-dark"
+                      className="field-input w-full py-2.5 px-3 pl-8 bg-warm-cream border border-warm-cream-dark rounded-lg focus:outline-none focus:border-luxe-gold text-luxe-dark"
                       id="quote-client-city"
                     >
                       {CAMEROON_CITIES.map(c => (
@@ -508,12 +508,12 @@ export default function QuoteRequestModal({
 
               {/* Special requirements/notes */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-luxe-dark">Notes ou Instructions Additionnelles (Optionnel)</span>
+                <span className="field-label text-luxe-dark">Notes additionnelles</span>
                 <textarea
                   placeholder="Ex: Besoin d'une sacoche de couleur noire de préférence, ou facture de dédouanement fournie..."
                   value={additionalNotes}
                   onChange={(e) => setAdditionalNotes(e.target.value)}
-                  className="w-full h-16 py-2 px-3 text-xs bg-warm-cream border border-warm-cream-dark rounded-lg focus:outline-none focus:border-luxe-gold font-medium text-luxe-dark"
+                  className="field-input w-full h-16 py-2.5 px-3 bg-warm-cream border border-warm-cream-dark rounded-lg focus:outline-none focus:border-luxe-gold text-luxe-dark"
                   id="quote-additional-notes"
                 />
               </div>
@@ -525,13 +525,13 @@ export default function QuoteRequestModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto px-5 py-2.5 text-xs uppercase tracking-wider font-bold text-luxe-muted hover:text-luxe-dark bg-transparent border border-transparent transition-colors text-center"
+              className="type-button w-full sm:w-auto px-5 py-2.5 text-luxe-muted hover:text-luxe-dark bg-transparent border border-transparent transition-colors text-center"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="w-full sm:w-auto px-8 py-3 bg-luxe-dark text-warm-cream text-xs uppercase tracking-widest font-bold rounded-lg shadow-lg hover:bg-luxe-copper transition-all"
+              className="type-button w-full sm:w-auto px-8 py-3 bg-luxe-dark text-warm-cream rounded-lg shadow-lg hover:bg-luxe-copper transition-all"
               id="submit-quote-request-btn"
             >
               Envoyer ma Demande de Devis

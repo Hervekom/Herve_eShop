@@ -154,14 +154,14 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
         
         {/* Header Title Section */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-1.5 bg-luxe-gold/15 border border-luxe-gold/35 px-4 py-1.5 rounded-full text-xs font-serif font-bold text-luxe-copper uppercase tracking-wider mb-4 animate-pulse">
+          <div className="inline-flex items-center gap-1.5 bg-luxe-gold/15 border border-luxe-gold/35 px-4 py-1.5 rounded-full type-badge text-luxe-copper mb-4">
             <Sparkles className="w-3.5 h-3.5 text-luxe-copper" />
             <span>Conseils d'Expert • Cameroun</span>
           </div>
-          <h2 className="font-serif text-3xl md:text-4xl font-extrabold text-luxe-dark tracking-tight leading-tight">
+          <h2 className="type-section-title text-luxe-dark">
             Les Guides d'Achat d'Hervé
           </h2>
-          <p className="mt-3 text-sm md:text-base text-luxe-muted leading-relaxed">
+          <p className="type-subtitle mt-3 text-luxe-muted">
             Pas facile de choisir parmi des dizaines de spécifications. Suivez nos conseils avisés rédigés d'après les configurations réelles demandées à Douala et Yaoundé pour faire le bon investissement.
           </p>
         </div>
@@ -179,7 +179,7 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                   key={guide.id}
                   type="button"
                   onClick={() => setActiveTab(guide.id)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer select-none border ${
+                  className={`type-button flex items-center gap-2 px-4 py-3 rounded-full transition-all duration-300 cursor-pointer select-none border ${
                     activeTab === guide.id
                       ? 'bg-luxe-dark text-white border-luxe-dark shadow-md'
                       : 'bg-warm-cream text-luxe-muted border-warm-cream-dark hover:border-luxe-copper hover:text-luxe-dark'
@@ -202,10 +202,10 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                 className="space-y-6 text-left"
               >
                 <div>
-                  <h3 className="font-serif text-xl md:text-2xl font-bold text-luxe-dark flex items-center gap-2">
+                  <h3 className="type-section-title text-luxe-dark !text-[clamp(1.5rem,2.2vw,2rem)] flex items-center gap-2">
                     {currentGuide.title}
                   </h3>
-                  <p className="text-xs text-luxe-muted mt-1 leading-normal italic font-medium">
+                  <p className="type-meta text-luxe-muted mt-2">
                     {currentGuide.subtitle}
                   </p>
                 </div>
@@ -215,12 +215,12 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                   
                   {/* Left Column: Advantages checklist */}
                   <div className="space-y-3.5">
-                    <h4 className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted border-b border-warm-cream-dark pb-1.5">
+                    <h4 className="field-label text-luxe-muted border-b border-warm-cream-dark pb-1.5">
                       Pourquoi choisir ce profil ?
                     </h4>
                     <ul className="space-y-2.5">
                       {currentGuide.advantages.map((adv, idx) => (
-                        <li key={idx} className="flex items-start gap-2.5 text-xs text-luxe-dark leading-relaxed">
+                        <li key={idx} className="flex items-start gap-2.5 type-meta text-luxe-dark">
                           <span className="p-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 mt-0.5 flex-shrink-0">
                             <Check className="w-3 h-3 stroke-[3px]" />
                           </span>
@@ -232,11 +232,11 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
 
                   {/* Right Column: Spec Highlights Cards */}
                   <div className="bg-warm-cream/50 border border-warm-cream-dark rounded-2xl p-4 space-y-3">
-                    <h4 className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted border-b border-warm-cream-dark pb-1 ml-1">
+                    <h4 className="field-label text-luxe-muted border-b border-warm-cream-dark pb-1 ml-1">
                       Fiche technique préconisée
                     </h4>
                     
-                    <div className="space-y-2.5 text-xs">
+                    <div className="space-y-2.5 type-meta">
                       <div className="flex items-center gap-2 text-luxe-dark">
                         <Cpu className="w-4 h-4 text-luxe-copper flex-shrink-0" />
                         <span className="text-luxe-muted mr-1">CPU :</span>
@@ -272,18 +272,18 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                 </div>
 
                 {/* Professional advice callout banner */}
-                <div className="p-4 bg-luxe-dark/5 border-l-4 border-luxe-copper rounded-r-xl text-xs text-luxe-dark leading-relaxed">
-                  <span className="font-extrabold text-luxe-copper uppercase tracking-wider block mb-1">📢 Le Conseil d'Hervé :</span>
+                <div className="p-4 bg-luxe-dark/5 border-l-4 border-luxe-copper rounded-r-xl type-meta text-luxe-dark">
+                  <span className="field-label text-luxe-copper block mb-2">Le Conseil d'Hervé</span>
                   {currentGuide.keyAdvice}
                 </div>
 
                 {/* Target profiles and recommended series list */}
                 <div className="pt-4 border-t border-warm-cream-dark/50 flex flex-col md:flex-row justify-between gap-4">
                   <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Idéal pour :</span>
+                    <span className="field-label text-luxe-muted">Idéal pour</span>
                     <div className="flex flex-wrap gap-1.5">
                       {currentGuide.suitableFor.map((p, i) => (
-                        <span key={i} className="text-[10px] font-bold bg-warm-cream text-luxe-muted border border-warm-cream-dark font-sans px-2.5 py-1 rounded-md">
+                        <span key={i} className="type-badge bg-warm-cream text-luxe-muted border border-warm-cream-dark px-2.5 py-1 rounded-md">
                           {p}
                         </span>
                       ))}
@@ -291,8 +291,8 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Gamme de référence recommandée :</span>
-                    <p className="text-xs text-luxe-dark font-sans font-extrabold tracking-wide">
+                    <span className="field-label text-luxe-muted">Gamme de référence recommandée</span>
+                    <p className="type-card-title text-luxe-dark">
                       {currentGuide.recommendedModels}
                     </p>
                   </div>
@@ -304,7 +304,7 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                     href={`https://wa.me/${whatsAppPhone}?text=${encodeURIComponent(getWhatsAppProfileText(currentGuide.id))}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-luxe-dark text-warm-cream hover:bg-luxe-copper hover:text-white font-sans text-xs font-bold uppercase tracking-widest px-5 py-3 rounded-full transition-all duration-300 shadow-md active:scale-95 cursor-pointer text-center select-none"
+                    className="type-button inline-flex items-center gap-2 bg-luxe-dark text-warm-cream hover:bg-luxe-copper hover:text-white px-5 py-3 rounded-full transition-all duration-300 shadow-md active:scale-95 cursor-pointer text-center select-none"
                     id={`guide-cta-${currentGuide.id}`}
                   >
                     <span>Consulter Hervé sur WhatsApp</span>
@@ -324,11 +324,11 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
             <div className="absolute top-0 right-0 w-32 h-32 bg-luxe-gold/5 blur-3xl pointer-events-none rounded-full"></div>
 
             <div className="border-b border-white/10 pb-4">
-              <h3 className="font-serif text-lg md:text-xl font-bold text-luxe-gold flex items-center gap-2">
+              <h3 className="type-card-title text-luxe-gold flex items-center gap-2">
                 <HelpIcon className="w-5 h-5 text-luxe-gold" />
                 Simulateur Express
               </h3>
-              <p className="text-[11px] text-warm-cream-dark/60 mt-1">
+              <p className="type-meta text-warm-cream-dark/60 mt-1">
                 Laissez-nous vous suggérer la meilleure configuration selon 3 questions simples.
               </p>
             </div>
@@ -338,14 +338,14 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                 
                 {/* Question 1: Principal Usage */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-gold">
+                  <label className="field-label text-luxe-gold">
                     1. Votre activité principale ?
                   </label>
                   <select
                     value={quizAnswers.usage}
                     onChange={(e) => setQuizAnswers({ ...quizAnswers, usage: e.target.value })}
                     required
-                    className="w-full bg-luxe-gray text-xs border border-white/10 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-luxe-gold text-warm-cream"
+                    className="field-input w-full bg-luxe-gray border border-white/10 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-luxe-gold text-warm-cream"
                     id="quiz-usage-select"
                   >
                     <option value="">Sélectionner...</option>
@@ -358,14 +358,14 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
 
                 {/* Question 2: Mobility */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-gold">
+                  <label className="field-label text-luxe-gold">
                     2. Besoin de déplacements ?
                   </label>
                   <select
                     value={quizAnswers.mobility}
                     onChange={(e) => setQuizAnswers({ ...quizAnswers, mobility: e.target.value })}
                     required
-                    className="w-full bg-luxe-gray text-xs border border-white/10 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-luxe-gold text-warm-cream"
+                    className="field-input w-full bg-luxe-gray border border-white/10 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-luxe-gold text-warm-cream"
                     id="quiz-mobility-select"
                   >
                     <option value="">Sélectionner...</option>
