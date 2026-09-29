@@ -11,6 +11,7 @@ interface Testimonial {
   product: string;
   comment: string;
   date: string;
+  createdAt: string;
   verified: boolean;
 }
 
@@ -24,6 +25,7 @@ const PRE_SEEDED_TESTIMONIALS: Testimonial[] = [
     product: 'MacBook Pro 14" M3 (32GB RAM)',
     comment: 'Qualité absolument incroyable ! L\'ordinateur est arrivé dans un état de seconde main rigoureusement neuf (zéro micro-rayure, santé batterie à 98%). Hervé a configuré la RAM à 32 Go comme demandé lors du devis. Service de confiance absolue à Yaoundé.',
     date: 'Il y a 3 jours',
+    createdAt: '2026-09-26T09:00:00.000Z',
     verified: true
   },
   {
@@ -35,6 +37,7 @@ const PRE_SEEDED_TESTIMONIALS: Testimonial[] = [
     product: 'Lenovo ThinkPad T14 Gen 3',
     comment: 'Une bête de course pour mes travaux de développement à Akwa. Le clavier est un pur régal et la bécane ne chauffe pas. Chapeau l\'artiste, importation certifiée USA authentique. Je repasserai commande pour mes collaborateurs.',
     date: 'Il y a 1 semaine',
+    createdAt: '2026-09-22T09:00:00.000Z',
     verified: true
   },
   {
@@ -46,6 +49,7 @@ const PRE_SEEDED_TESTIMONIALS: Testimonial[] = [
     product: 'Dell XPS 15 9520',
     comment: 'Hervé est ultra sérieux et très transparent. Livraison sécurisée jusqu\'à Bafoussam. Le Dell XPS est d\'un écran OLED somptueux. Les accessoires offerts d\'origine font plaisir. Adresse recommandée les yeux fermés !',
     date: 'Il y a 2 semaines',
+    createdAt: '2026-09-15T09:00:00.000Z',
     verified: true
   }
 ];
@@ -55,6 +59,22 @@ const RANDOM_AVATARS = [
   'bg-indigo-600 text-white', 'bg-rose-500 text-white', 'bg-teal-600 text-white',
   'bg-luxe-copper text-white', 'bg-luxe-gold text-luxe-dark'
 ];
+
+const getReviewTimestamp = (value: unknown) => {
+  const parsed = Date.parse(String(value || '').trim());
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const formatReviewDate = (value: unknown) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const timestamp = getReviewTimestamp(raw);
+  if (!timestamp) return raw;
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(timestamp));
+};
+
+const sortTestimonialsByNewest = (items: Testimonial[]) =>
+  [...items].sort((a, b) => getReviewTimestamp(b.createdAt) - getReviewTimestamp(a.createdAt));
 
 export default function Testimonials({
   onRequireLogin,
@@ -86,10 +106,11 @@ export default function Testimonials({
           rating: Math.min(5, Math.max(1, Number(r.rating || 5))),
           product: 'Service Herve_eShop',
           comment: String(r.comment || ''),
-          date: String(r.date || ''),
+          date: formatReviewDate(r.createdAt || r.date || ''),
+          createdAt: String(r.createdAt || r.date || ''),
           verified: true,
         }));
-        if (!cancelled && mapped.length) setTestimonials(mapped);
+        if (!cancelled && mapped.length) setTestimonials(sortTestimonialsByNewest(mapped));
       } catch {
       } finally {
         if (!cancelled) setLoading(false);
@@ -142,10 +163,11 @@ export default function Testimonials({
         rating: Math.min(5, Math.max(1, Number(r.rating || 5))),
         product: 'Service Herve_eShop',
         comment: String(r.comment || ''),
-        date: String(r.date || ''),
+        date: formatReviewDate(r.createdAt || r.date || ''),
+        createdAt: String(r.createdAt || r.date || ''),
         verified: true,
       }));
-      if (mapped.length) setTestimonials(mapped);
+      if (mapped.length) setTestimonials(sortTestimonialsByNewest(mapped));
     } catch (err) {
       onTriggerToast('Erreur avis', (err as Error).message, 'danger');
     } finally {
@@ -190,93 +212,90 @@ export default function Testimonials({
           </div>
         </div>
 
-        {/* Global Statistics Card displaying beautiful counts */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-6 rounded-2xl bg-white border border-warm-cream-dark/50 shadow-xs mb-10 text-left">
-          <div>
-            <span className="block text-2xl font-extrabold text-luxe-orange">99.4%</span>
-            <span className="type-badge text-luxe-muted">Clients Satisfaits</span>
-          </div>
-          <div>
-            <span className="block text-2xl font-extrabold text-luxe-dark flex items-center gap-1">
-              4.9 <Star className="w-4 h-4 fill-luxe-yellow text-luxe-yellow inline" />
-            </span>
-            <span className="type-badge text-luxe-muted">Note Globale Certifiée</span>
-          </div>
-          <div>
-            <span className="block text-2xl font-extrabold text-luxe-dark">+1,250</span>
-            <span className="type-badge text-luxe-muted">Ordinateurs Livrés</span>
-          </div>
-          <div>
-            <span className="block text-2xl font-extrabold text-luxe-gold">100%</span>
-            <span className="type-badge text-luxe-muted">Importé USA d'Origine</span>
-          </div>
-        </div>
-
         {loading && (
           <div className="type-badge text-luxe-muted font-mono mb-6">
             Chargement des avis...
           </div>
         )}
 
-        {/* Testimonials Grid Layout with animations */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          {testimonials.map((testimonial) => (
-            <div
-              key={testimonial.id}
-              className="group relative bg-white border border-warm-cream-dark/40 rounded-2xl p-4 sm:p-6 shadow-xs hover:shadow-lg hover:border-luxe-gold/30 transition-all duration-300 flex flex-col justify-between text-left ring-offset-2 hover:ring-2 hover:ring-luxe-gold/20 min-w-0"
-              id={`testimonial-card-${testimonial.id}`}
-            >
-              <div className="absolute top-6 right-6 text-warm-cream-dark/50 select-none">
-                <Quote className="w-8 h-8 rotate-180" />
-              </div>
+        <div className="rounded-[1.75rem] border border-warm-cream-dark/60 bg-white/72 p-3 sm:p-4 md:p-5 shadow-xs">
+          <div className="mb-3 flex items-center justify-between gap-3 px-1">
+            <p className="type-meta text-luxe-muted">
+              Les avis les plus récents apparaissent en premier.
+            </p>
+            <span className="hidden sm:inline type-badge text-luxe-copper">
+              {testimonials.length} avis
+            </span>
+          </div>
 
-              <div>
-                {/* Visual stars */}
-                <div className="flex items-center gap-1 mb-4">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i < testimonial.rating 
-                          ? 'fill-luxe-yellow text-luxe-yellow' 
-                          : 'text-warm-cream-dark/70'
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                <p className="type-badge text-luxe-muted mb-4 font-mono">
-                  Achat : {testimonial.product}
-                </p>
-
-                <p className="type-body text-luxe-dark/90 mb-6 break-words">
-                  "{testimonial.comment}"
+          <div className="max-h-[22rem] overflow-y-auto overscroll-contain pr-1 sm:max-h-[25rem] md:max-h-[27rem] md:pr-2">
+            {testimonials.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-warm-cream-dark/70 bg-white px-5 py-10 text-center">
+                <p className="type-card-title text-luxe-dark">Aucun avis publié pour le moment</p>
+                <p className="type-meta mt-2 text-luxe-muted">
+                  Les prochains retours clients apparaitront ici sans agrandir la homepage.
                 </p>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+                {testimonials.map((testimonial) => (
+                  <div
+                    key={testimonial.id}
+                    className="group relative bg-white border border-warm-cream-dark/40 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-lg hover:border-luxe-gold/30 transition-all duration-300 flex flex-col justify-between text-left ring-offset-2 hover:ring-2 hover:ring-luxe-gold/20 min-w-0"
+                    id={`testimonial-card-${testimonial.id}`}
+                  >
+                    <div className="absolute top-5 right-5 text-warm-cream-dark/50 select-none">
+                      <Quote className="w-7 h-7 rotate-180" />
+                    </div>
 
-              <div className="flex items-center gap-3 pt-4 border-t border-warm-cream-dark/50 mt-auto">
-                {/* Profile short monogram icon */}
-                <div className={`w-9 h-9 rounded-full ${testimonial.avatarColor} font-sans font-bold text-xs flex items-center justify-center shadow-xs`}>
-                  {testimonial.name.split(' ').map(part => part[0]).join('')}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <h4 className="type-card-title text-luxe-dark flex items-center gap-1">
-                    {testimonial.name}
-                    {testimonial.verified && (
-                      <span title="Acheteur vérifié • Devis validé">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-luxe-orange fill-luxe-orange/10" />
-                      </span>
-                    )}
-                  </h4>
-                  <p className="type-meta text-luxe-muted flex justify-between items-center gap-3 w-full">
-                    <span className="min-w-0 break-words">{testimonial.city}, Cameroun</span>
-                    <span className="font-mono text-[0.7rem] text-luxe-gold/80">{testimonial.date}</span>
-                  </p>
-                </div>
+                    <div>
+                      <div className="flex items-center gap-1 mb-3">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < testimonial.rating
+                                ? 'fill-luxe-yellow text-luxe-yellow'
+                                : 'text-warm-cream-dark/70'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      <p className="type-badge text-luxe-muted mb-3 font-mono">
+                        Achat : {testimonial.product}
+                      </p>
+
+                      <p className="type-body text-luxe-dark/90 mb-5 break-words">
+                        "{testimonial.comment}"
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-4 border-t border-warm-cream-dark/50 mt-auto">
+                      <div className={`w-9 h-9 rounded-full ${testimonial.avatarColor} font-sans font-bold text-xs flex items-center justify-center shadow-xs`}>
+                        {testimonial.name.split(' ').map(part => part[0]).join('')}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h4 className="type-card-title text-luxe-dark flex items-center gap-1">
+                          {testimonial.name}
+                          {testimonial.verified && (
+                            <span title="Acheteur vérifié • Devis validé">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-luxe-orange fill-luxe-orange/10" />
+                            </span>
+                          )}
+                        </h4>
+                        <p className="type-meta text-luxe-muted flex justify-between items-center gap-3 w-full">
+                          <span className="min-w-0 break-words">{testimonial.city}, Cameroun</span>
+                          <span className="font-mono text-[0.7rem] text-luxe-gold/80 whitespace-nowrap">{testimonial.date}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
 
       </div>
