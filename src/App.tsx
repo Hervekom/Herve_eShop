@@ -538,7 +538,7 @@ export default function App() {
 
   return (
     <AppErrorBoundary>
-      <div className="min-h-screen bg-warm-cream text-luxe-dark selection:bg-luxe-gold/30 flex flex-col justify-between antialiased">
+      <div className="min-h-screen overflow-x-clip bg-warm-cream text-luxe-dark selection:bg-luxe-gold/30 flex flex-col justify-between antialiased">
       {/* Dynamic Header Component */}
       <Header
         onSearchChange={setSearchValue}
@@ -555,7 +555,7 @@ export default function App() {
       {/* FLOATING REALTIME SIMULATION TOAST */}
       {activeToast && (
         <div 
-          className="fixed bottom-6 right-6 z-55 max-w-sm w-full bg-luxe-dark text-warm-cream rounded-2xl shadow-2xl border-2 border-luxe-gold/60 p-5 flex gap-4 animate-in slide-in-from-right-8 duration-300"
+          className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-55 max-w-sm w-auto bg-luxe-dark text-warm-cream rounded-2xl shadow-2xl border-2 border-luxe-gold/60 p-4 sm:p-5 flex gap-3 sm:gap-4 animate-in slide-in-from-right-8 duration-300"
           id={`toast-alert-${activeToast.id}`}
         >
           <div className="mt-0.5">
@@ -678,7 +678,7 @@ export default function App() {
             onClick={() => setIsCartOpen(false)}
           />
           <div className="relative w-full max-w-2xl bg-warm-cream rounded-3xl border border-warm-cream-dark/70 shadow-2xl overflow-hidden">
-            <div className="p-5 border-b border-warm-cream-dark/60 flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-warm-cream-dark/60 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-luxe-copper" />
                 <h3 className="type-card-title text-luxe-dark">Panier</h3>
@@ -695,7 +695,7 @@ export default function App() {
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto">
-              <div className="p-5 space-y-4">
+              <div className="p-4 sm:p-5 space-y-4">
                 {cartItems.length === 0 ? (
                   <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-warm-cream-dark/70">
                     <ShoppingCart className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
@@ -705,17 +705,17 @@ export default function App() {
                 ) : (
                   <div className="space-y-3">
                     {cartItems.map((it) => (
-                      <div key={it.product.id} className="bg-white rounded-2xl border border-warm-cream-dark/60 p-4 flex gap-3 items-start">
+                      <div key={it.product.id} className="bg-white rounded-2xl border border-warm-cream-dark/60 p-4 flex flex-col sm:flex-row gap-3 items-start">
                         <img
                           src={it.product.image}
                           alt={`${it.product.brand} ${it.product.model}`}
                           className="w-16 h-16 rounded-xl object-cover border border-warm-cream-dark/60"
                           referrerPolicy="no-referrer"
                         />
-                        <div className="flex-1">
+                        <div className="flex-1 w-full min-w-0">
                           <div className="flex justify-between items-start gap-2">
-                            <div>
-                              <div className="type-card-title !text-sm text-luxe-dark">{it.product.brand} {it.product.model}</div>
+                            <div className="min-w-0">
+                              <div className="type-card-title !text-sm text-luxe-dark break-words">{it.product.brand} {it.product.model}</div>
                               <div className="type-meta text-luxe-muted mt-0.5">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(it.product.price).replace('XAF', 'FCFA')}</div>
                             </div>
                             <button
@@ -728,7 +728,7 @@ export default function App() {
                             </button>
                           </div>
 
-                          <div className="mt-3 flex items-center justify-between">
+                          <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                             <div className="inline-flex items-center gap-2 bg-warm-cream/60 border border-warm-cream-dark/60 rounded-full px-2 py-1">
                               <button
                                 type="button"
@@ -760,7 +760,7 @@ export default function App() {
 
                 {cartItems.length > 0 && (
                   <div className="bg-white rounded-2xl border border-warm-cream-dark/60 p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="field-label text-luxe-muted">Total</span>
                       <span className="type-price !text-xl text-luxe-dark">
                         {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(cartTotal).replace('XAF', 'FCFA')}
@@ -832,8 +832,8 @@ export default function App() {
       )}
 
       {/* FOOTER SECTION */}
-      <footer className="bg-luxe-dark text-warm-cream py-10 border-t border-white/5 select-none z-10">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <footer className="bg-luxe-dark text-warm-cream py-8 sm:py-10 border-t border-white/5 select-none z-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           {/* Logo brand info */}
           <div className="space-y-4 text-left flex flex-col items-start justify-start">
             <HerveLogo size="md" className="text-white hover:text-luxe-gold transition-colors -ml-4" />
@@ -841,7 +841,7 @@ export default function App() {
               L'excellence du matériel informatique haut de gamme de seconde main importé au Cameroun. Traçabilité, configuration sur-mesure et service après-vente d'exception.
             </p>
             {socialLinks.length > 0 && (
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 {socialLinks.map(({ key, label, Icon, url }) => (
                   <a
                     key={key}
@@ -859,9 +859,9 @@ export default function App() {
           </div>
 
           {/* Quick links representation */}
-          <div className="space-y-3 text-left">
+          <div className="space-y-3 text-left min-w-0">
             <h5 className="field-label text-luxe-gold">Nos Boutiques de Retrait</h5>
-            <ul className="space-y-2 type-meta text-warm-cream-dark/70">
+            <ul className="space-y-2 type-meta text-warm-cream-dark/70 break-words">
               <li><span className="font-semibold text-warm-cream">Douala</span> : {(clientData?.contactCMS?.address || 'Akwa, Face Boulangerie Zépol (Showroom principal)')}</li>
               <li><span className="font-semibold text-warm-cream">Yaoundé</span> : Avenue Germaine, Immeuble Horizon</li>
               <li><span className="font-semibold text-warm-cream">WhatsApp Secours</span> : {(clientData?.contactCMS?.whatsAppPhone || '+237 699 00 11 22')}</li>
@@ -869,9 +869,9 @@ export default function App() {
           </div>
 
           {/* Framework indicators */}
-          <div className="space-y-3 text-left">
+          <div className="space-y-3 text-left min-w-0">
             <h5 className="field-label text-luxe-gold">Concept Application</h5>
-            <p className="type-meta text-warm-cream-dark/70">
+            <p className="type-meta text-warm-cream-dark/70 break-words">
               Propulsé par React, Tailwind CSS v4 et Vite. Permet d'administrer des stocks d'ordinateurs et d'émettre des devis d'importation en direct. Les modifications d'états sont simulées en temps réel.
             </p>
             <p className="type-meta text-luxe-gold/70 font-mono italic">
@@ -880,8 +880,8 @@ export default function App() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10 pt-6 border-t border-white/10 text-center type-meta text-warm-cream-dark/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} Herve_eShop Cameroon. Tous droits réservés. L'excellence au service de vos ambitions.</p>
+        <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 sm:mt-10 pt-6 border-t border-white/10 text-center type-meta text-warm-cream-dark/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="max-w-3xl">© {new Date().getFullYear()} Herve_eShop Cameroon. Tous droits réservés. L'excellence au service de vos ambitions.</p>
         </div>
       </footer>
 

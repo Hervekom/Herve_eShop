@@ -154,11 +154,11 @@ export default function Testimonials({
   };
 
   return (
-    <section className="py-20 bg-warm-cream border-t border-warm-cream-dark/60 select-none" id="temoignages-clients-section">
+    <section className="py-14 md:py-20 bg-warm-cream border-t border-warm-cream-dark/60 select-none overflow-hidden" id="temoignages-clients-section">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         
         {/* Header Block with high contrast custom orange/gold details */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 md:mb-12">
           <div className="text-left space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-luxe-orange/10 border border-luxe-orange/20 text-luxe-orange type-badge">
               <Sparkles className="w-3.5 h-3.5" />
@@ -173,11 +173,11 @@ export default function Testimonials({
           </div>
 
           {/* Service review button */}
-          <div className="flex items-center">
+          <div className="flex items-center w-full md:w-auto">
             <button
               onClick={openForm}
               disabled={submitting}
-              className={`type-button inline-flex items-center gap-2 px-5 py-3 rounded-xl border cursor-pointer select-none transition-all shadow-md active:scale-95 duration-200 ${
+              className={`type-button inline-flex w-full md:w-auto items-center justify-center gap-2 px-5 py-3 rounded-xl border cursor-pointer select-none transition-all shadow-md active:scale-95 duration-200 ${
                 submitting
                   ? 'bg-warm-cream-dark border-warm-cream-dark text-luxe-muted cursor-not-allowed'
                   : 'bg-luxe-dark text-white border-luxe-dark hover:bg-luxe-orange hover:border-luxe-orange hover:shadow-luxe-orange/20'
@@ -191,7 +191,7 @@ export default function Testimonials({
         </div>
 
         {/* Global Statistics Card displaying beautiful counts */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 rounded-2xl bg-white border border-warm-cream-dark/50 shadow-xs mb-10 text-left">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-6 rounded-2xl bg-white border border-warm-cream-dark/50 shadow-xs mb-10 text-left">
           <div>
             <span className="block text-2xl font-extrabold text-luxe-orange">99.4%</span>
             <span className="type-badge text-luxe-muted">Clients Satisfaits</span>
@@ -219,11 +219,11 @@ export default function Testimonials({
         )}
 
         {/* Testimonials Grid Layout with animations */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {testimonials.map((testimonial) => (
             <div
               key={testimonial.id}
-              className="group relative bg-white border border-warm-cream-dark/40 rounded-2xl p-6 shadow-xs hover:shadow-lg hover:border-luxe-gold/30 transition-all duration-300 flex flex-col justify-between text-left ring-offset-2 hover:ring-2 hover:ring-luxe-gold/20"
+              className="group relative bg-white border border-warm-cream-dark/40 rounded-2xl p-4 sm:p-6 shadow-xs hover:shadow-lg hover:border-luxe-gold/30 transition-all duration-300 flex flex-col justify-between text-left ring-offset-2 hover:ring-2 hover:ring-luxe-gold/20 min-w-0"
               id={`testimonial-card-${testimonial.id}`}
             >
               <div className="absolute top-6 right-6 text-warm-cream-dark/50 select-none">
@@ -249,7 +249,7 @@ export default function Testimonials({
                   Achat : {testimonial.product}
                 </p>
 
-                <p className="type-body text-luxe-dark/90 mb-6">
+                <p className="type-body text-luxe-dark/90 mb-6 break-words">
                   "{testimonial.comment}"
                 </p>
               </div>
@@ -260,7 +260,7 @@ export default function Testimonials({
                   {testimonial.name.split(' ').map(part => part[0]).join('')}
                 </div>
                 
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h4 className="type-card-title text-luxe-dark flex items-center gap-1">
                     {testimonial.name}
                     {testimonial.verified && (
@@ -269,8 +269,8 @@ export default function Testimonials({
                       </span>
                     )}
                   </h4>
-                  <p className="type-meta text-luxe-muted flex justify-between items-center w-full">
-                    <span>{testimonial.city}, Cameroun</span>
+                  <p className="type-meta text-luxe-muted flex justify-between items-center gap-3 w-full">
+                    <span className="min-w-0 break-words">{testimonial.city}, Cameroun</span>
                     <span className="font-mono text-[0.7rem] text-luxe-gold/80">{testimonial.date}</span>
                   </p>
                 </div>

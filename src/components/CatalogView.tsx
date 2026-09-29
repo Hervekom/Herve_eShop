@@ -109,6 +109,13 @@ const normalizeImagePosition = (value: unknown) => {
   return normalized || undefined;
 };
 
+const truncateText = (value: unknown, maxLength: number) => {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+};
+
 const buildPromoImageMetrics = (width: number, height: number): PromoImageMetrics => {
   const safeWidth = Math.max(1, Number(width || 1));
   const safeHeight = Math.max(1, Number(height || 1));
@@ -143,15 +150,15 @@ const getPromoImageFramePreset = (metrics: PromoImageMetrics, viewportWidth: num
   if (isMobile) {
     switch (metrics.orientation) {
       case 'panorama':
-        return { widthPercent: 100, maxHeight: 210, minHeight: 150 };
+        return { widthPercent: 100, maxHeight: 210, minHeight: 160 };
       case 'landscape':
-        return { widthPercent: 100, maxHeight: 238, minHeight: 170 };
+        return { widthPercent: 100, maxHeight: 250, minHeight: 180 };
       case 'square':
-        return { widthPercent: 86, maxHeight: 280, minHeight: 210 };
+        return { widthPercent: 100, maxHeight: 290, minHeight: 220 };
       case 'portrait':
-        return { widthPercent: 70, maxHeight: 335, minHeight: 250 };
+        return { widthPercent: 82, maxHeight: 360, minHeight: 280 };
       default:
-        return { widthPercent: 62, maxHeight: 360, minHeight: 270 };
+        return { widthPercent: 72, maxHeight: 400, minHeight: 300 };
     }
   }
 
@@ -639,9 +646,27 @@ export default function CatalogView({
     currentPromoMetrics.orientation === 'portrait' || currentPromoMetrics.orientation === 'tall-portrait'
       ? 'lg:col-span-6'
       : 'lg:col-span-5';
+  const promoTitle = currentPromoSlide?.title || heroTitle;
+  const promoSubtitle = currentPromoSlide?.subtitle || heroSubtitle;
+  const promoDescription = currentPromoSlide?.description || heroSubtitle;
+  const promoDisplayTitle = isMobileViewport ? truncateText(promoTitle, 54) : promoTitle;
+  const promoDisplaySubtitle = isMobileViewport ? truncateText(promoSubtitle, 120) : promoSubtitle;
+  const promoDisplayDescription = isMobileViewport ? truncateText(promoDescription, 150) : promoDescription;
+  const promoImportantInfo =
+    currentPromoSlide?.kind === 'product'
+      ? formatPrice(currentPromoSlide.price)
+      : currentPromoSlide?.kind === 'advertisement'
+        ? currentPromoSlide.advertiserName
+        : currentPromoSlide?.meta?.[0] || '';
+  const promoSupportingInfo =
+    currentPromoSlide?.kind === 'product'
+      ? 'Produit du catalogue disponible immédiatement'
+      : currentPromoSlide?.kind === 'advertisement'
+        ? currentPromoSlide?.meta?.[0] || 'Campagne sponsorisée'
+        : currentPromoSlide?.meta?.[1] || '';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 relative overflow-hidden" id="catalog-view-container">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-5 sm:py-6 relative overflow-hidden" id="catalog-view-container">
       {/* Decorative Elegant Watermark "Herve_eShop" in the background */}
       <div className="absolute -left-10 top-1/3 opacity-[0.02] text-[18vw] font-black select-none pointer-events-none tracking-tight leading-none z-0">
         Herve_eShop
@@ -663,94 +688,11 @@ export default function CatalogView({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -16 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="relative grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 p-4 md:p-5 lg:p-6"
+              className="relative grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 p-3.5 sm:p-4 md:p-5 lg:p-6"
             >
-              <div className={`${promoTextColumnClass} flex flex-col justify-between text-left`}>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-3.5">
-                    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${
-                      currentPromoSlide?.kind === 'advertisement'
-                        ? 'bg-white/8 border-white/15 text-white'
-                        : currentPromoSlide?.kind === 'product'
-                          ? 'bg-luxe-copper/20 border-luxe-copper/30 text-luxe-gold'
-                          : 'bg-white/8 border-white/15 text-white'
-                    }`}>
-                      <span className="w-2 h-2 rounded-full bg-current opacity-80" />
-                      <span className="type-badge text-current">{currentPromoSlide?.badge}</span>
-                    </span>
-                    {currentPromoSlide?.kind === 'advertisement' && (
-                      <span className="type-meta text-white/68">
-                        {currentPromoSlide.advertiserName}
-                      </span>
-                    )}
-                    {currentPromoSlide?.kind === 'product' && (
-                      <span className="type-meta text-white/68">
-                        Fallback automatique du catalogue
-                      </span>
-                    )}
-                  </div>
-
-                  <h2 className="max-w-[13ch] text-white text-[clamp(1.8rem,3.2vw,3rem)] leading-[0.95] font-extrabold tracking-[-0.04em]">
-                    {currentPromoSlide?.title || heroTitle}
-                  </h2>
-
-                  <p className="mt-3 max-w-xl text-white/82 text-[0.95rem] md:text-[1rem] leading-relaxed font-medium">
-                    {currentPromoSlide?.subtitle || heroSubtitle}
-                  </p>
-
-                  <p className="type-body mt-2.5 max-w-xl text-white/66 line-clamp-3">
-                    {currentPromoSlide?.description || heroSubtitle}
-                  </p>
-
-                  {currentPromoSlide?.kind === 'product' && (
-                    <div className="mt-4 inline-flex items-baseline gap-2.5 flex-wrap">
-                      <span className="type-price text-white">
-                        {formatPrice(currentPromoSlide.price)}
-                      </span>
-                      <span className="type-meta text-white/65">
-                        Produit du catalogue disponible immédiatement
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {currentPromoSlide?.meta?.map((item) => (
-                      <span
-                        key={item}
-                        className="type-meta px-2.5 py-1 rounded-full border border-white/12 bg-white/7 text-white/76"
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-5 flex flex-wrap items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => currentPromoSlide && handlePromoAction(currentPromoSlide)}
-                    className="type-button inline-flex items-center gap-2 rounded-full bg-white text-luxe-dark px-4 py-2.75 hover:bg-luxe-gold transition-colors shadow-lg"
-                  >
-                    {currentPromoSlide?.ctaText || 'Découvrir'}
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      scheduleRotationResume();
-                      document.getElementById('catalog-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className="type-button inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/6 text-white px-4 py-2.75 hover:bg-white/10 transition-colors"
-                  >
-                    Explorer le catalogue
-                    <Globe2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className={`${promoImageColumnClass} flex items-center justify-center lg:justify-end`}>
+              <div className={`${promoImageColumnClass} order-1 lg:order-1 flex items-center justify-center lg:justify-start`}>
                 <div
-                  className={`relative rounded-[1.35rem] overflow-hidden border border-white/10 ${
+                  className={`relative mx-auto lg:mx-0 rounded-[1.35rem] overflow-hidden border border-white/10 ${
                   promoImageUsesContain
                     ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(245,242,237,0.96)_62%,rgba(232,223,210,0.9))]'
                     : 'bg-white/6'
@@ -761,14 +703,14 @@ export default function CatalogView({
                     <button
                       type="button"
                       onClick={() => currentPromoSlide && handlePromoAction(currentPromoSlide)}
-                      className={`absolute inset-0 block w-full h-full text-left ${
+                      className={`absolute inset-0 block h-full w-full text-left ${
                         promoImageUsesContain ? 'p-3 sm:p-4 md:p-5 lg:p-6' : ''
                       }`}
                     >
                       <img
                         src={currentPromoImage}
                         alt={currentPromoSlide?.title || 'Promotion'}
-                        className={`w-full h-full ${promoImageUsesContain ? 'object-contain' : 'object-cover'} ${promoImageUsesContain ? 'rounded-[1rem]' : 'absolute inset-0'}`}
+                        className={`h-full w-full ${promoImageUsesContain ? 'object-contain' : 'object-cover'} ${promoImageUsesContain ? 'rounded-[1rem]' : 'absolute inset-0'}`}
                         style={{ objectPosition: currentPromoImagePosition }}
                         onLoad={(event) => {
                           registerPromoImageMetrics(
@@ -789,7 +731,7 @@ export default function CatalogView({
                           {currentPromoSlide?.kind === 'advertisement' ? 'Campagne active' : 'Produit en vitrine'}
                         </div>
                         <p className="type-body text-white/70 mt-3 max-w-md">
-                          Le contenu promotionnel reste accessible même si un visuel externe n'est pas disponible.
+                          Le contenu promotionnel reste accessible meme si un visuel externe n'est pas disponible.
                         </p>
                       </div>
                     </div>
@@ -810,7 +752,7 @@ export default function CatalogView({
                   )}
 
                   <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-3">
-                    <div className="inline-flex flex-col gap-2">
+                    <div className="hidden sm:inline-flex flex-col gap-2">
                       <span className="type-kicker text-white/70">
                         {isShowingAdvertisements ? 'Sponsored placement' : isShowingProductFallback ? 'Product fallback mode' : 'Editorial fallback'}
                       </span>
@@ -837,33 +779,33 @@ export default function CatalogView({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="ml-auto flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => goToAdjacentPromoSlide(-1)}
-                        className="w-9 h-9 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
+                        className="h-10 w-10 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
                         aria-label="Previous slide"
                       >
-                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <ArrowLeft className="w-4 h-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => goToAdjacentPromoSlide(1)}
-                        className="w-9 h-9 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
+                        className="h-10 w-10 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
                         aria-label="Next slide"
                       >
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
-                    <div className="max-w-lg">
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-3 md:justify-between">
+                    <div className="hidden md:block max-w-lg">
                       <div className="type-kicker text-white/70">
                         {currentPromoSlide?.kind === 'advertisement'
                           ? 'Annonce active'
                           : currentPromoSlide?.kind === 'product'
-                            ? 'Produit sélectionné'
+                            ? 'Produit selectionne'
                             : 'Collection mise en avant'}
                       </div>
                       <div className="mt-1.5 text-lg sm:text-xl md:text-[1.6rem] font-bold tracking-tight text-white leading-tight">
@@ -877,7 +819,7 @@ export default function CatalogView({
                     </div>
 
                     {promoSlides.length > 1 && (
-                      <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                      <div className="flex flex-wrap items-center justify-center gap-2 md:justify-end">
                         {promoSlides.slice(0, 7).map((slide, idx) => {
                           const active = idx === activePromoIndex;
                           return (
@@ -897,6 +839,91 @@ export default function CatalogView({
                   </div>
                 </div>
               </div>
+
+              <div className={`${promoTextColumnClass} order-2 lg:order-2 flex flex-col justify-between text-left`}>
+                <div>
+                  <div className="mb-2.5 flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${
+                      currentPromoSlide?.kind === 'advertisement'
+                        ? 'bg-white/8 border-white/15 text-white'
+                        : currentPromoSlide?.kind === 'product'
+                          ? 'bg-luxe-copper/20 border-luxe-copper/30 text-luxe-gold'
+                          : 'bg-white/8 border-white/15 text-white'
+                    }`}>
+                      <span className="w-2 h-2 rounded-full bg-current opacity-80" />
+                      <span className="type-badge text-current">{currentPromoSlide?.badge}</span>
+                    </span>
+                    {currentPromoSlide?.kind === 'advertisement' && (
+                      <span className="type-meta text-white/68 sm:hidden">
+                        {currentPromoSlide.advertiserName}
+                      </span>
+                    )}
+                    {currentPromoSlide?.kind === 'product' && (
+                      <span className="type-meta text-white/68 sm:hidden">
+                        Fallback automatique du catalogue
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="max-w-[15ch] text-white text-[clamp(1.45rem,6.8vw,3rem)] leading-[0.96] font-extrabold tracking-[-0.04em]">
+                    {promoDisplayTitle}
+                  </h2>
+
+                  <p className="mt-2.5 max-w-xl text-white/84 text-[0.92rem] md:text-[1rem] leading-relaxed font-medium line-clamp-3">
+                    {promoDisplaySubtitle}
+                  </p>
+
+                  <p className="type-body mt-2 max-w-xl text-white/66 line-clamp-2 md:line-clamp-3">
+                    {promoDisplayDescription}
+                  </p>
+
+                  {promoImportantInfo && (
+                    <div className="mt-3.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                      <span className="type-price text-white">
+                        {promoImportantInfo}
+                      </span>
+                      {promoSupportingInfo && (
+                        <span className="type-meta text-white/65">
+                          {promoSupportingInfo}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-4 hidden sm:flex flex-wrap gap-2">
+                    {currentPromoSlide?.meta?.map((item) => (
+                      <span
+                        key={item}
+                        className="type-meta px-2.5 py-1 rounded-full border border-white/12 bg-white/7 text-white/76"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => currentPromoSlide && handlePromoAction(currentPromoSlide)}
+                    className="type-button inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-white text-luxe-dark px-4 py-3 hover:bg-luxe-gold transition-colors shadow-lg"
+                  >
+                    {currentPromoSlide?.ctaText || 'Découvrir'}
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      scheduleRotationResume();
+                      document.getElementById('catalog-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="type-button inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full border border-white/14 bg-white/6 text-white px-4 py-3 hover:bg-white/10 transition-colors"
+                  >
+                    Explorer le catalogue
+                    <Globe2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -904,7 +931,7 @@ export default function CatalogView({
 
       {/* FILTER PANEL SECTION */}
       <span id="catalog-grid-anchor" className="block scroll-mt-24"></span>
-      <section className="mt-12 md:mt-16 bg-white/80 border border-warm-cream-dark/80 rounded-2xl p-5 md:p-7 shadow-xs">
+      <section className="mt-10 md:mt-16 bg-white/80 border border-warm-cream-dark/80 rounded-2xl p-4 sm:p-5 md:p-7 shadow-xs overflow-hidden">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-warm-cream-dark/50 pb-4">
             <div>
@@ -935,7 +962,7 @@ export default function CatalogView({
                         setSelectedCategory(cat);
                         setShowOnlyFavourites(false); // Standard catalog view is restored when clicking category buttons
                       }}
-                      className={`type-button inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
+                      className={`type-button inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
                         isSelected && !showOnlyFavourites
                           ? 'bg-luxe-dark text-warm-cream border-luxe-dark shadow-sm scale-[1.02]'
                           : 'bg-warm-cream text-luxe-dark border-warm-cream-dark/70 hover:border-luxe-gold hover:bg-white'
@@ -955,7 +982,7 @@ export default function CatalogView({
                   onClick={() => {
                     setShowOnlyFavourites(!showOnlyFavourites);
                   }}
-                  className={`type-button inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
+                  className={`type-button inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
                     showOnlyFavourites
                       ? 'bg-red-500 text-white border-red-500 shadow-sm scale-[1.02]'
                       : 'bg-red-50 text-red-600 border-red-200 hover:border-red-400 hover:bg-red-100'
@@ -1005,7 +1032,7 @@ export default function CatalogView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-warm-cream/40 p-4 rounded-xl border border-warm-cream-dark/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 bg-warm-cream/40 p-3.5 sm:p-4 rounded-xl border border-warm-cream-dark/50">
                 {/* Min Price Slider */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center type-badge text-luxe-muted">
@@ -1158,7 +1185,7 @@ export default function CatalogView({
           </p>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
         <AnimatePresence mode="popLayout">
           {sortedLaptops.length === 0 ? (
             <motion.div
@@ -1205,12 +1232,12 @@ export default function CatalogView({
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   key={laptop.id}
                   id={`laptop-card-${laptop.id}`}
-                  className="group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300"
+                  className="group min-w-0 flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300"
                 >
                   {/* Image Section - LabCraft Style */}
                   <div 
                     onClick={() => onSelectLaptopForDetails(laptop)}
-                    className="relative aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer"
+                    className="relative aspect-[5/4] sm:aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer"
                     title="Cliquez pour voir les détails du produit"
                   >
                     <img
@@ -1242,7 +1269,7 @@ export default function CatalogView({
                         e.stopPropagation();
                         onToggleFavourite(laptop.id);
                       }}
-                      className={`absolute top-3 right-3 w-9 h-9 rounded-full border flex items-center justify-center backdrop-blur-sm transition-all ${
+                      className={`absolute top-3 right-3 w-10 h-10 rounded-full border flex items-center justify-center backdrop-blur-sm transition-all ${
                         favouriteIds.includes(laptop.id)
                           ? 'bg-white text-red-500 border-white'
                           : 'bg-white/85 text-luxe-dark border-white/90 hover:text-red-500'
@@ -1255,28 +1282,28 @@ export default function CatalogView({
                   </div>
 
                   {/* Product Details - LabCraft Style */}
-                  <div className="p-5 flex-1 flex flex-col justify-between gap-5">
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-4 sm:gap-5">
                     <div 
                       onClick={() => onSelectLaptopForDetails(laptop)}
-                      className="cursor-pointer text-left"
+                      className="min-w-0 cursor-pointer text-left"
                       title="Cliquer pour voir les détails de cette machine"
                     >
-                      <h4 className="type-card-title text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
+                      <h4 className="type-card-title text-gray-900 group-hover:text-blue-600 transition-colors mb-2 line-clamp-2">
                         {laptop.brand} {laptop.model}
                       </h4>
 
-                      <div className="space-y-1.5">
-                        <div className="flex items-start gap-2 type-meta text-gray-600">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-start gap-2 type-meta text-gray-600 min-w-0">
                           <span className="font-semibold text-gray-800">Processeur:</span>
-                          <span>{laptop.processor}</span>
+                          <span className="min-w-0 break-words">{laptop.processor}</span>
                         </div>
-                        <div className="flex items-center gap-2 type-meta text-gray-600">
+                        <div className="flex items-center gap-2 type-meta text-gray-600 min-w-0">
                           <span className="font-semibold text-gray-800">RAM:</span>
-                          <span>{laptop.ram}</span>
+                          <span className="min-w-0 break-words">{laptop.ram}</span>
                         </div>
-                        <div className="flex items-center gap-2 type-meta text-gray-600">
+                        <div className="flex items-center gap-2 type-meta text-gray-600 min-w-0">
                           <span className="font-semibold text-gray-800">Stockage:</span>
-                          <span>{laptop.storage}</span>
+                          <span className="min-w-0 break-words">{laptop.storage}</span>
                         </div>
                       </div>
 
@@ -1291,7 +1318,7 @@ export default function CatalogView({
                     </div>
 
                     <div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <button
                           type="button"
                           onClick={() => onAddToCart(laptop)}
@@ -1326,7 +1353,7 @@ export default function CatalogView({
                       <button
                         type="button"
                         onClick={() => onSelectLaptopForDetails(laptop)}
-                        className="type-meta mt-3 w-full text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none py-2"
+                        className="type-meta mt-3 w-full text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none py-2.5"
                         id={`details-link-${laptop.id}`}
                       >
                         Voir les détails complets →
@@ -1342,7 +1369,7 @@ export default function CatalogView({
       </section>
 
       {/* WHY CHOOSE HERVE_ESHOP ADVANTAGE */}
-      <section className="mt-16 md:mt-24 bg-luxe-dark text-warm-cream rounded-3xl p-8 md:p-12 relative overflow-hidden">
+      <section className="mt-14 md:mt-24 bg-luxe-dark text-warm-cream rounded-3xl p-5 sm:p-7 md:p-12 relative overflow-hidden">
         <div className="absolute top-0 right-0 opacity-[0.03] text-[20vw] font-black select-none pointer-events-none tracking-tight">
           Luxe
         </div>

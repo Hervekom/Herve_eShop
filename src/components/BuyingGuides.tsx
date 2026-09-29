@@ -149,7 +149,7 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
   };
 
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-warm-cream border-t border-warm-cream-dark/60" id="buying-guides-section">
+    <section className="py-14 md:py-16 bg-gradient-to-b from-white to-warm-cream border-t border-warm-cream-dark/60 overflow-hidden" id="buying-guides-section">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         
         {/* Header Title Section */}
@@ -167,10 +167,10 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
         </div>
 
         {/* Dynamic Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 items-start">
           
           {/* Active Guide Area - 7 cols */}
-          <div className="lg:col-span-8 bg-white border border-warm-cream-dark p-6 md:p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300">
+          <div className="lg:col-span-8 min-w-0 bg-white border border-warm-cream-dark p-4 sm:p-6 md:p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300">
             
             {/* Category Selector Tabs */}
             <div className="flex flex-wrap gap-2 mb-6 border-b border-warm-cream-dark pb-4">
@@ -179,7 +179,7 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                   key={guide.id}
                   type="button"
                   onClick={() => setActiveTab(guide.id)}
-                  className={`type-button flex items-center gap-2 px-4 py-3 rounded-full transition-all duration-300 cursor-pointer select-none border ${
+                  className={`type-button flex items-center gap-2 px-3.5 py-2.5 rounded-full transition-all duration-300 cursor-pointer select-none border ${
                     activeTab === guide.id
                       ? 'bg-luxe-dark text-white border-luxe-dark shadow-md'
                       : 'bg-warm-cream text-luxe-muted border-warm-cream-dark hover:border-luxe-copper hover:text-luxe-dark'
@@ -199,10 +199,10 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-6 text-left"
+                className="space-y-5 sm:space-y-6 text-left min-w-0"
               >
                 <div>
-                  <h3 className="type-section-title text-luxe-dark !text-[clamp(1.5rem,2.2vw,2rem)] flex items-center gap-2">
+                  <h3 className="type-section-title text-luxe-dark !text-[clamp(1.35rem,5vw,2rem)] flex items-center gap-2">
                     {currentGuide.title}
                   </h3>
                   <p className="type-meta text-luxe-muted mt-2">
@@ -211,60 +211,60 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                 </div>
 
                 {/* Grid layout for Features & Technical Specifications */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 pt-2 min-w-0">
                   
                   {/* Left Column: Advantages checklist */}
-                  <div className="space-y-3.5">
+                  <div className="space-y-3.5 min-w-0">
                     <h4 className="field-label text-luxe-muted border-b border-warm-cream-dark pb-1.5">
                       Pourquoi choisir ce profil ?
                     </h4>
                     <ul className="space-y-2.5">
                       {currentGuide.advantages.map((adv, idx) => (
-                        <li key={idx} className="flex items-start gap-2.5 type-meta text-luxe-dark">
+                        <li key={idx} className="flex items-start gap-2.5 type-meta text-luxe-dark min-w-0">
                           <span className="p-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 mt-0.5 flex-shrink-0">
                             <Check className="w-3 h-3 stroke-[3px]" />
                           </span>
-                          <span>{adv}</span>
+                          <span className="min-w-0 break-words">{adv}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
                   {/* Right Column: Spec Highlights Cards */}
-                  <div className="bg-warm-cream/50 border border-warm-cream-dark rounded-2xl p-4 space-y-3">
+                  <div className="min-w-0 bg-warm-cream/50 border border-warm-cream-dark rounded-2xl p-4 space-y-3">
                     <h4 className="field-label text-luxe-muted border-b border-warm-cream-dark pb-1 ml-1">
                       Fiche technique préconisée
                     </h4>
                     
-                    <div className="space-y-2.5 type-meta">
-                      <div className="flex items-center gap-2 text-luxe-dark">
+                    <div className="space-y-2.5 type-meta min-w-0">
+                      <div className="flex items-start gap-2 text-luxe-dark min-w-0">
                         <Cpu className="w-4 h-4 text-luxe-copper flex-shrink-0" />
                         <span className="text-luxe-muted mr-1">CPU :</span>
-                        <span className="font-semibold">{currentGuide.specs.cpu}</span>
+                        <span className="font-semibold min-w-0 break-words">{currentGuide.specs.cpu}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-luxe-dark">
+                      <div className="flex items-start gap-2 text-luxe-dark min-w-0">
                         <Layers className="w-4 h-4 text-luxe-copper flex-shrink-0" />
                         <span className="text-luxe-muted mr-1">RAM :</span>
-                        <span className="font-semibold font-mono">{currentGuide.specs.ram}</span>
+                        <span className="font-semibold font-mono min-w-0 break-words">{currentGuide.specs.ram}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-luxe-dark">
+                      <div className="flex items-start gap-2 text-luxe-dark min-w-0">
                         <HardDrive className="w-4 h-4 text-luxe-copper flex-shrink-0" />
                         <span className="text-luxe-muted mr-1">Disque :</span>
-                        <span className="font-semibold font-mono">{currentGuide.specs.storage}</span>
+                        <span className="font-semibold font-mono min-w-0 break-words">{currentGuide.specs.storage}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-luxe-dark">
+                      <div className="flex items-start gap-2 text-luxe-dark min-w-0">
                         <Sparkles className="w-4 h-4 text-luxe-copper flex-shrink-0" />
                         <span className="text-luxe-muted mr-1">Carte Graphique :</span>
-                        <span className="font-semibold">{currentGuide.specs.gpu}</span>
+                        <span className="font-semibold min-w-0 break-words">{currentGuide.specs.gpu}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-luxe-dark">
+                      <div className="flex items-start gap-2 text-luxe-dark min-w-0">
                         <Battery className="w-4 h-4 text-luxe-copper flex-shrink-0" />
                         <span className="text-luxe-muted mr-1">Autonomie :</span>
-                        <span className="font-semibold">{currentGuide.specs.battery}</span>
+                        <span className="font-semibold min-w-0 break-words">{currentGuide.specs.battery}</span>
                       </div>
                     </div>
                   </div>
@@ -278,8 +278,8 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                 </div>
 
                 {/* Target profiles and recommended series list */}
-                <div className="pt-4 border-t border-warm-cream-dark/50 flex flex-col md:flex-row justify-between gap-4">
-                  <div className="space-y-1">
+                <div className="pt-4 border-t border-warm-cream-dark/50 flex flex-col md:flex-row justify-between gap-4 min-w-0">
+                  <div className="space-y-1 min-w-0">
                     <span className="field-label text-luxe-muted">Idéal pour</span>
                     <div className="flex flex-wrap gap-1.5">
                       {currentGuide.suitableFor.map((p, i) => (
@@ -290,21 +290,21 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
                     </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <span className="field-label text-luxe-muted">Gamme de référence recommandée</span>
-                    <p className="type-card-title text-luxe-dark">
+                    <p className="type-card-title text-luxe-dark break-words">
                       {currentGuide.recommendedModels}
                     </p>
                   </div>
                 </div>
 
                 {/* Instant WhatsApp Inquiry Button for this guide state */}
-                <div className="pt-2 flex justify-end">
+                <div className="pt-2 flex justify-stretch sm:justify-end">
                   <a
                     href={`https://wa.me/${whatsAppPhone}?text=${encodeURIComponent(getWhatsAppProfileText(currentGuide.id))}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="type-button inline-flex items-center gap-2 bg-luxe-dark text-warm-cream hover:bg-luxe-copper hover:text-white px-5 py-3 rounded-full transition-all duration-300 shadow-md active:scale-95 cursor-pointer text-center select-none"
+                    className="type-button inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-luxe-dark text-warm-cream hover:bg-luxe-copper hover:text-white px-5 py-3 rounded-full transition-all duration-300 shadow-md active:scale-95 cursor-pointer text-center select-none"
                     id={`guide-cta-${currentGuide.id}`}
                   >
                     <span>Consulter Hervé sur WhatsApp</span>
@@ -318,7 +318,7 @@ export default function BuyingGuides({ cms }: { cms?: any }) {
           </div>
 
           {/* Quick Quiz Interactive Panel - 5 cols */}
-          <div className="lg:col-span-4 bg-luxe-dark text-warm-cream p-6 md:p-8 rounded-3xl shadow-xl flex flex-col gap-6 text-left border border-white/5 relative overflow-hidden">
+          <div className="lg:col-span-4 min-w-0 bg-luxe-dark text-warm-cream p-4 sm:p-6 md:p-8 rounded-3xl shadow-xl flex flex-col gap-6 text-left border border-white/5 relative overflow-hidden">
             
             {/* Ambient luxury glow background ornament */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-luxe-gold/5 blur-3xl pointer-events-none rounded-full"></div>

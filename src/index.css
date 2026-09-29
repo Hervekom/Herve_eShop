@@ -42,6 +42,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
 .font-serif {
   font-family: var(--font-serif);
 }
@@ -162,6 +176,18 @@ select {
 
   .type-body {
     font-size: 0.93rem;
+  }
+
+  .type-price {
+    font-size: clamp(1.15rem, 6vw, 1.45rem);
+  }
+
+  .type-button {
+    font-size: 0.88rem;
+  }
+
+  .type-meta {
+    font-size: 0.78rem;
   }
 }
 
