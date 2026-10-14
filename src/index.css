@@ -189,6 +189,22 @@ select {
   .type-meta {
     font-size: 0.78rem;
   }
+
+  /* Lisibilité sur téléphone : pas de texte sous 12 px */
+  .type-badge,
+  .type-kicker {
+    font-size: 0.75rem;
+  }
+
+  /* Cartes produit en 2 colonnes : prix et titre plus compacts */
+  .type-price-card {
+    font-size: 1.05rem;
+  }
+
+  .type-card-title-compact {
+    font-size: 0.92rem;
+    line-height: 1.3;
+  }
 }
 
 /* Custom scrollbars that fit the luxury concept */

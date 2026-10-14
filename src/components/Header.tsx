@@ -77,6 +77,7 @@ export default function Header({
         onClick={onOpenNotificationCenter}
         className="relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white border border-warm-cream-dark hover:border-luxe-gold/60 hover:bg-warm-cream transition-all shadow-xs cursor-pointer select-none"
         title="Notifications"
+        aria-label="Notifications"
       >
         <Bell className="w-4 h-4 text-luxe-dark" />
         {unreadNotificationCount > 0 && (
@@ -92,6 +93,7 @@ export default function Header({
         className="relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white border border-warm-cream-dark hover:border-luxe-gold/60 hover:bg-warm-cream transition-all shadow-xs cursor-pointer select-none"
         id="open-cart-btn"
         title="Panier"
+        aria-label="Panier"
       >
         <ShoppingCart className="w-4 h-4 text-luxe-dark" />
         {cartCount > 0 && (
@@ -106,6 +108,7 @@ export default function Header({
         onClick={onOpenAccountModal}
         className="type-button inline-flex items-center justify-center gap-1.5 min-h-10 sm:min-h-11 px-3 sm:px-4 rounded-full bg-luxe-dark hover:bg-luxe-copper text-white transition-all shadow-xs cursor-pointer select-none border border-luxe-gold/20"
         id="open-customer-account-modal-header-btn"
+        aria-label={accountLabel}
       >
         <User className="w-3.5 h-3.5 text-luxe-gold" />
         <span className="hidden lg:inline">{accountLabel}</span>
@@ -122,14 +125,15 @@ export default function Header({
       <div className="w-full bg-gradient-to-r from-luxe-orange to-luxe-gold text-white py-1.5 px-4 shadow-sm select-none">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-center sm:text-left">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 min-w-0">
-            <span className="inline-flex items-center justify-center bg-white/20 backdrop-blur-xs text-white px-2.5 py-1 rounded-full type-badge">
+            <span className="max-sm:hidden inline-flex items-center justify-center bg-white/20 backdrop-blur-xs text-white px-2.5 py-1 rounded-full type-badge">
               Nouveaux arrivages
             </span>
-            <span className="type-meta text-white/95 max-w-3xl line-clamp-2 sm:line-clamp-1">
+            {/* Téléphone : une seule ligne pour garder de la place au catalogue */}
+            <span className="type-meta text-white/95 max-w-3xl line-clamp-1">
               {announcementText}
             </span>
           </div>
-          <div className="flex items-center gap-4 type-kicker text-white/90">
+          <div className="max-sm:hidden flex items-center gap-4 type-kicker text-white/90">
             <span className="flex items-center gap-1.5">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
@@ -141,7 +145,7 @@ export default function Header({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-2.5 md:py-3 flex flex-col gap-2.5 md:gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center justify-between gap-3 md:gap-6 md:flex-1">
           <div className="hidden md:flex items-center gap-2 type-kicker text-luxe-orange">
             <span className="relative flex h-1.5 w-1.5">

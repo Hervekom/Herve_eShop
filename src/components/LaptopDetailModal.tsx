@@ -463,7 +463,8 @@ export default function LaptopDetailModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Téléphone : la fiche occupe tout l'écran */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
         {/* Backdrop overlay */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -479,14 +480,15 @@ export default function LaptopDetailModal({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: 'spring', duration: 0.45 }}
-          className="relative w-full max-w-4xl bg-warm-cream border border-warm-cream-dark/65 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden select-none outline-none z-10"
+          className="relative w-full max-w-4xl bg-warm-cream border border-warm-cream-dark/65 rounded-none sm:rounded-3xl shadow-2xl flex flex-col h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden select-none outline-none z-10"
           id="laptop-detail-modal"
         >
           {/* Top Close bar */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-30 p-2.5 rounded-full bg-luxe-dark/10 hover:bg-luxe-dark text-luxe-dark hover:text-warm-cream transition-all duration-300 shadow-sm cursor-pointer select-none"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 w-11 h-11 flex items-center justify-center rounded-full bg-white/90 sm:bg-luxe-dark/10 hover:bg-luxe-dark text-luxe-dark hover:text-warm-cream transition-all duration-300 shadow-sm cursor-pointer select-none"
             title="Fermer"
+            aria-label="Fermer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -514,7 +516,7 @@ export default function LaptopDetailModal({
                       <div className="absolute inset-x-3 bottom-3 flex justify-between items-center z-10">
                         <button
                           onClick={() => setSelectedImgIndex(prev => (prev === 0 ? details.images.length - 1 : prev - 1))}
-                          className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-luxe-dark border border-warm-cream-dark/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all select-none cursor-pointer shadow-sm"
+                          className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/90 backdrop-blur-md text-luxe-dark border border-warm-cream-dark/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all select-none cursor-pointer shadow-sm"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -523,7 +525,7 @@ export default function LaptopDetailModal({
                         </span>
                         <button
                           onClick={() => setSelectedImgIndex(prev => (prev === details.images.length - 1 ? 0 : prev + 1))}
-                          className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-luxe-dark border border-warm-cream-dark/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all select-none cursor-pointer shadow-sm"
+                          className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/90 backdrop-blur-md text-luxe-dark border border-warm-cream-dark/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all select-none cursor-pointer shadow-sm"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </button>

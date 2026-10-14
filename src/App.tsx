@@ -885,15 +885,31 @@ export default function App() {
             </ul>
           </div>
 
-          {/* Framework indicators */}
+          {/* Service client (remplace l'ancien texte technique hérité d'AI Studio) */}
           <div className="space-y-3 text-left min-w-0">
-            <h5 className="field-label text-luxe-gold">Concept Application</h5>
-            <p className="type-meta text-warm-cream-dark/70 break-words">
-              Propulsé par React, Tailwind CSS v4 et Vite. Permet d'administrer des stocks d'ordinateurs et d'émettre des devis d'importation en direct. Les modifications d'états sont simulées en temps réel.
-            </p>
-            <p className="type-meta text-luxe-gold/70 font-mono italic">
-              Conçu d'après la charte graphique de la capture Herve_eShop Cameroon.
-            </p>
+            <h5 className="field-label text-luxe-gold">Service client</h5>
+            <ul className="type-meta text-warm-cream-dark/70 space-y-2 break-words">
+              <li>
+                <span className="font-semibold text-warm-cream">Horaires</span> :{' '}
+                {clientData?.contactCMS?.openingHours || 'Lundi - Samedi : 8h30 - 19h30'}
+              </li>
+              {clientData?.contactCMS?.primaryPhone && (
+                <li>
+                  <span className="font-semibold text-warm-cream">Téléphone</span> :{' '}
+                  <a href={`tel:${clientData.contactCMS.primaryPhone}`} className="underline underline-offset-2">
+                    {clientData.contactCMS.primaryPhone}
+                  </a>
+                </li>
+              )}
+              {clientData?.contactCMS?.email && (
+                <li>
+                  <span className="font-semibold text-warm-cream">E-mail</span> :{' '}
+                  <a href={`mailto:${clientData.contactCMS.email}`} className="underline underline-offset-2">
+                    {clientData.contactCMS.email}
+                  </a>
+                </li>
+              )}
+            </ul>
           </div>
         </div>
 
