@@ -2,15 +2,20 @@ name: Diagnostic serveur
 on:
   push:
     branches: ['diag/**']
+permissions:
+  contents: write
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - run: |
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           B=https://herve-eshop.onrender.com
           for p in /api/version /api/client/data /api/admin/products; do
-            echo "=== $p"
-            curl -sS -m 90 -o body.txt -w "HTTP %{http_code}\n" -H "Origin: https://herve-e-shop.vercel.app" -D headers.txt "$B$p"
-            grep -i "access-control-allow-origin" headers.txt || echo "(pas d'en-tête CORS)"
-            head -c 600 body.txt; echo
+            echo "=== $p" >> out.txt
+            curl -sS -m 90 -o body.txt -w "HTTP %{http_code}\n" -H "Origin: https://herve-e-shop.vercel.app" -D headers.txt "$B$p" >> out.txt 2>&1
+            grep -i "access-control-allow-origin" headers.txt >> out.txt || echo "(pas d'en-tete CORS)" >> out.txt
+            head -c 800 body.txt >> out.txt; echo >> out.txt
           done
+          gh api repos/${{ github.repository }}/commits/${{ github.sha }}/comments -F body=@out.txt
