@@ -6,6 +6,19 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          // Bibliothèques dans des fichiers séparés : elles changent rarement,
+          // le navigateur les garde en cache d'une mise à jour du site à l'autre.
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-dom/client'],
+            motion: ['motion/react'],
+            icons: ['lucide-react'],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
