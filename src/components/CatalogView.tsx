@@ -243,6 +243,15 @@ export default function CatalogView({
   const [showOnlyFavourites, setShowOnlyFavourites] = useState<boolean>(false);
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(5000000);
+  // Sur téléphone, les filtres avancés sont repliés derrière un bouton « Filtres ».
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const activeAdvancedFilterCount =
+    (selectedBrand !== 'All' ? 1 : 0) +
+    (minPrice > 0 || maxPrice < 5000000 ? 1 : 0) +
+    (selectedSource !== 'All' ? 1 : 0) +
+    (selectedStatus !== 'All' ? 1 : 0) +
+    (sortBy !== 'default' ? 1 : 0);
+  const mobileFiltersClass = showMobileFilters ? '' : 'max-md:hidden';
   const [activePromoIndex, setActivePromoIndex] = useState(0);
   const [isPromoPaused, setIsPromoPaused] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
@@ -323,11 +332,11 @@ export default function CatalogView({
   const brands = ['All', ...Array.from(new Set(laptops.map(l => l.brand)))];
   const productCategories = ['All', ...Array.from(new Set(laptops.map(l => l.category).filter(Boolean)))];
   const categoryIcons: Record<string, string> = {
-    All: 'All',
-    Laptop: 'Laptop',
-    Telephone: 'Phone',
-    Accessoire: 'Accessory',
-    Gadget: 'Gadget',
+    All: '🛍️',
+    Laptop: '💻',
+    Telephone: '📱',
+    Accessoire: '🎧',
+    Gadget: '⌚',
   };
 
   // Apply filters
@@ -754,7 +763,7 @@ export default function CatalogView({
                   <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-3">
                     <div className="hidden sm:inline-flex flex-col gap-2">
                       <span className="type-kicker text-white/70">
-                        {isShowingAdvertisements ? 'Sponsored placement' : isShowingProductFallback ? 'Product fallback mode' : 'Editorial fallback'}
+                        {isShowingAdvertisements ? 'Annonce' : isShowingProductFallback ? 'Sélection du moment' : 'À la une'}
                       </span>
                       {currentPromoSlide?.kind === 'advertisement' && (
                         <div className="inline-flex items-center gap-2 rounded-full bg-white/12 backdrop-blur-md px-2.5 py-1.5 border border-white/10">
@@ -784,7 +793,7 @@ export default function CatalogView({
                         type="button"
                         onClick={() => goToAdjacentPromoSlide(-1)}
                         className="h-10 w-10 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
-                        aria-label="Previous slide"
+                        aria-label="Diapositive précédente"
                       >
                         <ArrowLeft className="w-4 h-4" />
                       </button>
@@ -792,7 +801,7 @@ export default function CatalogView({
                         type="button"
                         onClick={() => goToAdjacentPromoSlide(1)}
                         className="h-10 w-10 rounded-full border border-white/14 bg-black/30 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/45 transition-colors"
-                        aria-label="Next slide"
+                        aria-label="Diapositive suivante"
                       >
                         <ArrowRight className="w-4 h-4" />
                       </button>
@@ -819,7 +828,7 @@ export default function CatalogView({
                     </div>
 
                     {promoSlides.length > 1 && (
-                      <div className="flex flex-wrap items-center justify-center gap-2 md:justify-end">
+                      <div className="flex flex-wrap items-center justify-center gap-0.5 md:justify-end">
                         {promoSlides.slice(0, 7).map((slide, idx) => {
                           const active = idx === activePromoIndex;
                           return (
@@ -827,11 +836,14 @@ export default function CatalogView({
                               key={slide.id}
                               type="button"
                               onClick={() => goToPromoSlide(idx)}
-                              className={`h-2 rounded-full transition-all ${
-                                active ? 'w-7 bg-white' : 'w-2 bg-white/35 hover:bg-white/55'
-                              }`}
-                              aria-label={`Go to slide ${idx + 1}`}
-                            />
+                              className="group h-8 min-w-6 flex items-center justify-center"
+                              aria-label={`Aller à la diapositive ${idx + 1}`}
+                            >
+                              {/* Zone de clic agrandie (32 px) pour le doigt, point visuel inchangé */}
+                              <span className={`block h-2 rounded-full transition-all ${
+                                active ? 'w-7 bg-white' : 'w-2 bg-white/35 group-hover:bg-white/55'
+                              }`} />
+                            </button>
                           );
                         })}
                       </div>
@@ -858,14 +870,9 @@ export default function CatalogView({
                         {currentPromoSlide.advertiserName}
                       </span>
                     )}
-                    {currentPromoSlide?.kind === 'product' && (
-                      <span className="type-meta text-white/68 sm:hidden">
-                        Fallback automatique du catalogue
-                      </span>
-                    )}
                   </div>
 
-                  <h2 className="max-w-[15ch] text-white text-[clamp(1.45rem,6.8vw,3rem)] leading-[0.96] font-extrabold tracking-[-0.04em]">
+                  <h2 className="max-w-[15ch] text-white text-[clamp(1.45rem,6.8vw,3rem)] leading-[1.05] font-extrabold tracking-[-0.03em]">
                     {promoDisplayTitle}
                   </h2>
 
@@ -873,7 +880,7 @@ export default function CatalogView({
                     {promoDisplaySubtitle}
                   </p>
 
-                  <p className="type-body mt-2 max-w-xl text-white/66 line-clamp-2 md:line-clamp-3">
+                  <p className="type-body mt-2 max-w-xl text-white/66 hidden sm:block sm:line-clamp-2 md:line-clamp-3">
                     {promoDisplayDescription}
                   </p>
 
@@ -931,30 +938,55 @@ export default function CatalogView({
 
       {/* FILTER PANEL SECTION */}
       <span id="catalog-grid-anchor" className="block scroll-mt-24"></span>
-      <section className="mt-10 md:mt-16 bg-white/80 border border-warm-cream-dark/80 rounded-2xl p-4 sm:p-5 md:p-7 shadow-xs overflow-hidden">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-warm-cream-dark/50 pb-4">
-            <div>
+      <section className="mt-6 md:mt-16 bg-white/80 border border-warm-cream-dark/80 rounded-2xl p-4 sm:p-5 md:p-7 shadow-xs overflow-hidden">
+        <div className="flex flex-col gap-4 md:gap-6">
+          <div className="flex flex-row justify-between items-center gap-3 md:border-b md:border-warm-cream-dark/50 md:pb-4">
+            <div className="min-w-0">
               <h3 className="type-card-title text-luxe-dark flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-luxe-copper" /> Filtrer le catalogue en temps réel
+                <SlidersHorizontal className="w-4 h-4 text-luxe-copper shrink-0" />
+                <span className="md:hidden">Catalogue</span>
+                <span className="max-md:hidden">Filtrer le catalogue en temps réel</span>
               </h3>
-              <p className="type-meta text-luxe-muted mt-1">Retrouvez l'article tech qui correspond exactement à vos besoins.</p>
+              <p className="type-meta text-luxe-muted mt-1 max-md:hidden">Retrouvez l'article tech qui correspond exactement à vos besoins.</p>
+              <p className="type-meta text-luxe-muted mt-0.5 md:hidden">
+                {sortedLaptops.length} article{sortedLaptops.length > 1 ? 's' : ''} trouvé{sortedLaptops.length > 1 ? 's' : ''}
+              </p>
             </div>
-            <div className="type-badge text-luxe-muted bg-warm-cream px-3 py-1.5 rounded-full border border-warm-cream-dark">
-              {sortedLaptops.length} article{sortedLaptops.length > 1 ? 's' : ''} trouve{sortedLaptops.length > 1 ? 's' : ''}
+            <div className="type-badge text-luxe-muted bg-warm-cream px-3 py-1.5 rounded-full border border-warm-cream-dark max-md:hidden">
+              {sortedLaptops.length} article{sortedLaptops.length > 1 ? 's' : ''} trouvé{sortedLaptops.length > 1 ? 's' : ''}
             </div>
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters((open) => !open)}
+              aria-expanded={showMobileFilters}
+              className={`md:hidden type-button shrink-0 inline-flex items-center gap-2 min-h-11 px-4 rounded-full border transition-colors ${
+                showMobileFilters || activeAdvancedFilterCount > 0
+                  ? 'bg-luxe-dark text-warm-cream border-luxe-dark'
+                  : 'bg-warm-cream text-luxe-dark border-warm-cream-dark'
+              }`}
+              id="toggle-mobile-filters-btn"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              {showMobileFilters ? 'Masquer' : 'Filtres'}
+              {activeAdvancedFilterCount > 0 && (
+                <span className="min-w-5 h-5 px-1 rounded-full bg-luxe-gold text-luxe-dark text-xs font-bold flex items-center justify-center">
+                  {activeAdvancedFilterCount}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Interactive Button Filters */}
-          <div className="flex flex-col gap-5 border-b border-warm-cream-dark/40 pb-5">
+          <div className={`flex flex-col gap-5 md:border-b md:border-warm-cream-dark/40 md:pb-5 ${showMobileFilters ? 'max-md:border-b max-md:border-warm-cream-dark/40 max-md:pb-5' : ''}`}>
             {/* 1. Category & Favorites Filter Buttons */}
             <div className="flex flex-col gap-2">
-              <span className="field-label text-luxe-muted">Familles de produits et favoris</span>
-              <div className="flex flex-wrap gap-2">
+              <span className="field-label text-luxe-muted max-md:hidden">Familles de produits et favoris</span>
+              {/* Sur téléphone : une seule ligne qui défile horizontalement */}
+              <div className="flex gap-2 max-md:flex-nowrap max-md:overflow-x-auto max-md:-mx-4 max-md:px-4 max-md:pb-1 max-md:[scrollbar-width:none] md:flex-wrap">
                 {productCategories.map((cat) => {
                   const isSelected = selectedCategory === cat;
                   const icon = categoryIcons[cat] || '📦';
-                  const label = cat === 'All' ? 'Tous les produits' : cat;
+                  const label = cat === 'All' ? 'Tous les produits' : cat === 'Telephone' ? 'Téléphone' : cat;
                   return (
                     <button
                       key={cat}
@@ -962,7 +994,7 @@ export default function CatalogView({
                         setSelectedCategory(cat);
                         setShowOnlyFavourites(false); // Standard catalog view is restored when clicking category buttons
                       }}
-                      className={`type-button inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
+                      className={`type-button shrink-0 whitespace-nowrap inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
                         isSelected && !showOnlyFavourites
                           ? 'bg-luxe-dark text-warm-cream border-luxe-dark shadow-sm scale-[1.02]'
                           : 'bg-warm-cream text-luxe-dark border-warm-cream-dark/70 hover:border-luxe-gold hover:bg-white'
@@ -982,7 +1014,7 @@ export default function CatalogView({
                   onClick={() => {
                     setShowOnlyFavourites(!showOnlyFavourites);
                   }}
-                  className={`type-button inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
+                  className={`type-button shrink-0 whitespace-nowrap inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all border cursor-pointer select-none ${
                     showOnlyFavourites
                       ? 'bg-red-500 text-white border-red-500 shadow-sm scale-[1.02]'
                       : 'bg-red-50 text-red-600 border-red-200 hover:border-red-400 hover:bg-red-100'
@@ -996,7 +1028,7 @@ export default function CatalogView({
             </div>
 
             {/* 2. Brand Filter Buttons */}
-            <div className="flex flex-col gap-2">
+            <div className={`flex flex-col gap-2 ${mobileFiltersClass}`}>
               <span className="field-label text-luxe-muted">Filtrer par marque</span>
               <div className="flex flex-wrap gap-1.5">
                 {brands.map((brand) => {
@@ -1020,7 +1052,7 @@ export default function CatalogView({
             </div>
 
             {/* 3. Budget & Price range slider */}
-            <div className="flex flex-col gap-3 pt-2 border-t border-warm-cream-dark/40">
+            <div className={`flex flex-col gap-3 pt-2 border-t border-warm-cream-dark/40 ${mobileFiltersClass}`}>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <span className="field-label text-luxe-muted">
                   Budget & Fourchette de prix (FCFA)
@@ -1106,7 +1138,7 @@ export default function CatalogView({
                         setMinPrice(b.min);
                         setMaxPrice(b.max);
                       }}
-                      className={`type-badge px-3 py-1.5 rounded-full border transition-all cursor-pointer select-none ${
+                      className={`type-badge px-3 py-2 rounded-full border transition-all cursor-pointer select-none ${
                         isCurrent
                           ? 'bg-luxe-copper text-white border-luxe-copper shadow-xs'
                           : 'bg-white text-luxe-muted border-warm-cream-dark/60 hover:border-luxe-copper hover:text-luxe-copper'
@@ -1121,7 +1153,7 @@ export default function CatalogView({
           </div>
 
           {/* Secondary Filters Inputs Grid (Provenance, Availability, Sort) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${mobileFiltersClass}`}>
             {/* Filter by Import Source */}
             <div className="flex flex-col gap-1.5">
               <label className="field-label text-luxe-muted">Provenance d'import</label>
@@ -1177,15 +1209,16 @@ export default function CatalogView({
       </section>
 
       {/* CATALOG GRID - LabCraft Style */}
-      <section className="mt-12" id="catalog-section-grid">
-        <div className="mb-10">
-          <h2 className="type-section-title text-gray-900 mb-4">Notre Collection</h2>
-          <p className="type-subtitle text-gray-600 max-w-2xl">
+      <section className="mt-8 md:mt-12" id="catalog-section-grid">
+        <div className="mb-4 md:mb-10">
+          <h2 className="type-section-title text-gray-900 mb-2 md:mb-4">Notre Collection</h2>
+          <p className="type-subtitle text-gray-600 max-w-2xl max-sm:hidden">
             Découvrez notre sélection exclusive d'ordinateurs portables premium, soigneusement sélectionnés pour leur performance exceptionnelle et leur qualité irréprochable.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+        {/* 2 produits par ligne sur téléphone */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
         <AnimatePresence mode="popLayout">
           {sortedLaptops.length === 0 ? (
             <motion.div
@@ -1237,7 +1270,7 @@ export default function CatalogView({
                   {/* Image Section - LabCraft Style */}
                   <div 
                     onClick={() => onSelectLaptopForDetails(laptop)}
-                    className="relative aspect-[5/4] sm:aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer"
+                    className="relative aspect-square sm:aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer"
                     title="Cliquez pour voir les détails du produit"
                   >
                     <img
@@ -1248,17 +1281,17 @@ export default function CatalogView({
                     />
                     
                     {/* Status Badge */}
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
                       {isOutOfStock ? (
-                        <span className="type-badge bg-red-500 text-white px-2.5 py-1 rounded-full">
+                        <span className="type-badge bg-red-500 text-white px-2 sm:px-2.5 py-1 rounded-full">
                           Rupture
                         </span>
                       ) : isIncoming ? (
-                        <span className="type-badge bg-yellow-500 text-white px-2.5 py-1 rounded-full">
+                        <span className="type-badge bg-yellow-500 text-white px-2 sm:px-2.5 py-1 rounded-full">
                           Arrivage
                         </span>
                       ) : (
-                        <span className="type-badge bg-green-500 text-white px-2.5 py-1 rounded-full">
+                        <span className="type-badge bg-green-500 text-white px-2 sm:px-2.5 py-1 rounded-full">
                           En Stock
                         </span>
                       )}
@@ -1269,7 +1302,7 @@ export default function CatalogView({
                         e.stopPropagation();
                         onToggleFavourite(laptop.id);
                       }}
-                      className={`absolute top-3 right-3 w-10 h-10 rounded-full border flex items-center justify-center backdrop-blur-sm transition-all ${
+                      className={`absolute top-1.5 right-1.5 sm:top-3 sm:right-3 w-10 h-10 rounded-full border flex items-center justify-center backdrop-blur-sm transition-all ${
                         favouriteIds.includes(laptop.id)
                           ? 'bg-white text-red-500 border-white'
                           : 'bg-white/85 text-luxe-dark border-white/90 hover:text-red-500'
@@ -1282,17 +1315,22 @@ export default function CatalogView({
                   </div>
 
                   {/* Product Details - LabCraft Style */}
-                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-4 sm:gap-5">
+                  <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between gap-3 sm:gap-5">
                     <div 
                       onClick={() => onSelectLaptopForDetails(laptop)}
                       className="min-w-0 cursor-pointer text-left"
                       title="Cliquer pour voir les détails de cette machine"
                     >
-                      <h4 className="type-card-title text-gray-900 group-hover:text-blue-600 transition-colors mb-2 line-clamp-2">
+                      <h4 className="type-card-title type-card-title-compact text-gray-900 group-hover:text-blue-600 transition-colors mb-1.5 sm:mb-2 line-clamp-2">
                         {laptop.brand} {laptop.model}
                       </h4>
 
-                      <div className="space-y-1.5 min-w-0">
+                      {/* Téléphone : résumé sur une ligne au lieu de la fiche technique */}
+                      <p className="sm:hidden type-meta text-gray-600 line-clamp-1">
+                        {laptop.ram} · {laptop.storage}
+                      </p>
+
+                      <div className="space-y-1.5 min-w-0 max-sm:hidden">
                         <div className="flex items-start gap-2 type-meta text-gray-600 min-w-0">
                           <span className="font-semibold text-gray-800">Processeur:</span>
                           <span className="min-w-0 break-words">{laptop.processor}</span>
@@ -1307,11 +1345,11 @@ export default function CatalogView({
                         </div>
                       </div>
 
-                      <div className="mt-5">
-                        <div className="type-price text-gray-900">
+                      <div className="mt-2.5 sm:mt-5">
+                        <div className="type-price type-price-card text-gray-900">
                           {formatPrice(laptop.price)}
                         </div>
-                        <div className="type-meta text-gray-500 mt-1">
+                        <div className="type-meta text-gray-500 mt-1 max-sm:hidden">
                           TTC - Livraison incluse
                         </div>
                       </div>
@@ -1322,7 +1360,7 @@ export default function CatalogView({
                         <button
                           type="button"
                           onClick={() => onAddToCart(laptop)}
-                          className={`type-button flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
+                          className={`type-button flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 min-h-11 py-2.5 sm:py-3 rounded-xl transition-all ${
                             isOutOfStock
                               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                               : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
@@ -1338,7 +1376,7 @@ export default function CatalogView({
                         <button
                           type="button"
                           onClick={() => onSelectLaptopForQuote(laptop)}
-                          className={`type-button flex-1 inline-flex items-center justify-center py-3 rounded-xl transition-all border ${
+                          className={`type-button flex-1 inline-flex items-center justify-center min-h-11 py-2.5 sm:py-3 rounded-xl transition-all border ${
                             isOutOfStock
                               ? 'bg-gray-200 border-gray-300 text-gray-500 cursor-not-allowed'
                               : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
@@ -1353,7 +1391,7 @@ export default function CatalogView({
                       <button
                         type="button"
                         onClick={() => onSelectLaptopForDetails(laptop)}
-                        className="type-meta mt-3 w-full text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none py-2.5"
+                        className="type-meta mt-3 w-full text-blue-600 hover:text-blue-800 transition-colors cursor-pointer select-none py-2.5 max-sm:hidden"
                         id={`details-link-${laptop.id}`}
                       >
                         Voir les détails complets →

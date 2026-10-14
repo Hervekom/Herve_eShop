@@ -29,7 +29,7 @@ export default function WhatsAppFloatingButton({ cms }: { cms?: any }) {
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${defaultText}`;
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end select-none">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end select-none">
       {/* Dynamic Trust-Building Tooltip Panel */}
       {showTooltip && (
         <div className="mb-3 max-w-[280px] bg-white border border-warm-cream-dark/60 text-luxe-dark rounded-2xl p-3.5 shadow-xl animate-in fade-in slide-in-from-bottom-3 duration-300 relative text-left">

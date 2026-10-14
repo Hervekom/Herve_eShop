@@ -65,18 +65,18 @@ export default function NotificationCenter({
               </div>
               <div>
                 <h3 className="type-section-title !text-[clamp(1.4rem,2vw,1.9rem)] text-white">
-                  Notification Center
+                  Notifications
                 </h3>
                 <p className="type-meta text-white/70 mt-1">
-                  Promotions, product updates, account messages, and admin announcements.
+                  Promotions, nouveautés, messages de votre compte et annonces de la boutique.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 text-white/80 hover:text-white flex items-center justify-center transition-colors"
-              aria-label="Close notifications"
+              className="shrink-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 text-white/80 hover:text-white flex items-center justify-center transition-colors"
+              aria-label="Fermer les notifications"
             >
               <X className="w-5 h-5" />
             </button>
@@ -100,7 +100,7 @@ export default function NotificationCenter({
                 className="type-button inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 text-white px-4 py-2.5 hover:bg-white/12 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                Refresh
+                Actualiser
               </button>
               <button
                 type="button"
@@ -109,7 +109,7 @@ export default function NotificationCenter({
                 className="type-button inline-flex items-center gap-2 rounded-full bg-white text-luxe-dark px-4 py-2.5 hover:bg-luxe-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckCheck className="w-4 h-4" />
-                Mark all as read
+                Tout marquer comme lu
               </button>
             </div>
           </div>
@@ -121,9 +121,9 @@ export default function NotificationCenter({
               <div className="w-14 h-14 rounded-2xl bg-warm-cream mx-auto flex items-center justify-center border border-warm-cream-dark/80">
                 <Bell className="w-6 h-6 text-luxe-muted" />
               </div>
-              <h4 className="type-card-title text-luxe-dark mt-5">No new notifications</h4>
+              <h4 className="type-card-title text-luxe-dark mt-5">Aucune nouvelle notification</h4>
               <p className="type-meta text-luxe-muted mt-2 max-w-md mx-auto">
-                New promotions, product launches, account updates, and announcements will appear here.
+                Les promotions, nouveautés, messages de votre compte et annonces apparaîtront ici.
               </p>
             </div>
           ) : (
@@ -160,7 +160,7 @@ export default function NotificationCenter({
                             </h4>
                             {unread && (
                               <span className="type-badge px-2 py-1 rounded-full bg-luxe-orange/10 text-luxe-orange border border-luxe-orange/20">
-                                New
+                                Nouveau
                               </span>
                             )}
                           </div>
@@ -169,7 +169,7 @@ export default function NotificationCenter({
                           </p>
                           <div className="mt-3 flex flex-wrap items-center gap-3">
                             <span className="type-meta text-luxe-muted font-mono">
-                              {new Date(notification.createdAt).toLocaleString('en-GB', {
+                              {new Date(notification.createdAt).toLocaleString('fr-FR', {
                                 day: '2-digit',
                                 month: 'short',
                                 hour: '2-digit',
@@ -181,7 +181,7 @@ export default function NotificationCenter({
                             </span>
                             {notification.link && (
                               <span className="type-meta text-luxe-copper inline-flex items-center gap-1">
-                                Open item <ExternalLink className="w-3.5 h-3.5" />
+                                Ouvrir <ExternalLink className="w-3.5 h-3.5" />
                               </span>
                             )}
                           </div>
@@ -194,7 +194,7 @@ export default function NotificationCenter({
                           onClick={() => onMarkOneAsRead(notification.id)}
                           className="type-button shrink-0 px-3 py-2 rounded-xl border border-warm-cream-dark bg-white hover:bg-warm-cream text-luxe-dark transition-colors"
                         >
-                          Mark read
+                          Marquer comme lu
                         </button>
                       )}
                     </div>

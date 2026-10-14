@@ -104,7 +104,7 @@ export default function CustomerAccountModal({
         setEditCity(res.user.city || 'Douala');
       }
     } catch (err) {
-      console.error('Failed to load profile details', err);
+      console.error('Impossible de charger votre profil', err);
     } finally {
       setLoading(false);
     }
@@ -282,9 +282,9 @@ export default function CustomerAccountModal({
     <form onSubmit={handleUpdateProfile} className="bg-white border border-luxe-gold/20 rounded-2xl p-5 space-y-4 shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-warm-cream-dark/60 pb-3">
         <div>
-          <h6 className="type-card-title !text-[1.05rem] text-luxe-dark">Account Settings</h6>
+          <h6 className="type-card-title !text-[1.05rem] text-luxe-dark">Paramètres du compte</h6>
           <p className="type-meta text-luxe-muted mt-1">
-            Update your personal details and security information.
+            Modifiez vos informations personnelles et votre mot de passe.
           </p>
         </div>
         <button
@@ -292,14 +292,14 @@ export default function CustomerAccountModal({
           onClick={() => setIsEditingProfile(false)}
           className="type-button px-3 py-2 rounded-xl border border-warm-cream-dark text-luxe-muted hover:text-luxe-dark hover:bg-warm-cream"
         >
-          Close
+          Fermer
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label htmlFor="edit-name" className="field-label block text-luxe-dark mb-1.5">
-            Full name
+            Nom complet
           </label>
           <input
             type="text"
@@ -314,7 +314,7 @@ export default function CustomerAccountModal({
 
         <div>
           <label htmlFor="edit-city" className="field-label block text-luxe-dark mb-1.5">
-            City
+            Ville
           </label>
           <select
             id="edit-city"
@@ -331,7 +331,7 @@ export default function CustomerAccountModal({
 
         <div>
           <label htmlFor="edit-email" className="field-label block text-luxe-dark mb-1.5">
-            Email address
+            Adresse e-mail
           </label>
           <input
             type="email"
@@ -345,7 +345,7 @@ export default function CustomerAccountModal({
 
         <div>
           <label htmlFor="edit-phone" className="field-label block text-luxe-dark mb-1.5">
-            Phone number
+            Numéro de téléphone
           </label>
           <input
             type="text"
@@ -359,14 +359,14 @@ export default function CustomerAccountModal({
 
         <div className="md:col-span-2">
           <label htmlFor="edit-pass" className="field-label block text-luxe-dark mb-1.5">
-            New password
+            Nouveau mot de passe
           </label>
           <input
             type="password"
             id="edit-pass"
             value={editPassword}
             onChange={(e) => setEditPassword(e.target.value)}
-            placeholder="Leave blank to keep your current password"
+            placeholder="Laissez vide pour garder votre mot de passe actuel"
             className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark bg-white"
             disabled={loading}
           />
@@ -400,7 +400,7 @@ export default function CustomerAccountModal({
             </span>
             <div>
               <h4 className="type-section-title !text-[clamp(1.45rem,2vw,1.85rem)] text-warm-cream">
-                {activeTab === 'dashboard' ? 'Personal Area' : 'Customer Account'}
+                {activeTab === 'dashboard' ? 'Mon espace' : 'Mon compte client'}
               </h4>
               <p className="field-label text-luxe-gold/80">
                 {activeTab === 'dashboard' ? `Herve_eShop • ${currentUser?.name}` : 'Herve_eShop Cameroun'}
@@ -410,7 +410,7 @@ export default function CustomerAccountModal({
           <button 
             type="button" 
             onClick={onClose}
-            className="p-1.5 rounded-full bg-white/10 text-white/80 hover:text-white hover:bg-white/25 transition-all outline-none"
+            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white/80 hover:text-white hover:bg-white/25 transition-all outline-none"
             aria-label="Fermer"
           >
             <X className="w-5 h-5" />
@@ -422,16 +422,16 @@ export default function CustomerAccountModal({
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="text-center mb-6">
                 <Sparkles className="w-8 h-8 text-luxe-gold mx-auto mb-2 animate-bounce" />
-                <h5 className="type-card-title !text-xl text-luxe-dark">Access your personal dashboard</h5>
+                <h5 className="type-card-title !text-xl text-luxe-dark">Accédez à votre espace client</h5>
                 <p className="type-meta text-luxe-muted mt-1 max-w-sm mx-auto">
-                  Manage your profile, review your order history, save favorites, and keep your account information up to date.
+                  Suivez vos commandes, retrouvez vos favoris et gérez vos informations personnelles.
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div>
                   <label htmlFor="login-identity-input" className="field-label block text-luxe-dark mb-1.5">
-                    Email address or phone number
+                    E-mail ou numéro de téléphone
                   </label>
                   <div className="relative">
                     <input
@@ -439,7 +439,7 @@ export default function CustomerAccountModal({
                       id="login-identity-input"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="e.g. jean@gmail.com or 677889900"
+                      placeholder="ex. : jean@gmail.com ou 677889900"
                       className="field-input w-full pl-10 pr-4 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
@@ -451,7 +451,7 @@ export default function CustomerAccountModal({
 
                 <div>
                   <label htmlFor="login-password-input" className="field-label block text-luxe-dark mb-1.5">
-                    Password
+                    Mot de passe
                   </label>
                   <div className="relative">
                     <input
@@ -459,7 +459,7 @@ export default function CustomerAccountModal({
                       id="login-password-input"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
+                      placeholder="Votre mot de passe"
                       className="field-input w-full pl-10 pr-10 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
@@ -469,7 +469,8 @@ export default function CustomerAccountModal({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-3.5 text-luxe-muted hover:text-luxe-dark cursor-pointer"
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2.5 text-luxe-muted hover:text-luxe-dark cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -486,15 +487,15 @@ export default function CustomerAccountModal({
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Checking your account...
+                    Vérification de votre compte...
                   </>
                 ) : (
-                  'Sign in'
+                  'Se connecter'
                 )}
               </button>
 
               <div className="text-center pt-4 border-t border-warm-cream-dark/60">
-                <span className="type-meta text-luxe-muted">Do you need a customer account?</span>
+                <span className="type-meta text-luxe-muted">Vous n'avez pas encore de compte ?</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -503,7 +504,7 @@ export default function CustomerAccountModal({
                   }}
                   className="type-button block mx-auto mt-1 text-luxe-orange hover:text-luxe-dark transition-colors underline underline-offset-4"
                 >
-                  Create one in a minute
+                  Créez-le en une minute
                 </button>
               </div>
             </form>
@@ -512,16 +513,16 @@ export default function CustomerAccountModal({
           {activeTab === 'register' && (
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="text-center mb-4">
-                <h5 className="type-card-title !text-xl text-luxe-dark">Create your customer account</h5>
+                <h5 className="type-card-title !text-xl text-luxe-dark">Créez votre compte client</h5>
                 <p className="type-meta text-luxe-muted mt-1">
-                  Set up your personal area to manage orders, favorites, and account information.
+                  Créez votre espace pour suivre vos commandes et retrouver vos favoris.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="reg-name" className="field-label block text-luxe-dark mb-1">
-                    Full name *
+                    Nom complet *
                   </label>
                   <input
                     type="text"
@@ -529,7 +530,7 @@ export default function CustomerAccountModal({
                     required
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
-                    placeholder="e.g. Jean-Pierre Ngue"
+                    placeholder="ex. : Jean-Pierre Ngué"
                     className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                     disabled={loading}
                   />
@@ -537,7 +538,7 @@ export default function CustomerAccountModal({
 
                 <div>
                   <label htmlFor="reg-city" className="field-label block text-luxe-dark mb-1">
-                    City *
+                    Ville *
                   </label>
                   <select
                     id="reg-city"
@@ -554,14 +555,14 @@ export default function CustomerAccountModal({
 
                 <div>
                   <label htmlFor="reg-email" className="field-label block text-luxe-dark mb-1">
-                    Email address (Optional)
+                    Adresse e-mail (facultatif)
                   </label>
                   <input
                     type="email"
                     id="reg-email"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="e.g. jp.ngue@gmail.com"
+                    placeholder="ex. : jp.ngue@gmail.com"
                     className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                     disabled={loading}
                   />
@@ -569,14 +570,14 @@ export default function CustomerAccountModal({
 
                 <div>
                   <label htmlFor="reg-phone" className="field-label block text-luxe-dark mb-1">
-                    Phone number (Optional)
+                    Numéro de téléphone (facultatif)
                   </label>
                   <input
                     type="tel"
                     id="reg-phone"
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="e.g. +237 677 88 99 00"
+                    placeholder="ex. : +237 677 88 99 00"
                     className="field-input w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                     disabled={loading}
                   />
@@ -584,7 +585,7 @@ export default function CustomerAccountModal({
 
                 <div className="md:col-span-2">
                   <label htmlFor="reg-pass" className="field-label block text-luxe-dark mb-1">
-                    Password *
+                    Mot de passe *
                   </label>
                   <div className="relative">
                     <input
@@ -593,14 +594,15 @@ export default function CustomerAccountModal({
                       required
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Minimum 6 characters"
+                      placeholder="6 caractères minimum"
                       className="field-input w-full px-2.5 py-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper bg-white"
                       disabled={loading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-luxe-muted"
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2.5 text-luxe-muted"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -609,7 +611,7 @@ export default function CustomerAccountModal({
               </div>
 
               <p className="type-meta text-luxe-muted italic mt-2 text-center md:text-left">
-                Add at least one email address or phone number so you can sign in later.
+                Indiquez au moins une adresse e-mail ou un numéro de téléphone pour pouvoir vous reconnecter.
               </p>
 
               <button
@@ -621,15 +623,15 @@ export default function CustomerAccountModal({
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating your account...
+                    Création de votre compte...
                   </>
                 ) : (
-                  'Create account'
+                  'Créer mon compte'
                 )}
               </button>
 
               <div className="text-center pt-3 border-t border-warm-cream-dark/60 mt-4">
-                <span className="type-meta text-luxe-muted">Already have an account?</span>
+                <span className="type-meta text-luxe-muted">Vous avez déjà un compte ?</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -638,7 +640,7 @@ export default function CustomerAccountModal({
                   }}
                   className="type-button block mx-auto mt-1 text-luxe-dark hover:text-luxe-orange underline underline-offset-4"
                 >
-                  Go back to sign in
+                  Retour à la connexion
                 </button>
               </div>
             </form>
@@ -657,7 +659,7 @@ export default function CustomerAccountModal({
                         {currentUser.name}
                       </h5>
                       <p className="type-meta text-luxe-muted mt-1">
-                        Personal dashboard
+                        Espace personnel
                       </p>
                     </div>
                   </div>
@@ -665,25 +667,25 @@ export default function CustomerAccountModal({
                   <div className="mt-5 grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-2xl bg-warm-cream px-3 py-3 border border-warm-cream-dark/70">
                       <div className="type-card-title !text-[1rem] text-luxe-dark">{stats.totalOrders}</div>
-                      <div className="type-meta text-luxe-muted mt-1">Orders</div>
+                      <div className="type-meta text-luxe-muted mt-1">Commandes</div>
                     </div>
                     <div className="rounded-2xl bg-warm-cream px-3 py-3 border border-warm-cream-dark/70">
                       <div className="type-card-title !text-[1rem] text-luxe-dark">{favouriteProducts.length}</div>
-                      <div className="type-meta text-luxe-muted mt-1">Favorites</div>
+                      <div className="type-meta text-luxe-muted mt-1">Favoris</div>
                     </div>
                     <div className="rounded-2xl bg-warm-cream px-3 py-3 border border-warm-cream-dark/70">
                       <div className="type-card-title !text-[1rem] text-luxe-dark">{stats.pendingOrders}</div>
-                      <div className="type-meta text-luxe-muted mt-1">Open</div>
+                      <div className="type-meta text-luxe-muted mt-1">Ouvertes</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-white rounded-2xl border border-warm-cream-dark p-3 shadow-sm space-y-2">
                   {[
-                    { id: 'overview', label: 'Overview', icon: User },
-                    { id: 'orders', label: 'Orders', icon: ClipboardList },
-                    { id: 'favorites', label: 'Favorites', icon: Heart },
-                    { id: 'settings', label: 'Settings', icon: Settings },
+                    { id: 'overview', label: 'Vue d\'ensemble', icon: User },
+                    { id: 'orders', label: 'Commandes', icon: ClipboardList },
+                    { id: 'favorites', label: 'Favoris', icon: Heart },
+                    { id: 'settings', label: 'Paramètres', icon: Settings },
                   ].map((item) => {
                     const Icon = item.icon;
                     const active = dashboardSection === item.id;
@@ -712,7 +714,7 @@ export default function CustomerAccountModal({
                     className="w-full type-button flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-warm-cream-dark hover:bg-warm-cream text-luxe-dark"
                   >
                     <Edit className="w-4 h-4" />
-                    Edit profile
+                    Modifier le profil
                   </button>
                   <button
                     type="button"
@@ -720,7 +722,7 @@ export default function CustomerAccountModal({
                     className="w-full type-button flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100"
                   >
                     <LogOut className="w-4 h-4" />
-                    Sign out
+                    Se déconnecter
                   </button>
                 </div>
               </aside>
@@ -731,12 +733,12 @@ export default function CustomerAccountModal({
                     <div className="bg-white rounded-2xl border border-warm-cream-dark p-6 shadow-sm">
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div>
-                          <span className="type-kicker text-luxe-copper">Personal Profile</span>
+                          <span className="type-kicker text-luxe-copper">Mon profil</span>
                           <h5 className="type-section-title !text-[clamp(1.5rem,2vw,2rem)] mt-2 text-luxe-dark">
-                            Manage your account details in one place
+                            Toutes les informations de votre compte au même endroit
                           </h5>
                           <p className="type-meta text-luxe-muted mt-3 max-w-2xl">
-                            Your Personal Area focuses only on your account, orders, favorites, and settings. Notifications are available separately from the bell icon in the header.
+                            Votre espace regroupe votre compte, vos commandes, vos favoris et vos paramètres. Les notifications sont accessibles via la cloche en haut de la page.
                           </p>
                         </div>
                         <button
@@ -745,7 +747,7 @@ export default function CustomerAccountModal({
                           className="type-button inline-flex items-center gap-2 rounded-full bg-luxe-dark px-4 py-2.5 text-white hover:bg-luxe-copper"
                         >
                           <Edit className="w-4 h-4 text-luxe-gold" />
-                          Update profile
+                          Mettre à jour le profil
                         </button>
                       </div>
 
@@ -759,18 +761,18 @@ export default function CustomerAccountModal({
                           </div>
                         </div>
                         <div className="rounded-2xl border border-warm-cream-dark bg-warm-cream/50 p-4">
-                          <div className="type-badge text-luxe-muted">Activity</div>
+                          <div className="type-badge text-luxe-muted">Activité</div>
                           <div className="mt-3 space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="type-meta text-luxe-muted">Total orders</span>
+                              <span className="type-meta text-luxe-muted">Total commandes</span>
                               <span className="type-card-title !text-[1rem] text-luxe-dark">{stats.totalOrders}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="type-meta text-luxe-muted">Pending orders</span>
+                              <span className="type-meta text-luxe-muted">Commandes en cours</span>
                               <span className="type-card-title !text-[1rem] text-luxe-dark">{stats.pendingOrders}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="type-meta text-luxe-muted">Saved favorites</span>
+                              <span className="type-meta text-luxe-muted">Mes favoris</span>
                               <span className="type-card-title !text-[1rem] text-luxe-dark">{favouriteProducts.length}</span>
                             </div>
                           </div>
@@ -788,10 +790,10 @@ export default function CustomerAccountModal({
                       <div>
                         <h6 className="type-card-title !text-[1.1rem] text-luxe-dark flex items-center gap-2">
                           <ClipboardList className="w-4 h-4 text-luxe-copper" />
-                          Order Tracking
+                          Suivi des commandes
                         </h6>
                         <p className="type-meta text-luxe-muted mt-1">
-                          Review your quotes and follow each request status.
+                          Consultez vos devis et suivez l'avancement de chaque demande.
                         </p>
                       </div>
                       <button
@@ -801,21 +803,21 @@ export default function CustomerAccountModal({
                         title="Refresh"
                       >
                         <RefreshCw className="w-4 h-4" />
-                        Refresh
+                        Actualiser
                       </button>
                     </div>
 
                     {loading && quotes.length === 0 ? (
                       <div className="text-center py-10">
                         <Loader2 className="w-6 h-6 animate-spin text-luxe-gold mx-auto" />
-                        <p className="type-meta text-luxe-muted mt-2">Loading your order history...</p>
+                        <p className="type-meta text-luxe-muted mt-2">Chargement de vos commandes...</p>
                       </div>
                     ) : quotes.length === 0 ? (
                       <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-warm-cream-dark/80">
                         <Laptop className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
-                        <p className="type-card-title !text-[1rem] text-luxe-dark">No orders yet</p>
+                        <p className="type-card-title !text-[1rem] text-luxe-dark">Aucune commande pour le moment</p>
                         <p className="type-meta text-luxe-muted mt-2 max-w-xs mx-auto">
-                          Your submitted quotes and laptop requests will appear here automatically.
+                          Vos demandes de devis apparaîtront ici automatiquement.
                         </p>
                       </div>
                     ) : (
@@ -832,7 +834,7 @@ export default function CustomerAccountModal({
                                 </span>
                                 <span className="text-[10px] text-luxe-muted">•</span>
                                 <span className="text-xs text-luxe-muted">
-                                  {new Date(q.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  {new Date(q.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
 
@@ -843,9 +845,9 @@ export default function CustomerAccountModal({
                               <div className="flex gap-2 items-center flex-wrap mt-1.5 text-[10px] text-luxe-muted">
                                 <span className="font-bold text-luxe-dark">{formatPrice(q.finalPrice)}</span>
                                 <span>•</span>
-                                <span>RAM: {q.customizations.ramUpgrade}</span>
+                                <span>RAM : {q.customizations.ramUpgrade}</span>
                                 <span>•</span>
-                                <span>Storage: {q.customizations.storageUpgrade}</span>
+                                <span>Stockage : {q.customizations.storageUpgrade}</span>
                               </div>
                             </div>
 
@@ -858,7 +860,7 @@ export default function CustomerAccountModal({
                                 onClick={() => setSelectedQuoteDetail(q)}
                                 className="type-button px-3 py-2 text-white bg-luxe-dark hover:bg-luxe-copper rounded-xl transition-colors cursor-pointer"
                               >
-                                View details
+                                Voir les détails
                               </button>
                             </div>
                           </div>
@@ -873,19 +875,19 @@ export default function CustomerAccountModal({
                     <div className="border-b border-warm-cream-dark/60 pb-3">
                       <h6 className="type-card-title !text-[1.1rem] text-luxe-dark flex items-center gap-2">
                         <Heart className="w-4 h-4 text-luxe-copper" />
-                        Favorites
+                        Favoris
                       </h6>
                       <p className="type-meta text-luxe-muted mt-1">
-                        Reopen the products you saved for later.
+                        Retrouvez les produits que vous avez mis de côté.
                       </p>
                     </div>
 
                     {favouriteProducts.length === 0 ? (
                       <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-warm-cream-dark/80">
                         <Heart className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
-                        <p className="type-card-title !text-[1rem] text-luxe-dark">No saved favorites yet</p>
+                        <p className="type-card-title !text-[1rem] text-luxe-dark">Aucun favori pour le moment</p>
                         <p className="type-meta text-luxe-muted mt-2 max-w-xs mx-auto">
-                          Save products from the catalog and they will appear here in your Personal Area.
+                          Ajoutez des produits en favoris depuis le catalogue : ils apparaîtront ici.
                         </p>
                       </div>
                     ) : (
@@ -914,7 +916,7 @@ export default function CustomerAccountModal({
                                   onClick={() => onOpenFavourite?.(product)}
                                   className="type-button px-3 py-2 rounded-xl bg-luxe-dark text-white hover:bg-luxe-copper"
                                 >
-                                  Open product
+                                  Voir le produit
                                 </button>
                               </div>
                             </div>
@@ -930,12 +932,12 @@ export default function CustomerAccountModal({
                     <div className="bg-white rounded-2xl border border-warm-cream-dark p-6 shadow-sm">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <span className="type-kicker text-luxe-copper">Security & Preferences</span>
+                          <span className="type-kicker text-luxe-copper">Sécurité et préférences</span>
                           <h6 className="type-section-title !text-[clamp(1.45rem,2vw,1.9rem)] mt-2 text-luxe-dark">
-                            Keep your account secure and current
+                            Gardez votre compte sécurisé et à jour
                           </h6>
                           <p className="type-meta text-luxe-muted mt-3 max-w-2xl">
-                            Use this section to update your identity details, contact information, city, and password.
+                            Modifiez ici votre nom, vos coordonnées, votre ville et votre mot de passe.
                           </p>
                         </div>
                         <div className="w-12 h-12 rounded-2xl bg-luxe-dark text-luxe-gold flex items-center justify-center shrink-0">
@@ -958,7 +960,7 @@ export default function CustomerAccountModal({
               <div className="flex justify-between items-center border-b pb-2">
                 <h6 className="font-serif font-bold text-sm text-luxe-dark flex items-center gap-1">
                   <Laptop className="w-4 h-4 text-luxe-copper" />
-                  Order details #{selectedQuoteDetail.id}
+                  Détails de la commande #{selectedQuoteDetail.id}
                 </h6>
                 <button
                   type="button"
@@ -972,36 +974,36 @@ export default function CustomerAccountModal({
               <div className="space-y-3.5 text-xs text-luxe-dark">
                 <div className="grid grid-cols-2 gap-2 border-b pb-2">
                   <div>
-                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Order status</span>
+                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Statut de la commande</span>
                     <span className={`inline-block px-2 py-0.5 mt-0.5 rounded-full text-[9px] font-black border ${getStatusColor(selectedQuoteDetail.status)}`}>
                       {selectedQuoteDetail.status}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Estimated total</span>
+                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Total estimé</span>
                     <span className="font-extrabold text-luxe-orange text-sm">{formatPrice(selectedQuoteDetail.finalPrice)}</span>
                   </div>
                 </div>
 
                 <div>
-                  <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Selected model</span>
+                  <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Modèle choisi</span>
                   <span className="font-extrabold text-luxe-dark">{selectedQuoteDetail.laptopBrand} {selectedQuoteDetail.laptopModel}</span>
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-warm-cream-dark/60 space-y-1.5">
-                  <span className="block text-[10px] text-luxe-muted uppercase font-black tracking-wider border-b pb-1">Custom specifications</span>
+                  <span className="block text-[10px] text-luxe-muted uppercase font-black tracking-wider border-b pb-1">Configuration personnalisée</span>
                   <div>
-                    <span className="text-luxe-muted font-bold">RAM:</span> {selectedQuoteDetail.customizations.ramUpgrade}
+                    <span className="text-luxe-muted font-bold">RAM :</span> {selectedQuoteDetail.customizations.ramUpgrade}
                   </div>
                   <div>
-                    <span className="text-luxe-muted font-bold">Storage:</span> {selectedQuoteDetail.customizations.storageUpgrade}
+                    <span className="text-luxe-muted font-bold">Stockage :</span> {selectedQuoteDetail.customizations.storageUpgrade}
                   </div>
                   <div>
-                    <span className="text-luxe-muted font-bold">Operating system:</span> {selectedQuoteDetail.customizations.osOption}
+                    <span className="text-luxe-muted font-bold">Système d'exploitation :</span> {selectedQuoteDetail.customizations.osOption}
                   </div>
                   {selectedQuoteDetail.customizations.accessories && selectedQuoteDetail.customizations.accessories.length > 0 && (
                     <div>
-                      <span className="text-luxe-muted font-bold block">Accessories:</span>
+                      <span className="text-luxe-muted font-bold block">Accessoires :</span>
                       <ul className="list-disc pl-4 space-y-0.5 mt-1 text-[11px]">
                         {selectedQuoteDetail.customizations.accessories.map((acc, idx) => (
                           <li key={idx}>{acc}</li>
@@ -1013,7 +1015,7 @@ export default function CustomerAccountModal({
 
                 {selectedQuoteDetail.additionalNotes && (
                   <div>
-                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Customer notes</span>
+                    <span className="block text-[10px] text-luxe-muted uppercase font-bold tracking-wider">Vos remarques</span>
                     <p className="bg-white p-2.5 rounded-xl border italic mt-1 text-[11px] leading-relaxed">
                       "{selectedQuoteDetail.additionalNotes}"
                     </p>
@@ -1026,7 +1028,7 @@ export default function CustomerAccountModal({
                 onClick={() => setSelectedQuoteDetail(null)}
                 className="w-full py-2 bg-luxe-dark text-white rounded-xl text-xs uppercase font-extrabold cursor-pointer"
               >
-                Close
+                Fermer
               </button>
             </div>
           </div>
