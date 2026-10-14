@@ -1224,7 +1224,8 @@ async function compatAdminAuth(req: express.Request, res: express.Response, next
     }
     const { data, error } = await supabase.auth.getUser(token);
     if (error || !data?.user) {
-      return res.status(403).json({ error: 'Session invalide ou expirée' });
+      // 401 (et non 403) : le site sait alors qu'il doit renouveler la session.
+      return res.status(401).json({ error: 'Session invalide ou expirée' });
     }
     const adminContext = await getAdminContext(supabase, adminDb, data.user.id);
     if (!adminContext) {
@@ -2399,6 +2400,9 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
       res.json({
         success: true,
         token: data.session.access_token,
+        // Le jeton d'accès expire au bout d'1 h : le jeton de renouvellement
+        // permet au site d'en obtenir un nouveau sans redemander le mot de passe.
+        refreshToken: data.session.refresh_token,
         user: {
           id: adminContext.id,
           username: adminContext.username,
@@ -2406,6 +2410,32 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
           role: adminContext.role,
           name: adminContext.name,
         },
+      });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  // Renouvellement de la session admin (appelé automatiquement par le site).
+  app.post('/api/auth/refresh', async (req, res) => {
+    const refreshToken = String(req.body?.refreshToken || '');
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Jeton de renouvellement manquant.' });
+    }
+    try {
+      const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+      if (error || !data?.session || !data.user) {
+        return res.status(401).json({ error: 'Session expirée. Veuillez vous reconnecter.' });
+      }
+      // Toujours administrateur ? (le compte a pu être retiré entre-temps)
+      const adminContext = await getAdminContext(db, adminDb, data.user.id);
+      if (!adminContext) {
+        return res.status(403).json({ error: 'Compte administrateur introuvable ou inactif.' });
+      }
+      res.json({
+        success: true,
+        token: data.session.access_token,
+        refreshToken: data.session.refresh_token,
       });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });

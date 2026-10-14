@@ -3,7 +3,7 @@ import {
   X, LogOut, LayoutDashboard, Laptop, FolderTree, ClipboardList, 
   Settings, BookOpen, Image, Database, Menu, Lock, User, RefreshCw, KeyRound
 } from 'lucide-react';
-import API from '../../lib/api';
+import API, { ADMIN_SESSION_EXPIRED_EVENT } from '../../lib/api';
 
 // Admin modules
 import AdminDashboard from './AdminDashboard';
@@ -61,6 +61,22 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
 
   useEffect(() => {
     checkAuthToken();
+  }, []);
+
+  // Session expirée et non renouvelable : retour à l'écran de connexion avec un message clair.
+  useEffect(() => {
+    const onExpired = () => {
+      try { sessionStorage.removeItem(ADMIN_SESSION_EXPIRED_EVENT); } catch { /* stockage indisponible */ }
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      setErrorMessage('Votre session a expiré. Veuillez vous reconnecter.');
+    };
+    // Expiration survenue avant l'ouverture de l'admin
+    try {
+      if (sessionStorage.getItem(ADMIN_SESSION_EXPIRED_EVENT)) onExpired();
+    } catch { /* stockage indisponible */ }
+    window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
   }, []);
 
   const triggerToast = (title: string, message: string, type: string = 'info') => {
