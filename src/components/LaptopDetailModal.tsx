@@ -713,11 +713,11 @@ export default function LaptopDetailModal({
                       </h3>
                     </div>
                     
-                    {/* Action buttons Favorite/Share */}
-                    <div className="flex gap-1.5 select-none shrink-0">
+                    {/* Action buttons Favorite/Share — décalés sur ordinateur pour ne pas passer sous la croix de fermeture */}
+                    <div className="flex gap-1.5 select-none shrink-0 md:mr-12">
                       <button
                         onClick={() => onToggleFavourite(laptop.id)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border cursor-pointer select-none ${
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border cursor-pointer select-none ${
                           isFav 
                             ? 'bg-rose-500 border-rose-500 text-white shadow-sm shadow-rose-300' 
                             : 'bg-white text-luxe-muted border-warm-cream-dark/50 hover:text-rose-500'
@@ -952,24 +952,25 @@ export default function LaptopDetailModal({
               </div>
 
               {/* Call To Action & Pricing Footer Row */}
-              <div className="mt-6 pt-5 border-t border-warm-cream-dark/60 flex flex-col sm:flex-row justify-between items-center gap-4 text-left select-none">
+              {/* Prix au-dessus, boutons en dessous sur toute la largeur : la colonne est trop étroite pour tout aligner (les boutons étaient coupés sur ordinateur) */}
+              <div className="mt-6 pt-5 border-t border-warm-cream-dark/60 flex flex-col items-stretch gap-4 text-left select-none">
                 <div>
-                  <span className="text-[9px] uppercase tracking-widest font-extrabold text-luxe-muted">Tarif Indicatif d'Importation</span>
+                  <span className="text-[11px] uppercase tracking-widest font-extrabold text-luxe-muted">Tarif Indicatif d'Importation</span>
                   <div className="flex items-baseline gap-1.5 mt-0.5 text-luxe-dark">
                     <span className="text-xl sm:text-2xl font-serif font-black text-luxe-dark">
                       {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 })
                         .format(laptop.price)
                         .replace('XAF', 'FCFA')}
                     </span>
-                    <span className="text-[10px] text-luxe-orange font-bold uppercase tracking-wider bg-luxe-orange/10 px-2 py-0.5 rounded-md">
+                    <span className="whitespace-nowrap text-[11px] text-luxe-orange font-bold uppercase tracking-wider bg-luxe-orange/10 px-2 py-0.5 rounded-md">
                       Prix Ferme
                     </span>
                   </div>
                 </div>
 
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex gap-2 w-full">
                   {isOutOfStock ? (
-                    <div className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest bg-neutral-100 border border-neutral-200 text-neutral-400 cursor-not-allowed select-none">
+                    <div className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest bg-neutral-100 border border-neutral-200 text-neutral-400 cursor-not-allowed select-none">
                       Rupture de Stock
                       <ChevronRight className="w-4 h-4" />
                     </div>
@@ -978,7 +979,7 @@ export default function LaptopDetailModal({
                       <button
                         type="button"
                         onClick={() => onAddToCart(laptop)}
-                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all bg-white text-luxe-dark border border-warm-cream-dark/80 hover:bg-warm-cream hover:border-luxe-gold/60 shadow-sm active:scale-95 duration-200 cursor-pointer text-center"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all bg-white text-luxe-dark border border-warm-cream-dark/80 hover:bg-warm-cream hover:border-luxe-gold/60 shadow-sm active:scale-95 duration-200 cursor-pointer text-center"
                       >
                         <ShoppingCart className="w-4 h-4" />
                         Panier
@@ -989,7 +990,7 @@ export default function LaptopDetailModal({
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all bg-luxe-dark text-white border border-luxe-dark hover:bg-luxe-orange hover:border-luxe-orange shadow-md active:scale-95 duration-200 cursor-pointer text-center"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all bg-luxe-dark text-white border border-luxe-dark hover:bg-luxe-orange hover:border-luxe-orange shadow-md active:scale-95 duration-200 cursor-pointer text-center"
                       >
                         Contacter
                         <ChevronRight className="w-4 h-4" />

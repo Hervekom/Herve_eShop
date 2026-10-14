@@ -675,7 +675,8 @@ export default function CatalogView({
         : currentPromoSlide?.meta?.[1] || '';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-5 sm:py-6 relative overflow-hidden" id="catalog-view-container">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-5 sm:py-6 relative overflow-x-clip" id="catalog-view-container">
+      {/* overflow-x-clip (et non overflow-hidden) : coupe le filigrane sans empêcher la colonne de filtres de rester fixe */}
       {/* Decorative Elegant Watermark "Herve_eShop" in the background */}
       <div className="absolute -left-10 top-1/3 opacity-[0.02] text-[18vw] font-black select-none pointer-events-none tracking-tight leading-none z-0">
         Herve_eShop
@@ -808,8 +809,9 @@ export default function CatalogView({
                     </div>
                   </div>
 
-                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-3 md:justify-between">
-                    <div className="hidden md:block max-w-lg">
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-3">
+                    {/* Titre déjà affiché dans la colonne de droite : pas de doublon sur l'image */}
+                    <div className="hidden max-w-lg">
                       <div className="type-kicker text-white/70">
                         {currentPromoSlide?.kind === 'advertisement'
                           ? 'Annonce active'
@@ -938,16 +940,19 @@ export default function CatalogView({
 
       {/* FILTER PANEL SECTION */}
       <span id="catalog-grid-anchor" className="block scroll-mt-24"></span>
-      <section className="mt-6 md:mt-16 bg-white/80 border border-warm-cream-dark/80 rounded-2xl p-4 sm:p-5 md:p-7 shadow-xs overflow-hidden">
+      {/* Ordinateur (lg+) : filtres dans une colonne à gauche, produits à droite */}
+      <div className="mt-6 md:mt-16 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-8 lg:items-start">
+      <section className="bg-white/80 border border-warm-cream-dark/80 rounded-2xl p-4 sm:p-5 md:p-7 lg:p-5 shadow-xs overflow-hidden lg:sticky lg:top-36 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto">
         <div className="flex flex-col gap-4 md:gap-6">
-          <div className="flex flex-row justify-between items-center gap-3 md:border-b md:border-warm-cream-dark/50 md:pb-4">
+          <div className="flex flex-row lg:flex-col lg:items-start justify-between items-center gap-3 md:border-b md:border-warm-cream-dark/50 md:pb-4">
             <div className="min-w-0">
               <h3 className="type-card-title text-luxe-dark flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-luxe-copper shrink-0" />
                 <span className="md:hidden">Catalogue</span>
-                <span className="max-md:hidden">Filtrer le catalogue en temps réel</span>
+                <span className="max-md:hidden lg:hidden">Filtrer le catalogue en temps réel</span>
+                <span className="hidden lg:inline">Filtres</span>
               </h3>
-              <p className="type-meta text-luxe-muted mt-1 max-md:hidden">Retrouvez l'article tech qui correspond exactement à vos besoins.</p>
+              <p className="type-meta text-luxe-muted mt-1 max-md:hidden lg:hidden">Retrouvez l'article tech qui correspond exactement à vos besoins.</p>
               <p className="type-meta text-luxe-muted mt-0.5 md:hidden">
                 {sortedLaptops.length} article{sortedLaptops.length > 1 ? 's' : ''} trouvé{sortedLaptops.length > 1 ? 's' : ''}
               </p>
@@ -1007,7 +1012,7 @@ export default function CatalogView({
                   );
                 })}
 
-                <div className="w-px h-8 bg-warm-cream-dark/70 mx-1.5 hidden sm:block"></div>
+                <div className="w-px h-8 bg-warm-cream-dark/70 mx-1.5 hidden sm:block lg:hidden"></div>
 
                 <button
                   type="button"
@@ -1053,7 +1058,7 @@ export default function CatalogView({
 
             {/* 3. Budget & Price range slider */}
             <div className={`flex flex-col gap-3 pt-2 border-t border-warm-cream-dark/40 ${mobileFiltersClass}`}>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div className="flex flex-col sm:flex-row lg:flex-col justify-between items-start sm:items-center lg:items-start gap-2">
                 <span className="field-label text-luxe-muted">
                   Budget & Fourchette de prix (FCFA)
                 </span>
@@ -1064,7 +1069,7 @@ export default function CatalogView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 bg-warm-cream/40 p-3.5 sm:p-4 rounded-xl border border-warm-cream-dark/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 bg-warm-cream/40 p-3.5 sm:p-4 rounded-xl border border-warm-cream-dark/50">
                 {/* Min Price Slider */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center type-badge text-luxe-muted">
@@ -1153,7 +1158,7 @@ export default function CatalogView({
           </div>
 
           {/* Secondary Filters Inputs Grid (Provenance, Availability, Sort) */}
-          <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${mobileFiltersClass}`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4 ${mobileFiltersClass}`}>
             {/* Filter by Import Source */}
             <div className="flex flex-col gap-1.5">
               <label className="field-label text-luxe-muted">Provenance d'import</label>
@@ -1209,7 +1214,7 @@ export default function CatalogView({
       </section>
 
       {/* CATALOG GRID - LabCraft Style */}
-      <section className="mt-8 md:mt-12" id="catalog-section-grid">
+      <section className="mt-8 md:mt-12 lg:mt-0" id="catalog-section-grid">
         <div className="mb-4 md:mb-10">
           <h2 className="type-section-title text-gray-900 mb-2 md:mb-4">Notre Collection</h2>
           <p className="type-subtitle text-gray-600 max-w-2xl max-sm:hidden">
@@ -1218,7 +1223,7 @@ export default function CatalogView({
         </div>
         
         {/* 2 produits par ligne sur téléphone */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
+        <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
         <AnimatePresence mode="popLayout">
           {sortedLaptops.length === 0 ? (
             <motion.div
@@ -1405,42 +1410,44 @@ export default function CatalogView({
         </AnimatePresence>
         </div>
       </section>
+      </div>
 
       {/* WHY CHOOSE HERVE_ESHOP ADVANTAGE */}
       <section className="mt-14 md:mt-24 bg-luxe-dark text-warm-cream rounded-3xl p-5 sm:p-7 md:p-12 relative overflow-hidden">
         <div className="absolute top-0 right-0 opacity-[0.03] text-[20vw] font-black select-none pointer-events-none tracking-tight">
           Luxe
         </div>
-        <div className="max-w-2xl text-left z-10 relative">
+        {/* Titre limité en largeur, mais les 3 arguments occupent toute la largeur */}
+        <div className="text-left z-10 relative">
           <span className="type-kicker text-luxe-gold">La Charte Confiance d'Hervé</span>
-          <h3 className="type-section-title mt-3 mb-6">
+          <h3 className="type-section-title mt-3 mb-6 md:mb-10 max-w-2xl">
             Pourquoi choisir notre catalogue pour équiper vos études & projets ?
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10 text-left">
             <div>
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mb-3">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-3">
                 <CheckCircle className="w-4 h-4 text-luxe-gold" />
               </div>
-              <h5 className="text-sm font-semibold text-white">Authenticité Garantie</h5>
-              <p className="text-[11px] text-warm-cream-dark/70 mt-1 leading-relaxed">
+              <h5 className="text-base font-semibold text-white">Authenticité Garantie</h5>
+              <p className="text-sm text-warm-cream-dark/75 mt-1.5 leading-relaxed">
                 Toutes nos machines subissent 40 points de tests rigoureux avant d'entrer au Cameroun.
               </p>
             </div>
             <div>
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mb-3">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-3">
                 <CheckCircle className="w-4 h-4 text-luxe-gold" />
               </div>
-              <h5 className="text-sm font-semibold text-white">Traçabilité Claire</h5>
-              <p className="text-[11px] text-warm-cream-dark/70 mt-1 leading-relaxed">
+              <h5 className="text-base font-semibold text-white">Traçabilité Claire</h5>
+              <p className="text-sm text-warm-cream-dark/75 mt-1.5 leading-relaxed">
                 Provenance transparente (USA, Europe ou Asie) - aucun reconditionnement de basse qualité.
               </p>
             </div>
             <div>
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mb-3">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-3">
                 <CheckCircle className="w-4 h-4 text-luxe-gold" />
               </div>
-              <h5 className="text-sm font-semibold text-white">Accompagnement Devis</h5>
-              <p className="text-[11px] text-warm-cream-dark/70 mt-1 leading-relaxed">
+              <h5 className="text-base font-semibold text-white">Accompagnement Devis</h5>
+              <p className="text-sm text-warm-cream-dark/75 mt-1.5 leading-relaxed">
                 Configurations à la carte sur demande (mémoire augmentée, pack housse cuir premium).
               </p>
             </div>
