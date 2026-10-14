@@ -1,0 +1,27 @@
+# Empêche le serveur Render (offre gratuite) de s'endormir.
+# Render met le serveur en veille après 15 minutes sans visite ; ce workflow
+# l'appelle toutes les 10 minutes pour qu'il reste réveillé.
+name: Garder le serveur Render éveillé
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # bouton "Run workflow" pour un lancement manuel
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Appeler le serveur
+        run: |
+          for i in 1 2 3; do
+            if curl -fsS --max-time 90 https://herve-eshop.onrender.com/api/version; then
+              echo; echo "Serveur réveillé."
+              exit 0
+            fi
+            echo "Tentative $i échouée, nouvel essai dans 20 s..."
+            sleep 20
+          done
+          echo "Le serveur ne répond pas."
+          exit 1
