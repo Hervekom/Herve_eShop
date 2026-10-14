@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { 
   Minus, Plus, ShoppingCart, Sparkles, Trash2, Bell, ArrowRight, Shield, Users, CheckCircle, Smartphone, Info, RefreshCw, X,
   Facebook, Instagram, Linkedin, Youtube, Twitter, Music2
@@ -10,13 +10,16 @@ import BuyingGuides from './components/BuyingGuides';
 import WhatsAppFloatingButton from './components/WhatsAppFloatingButton';
 import BackToTopButton from './components/BackToTopButton';
 import HerveLogo from './components/HerveLogo';
-import QuoteRequestModal from './components/QuoteRequestModal';
-import LaptopDetailModal from './components/LaptopDetailModal';
-import CustomerAccountModal from './components/CustomerAccountModal';
-import NotificationCenter from './components/NotificationCenter';
-import AdminPanel from './components/admin/AdminPanel';
 import API from './lib/api';
 import { CustomerNotification, Laptop, QuoteRequest, QuoteStatus, LaptopStatus } from './types';
+
+// Chargés à la demande : ces écrans ne sont pas nécessaires pour afficher la
+// page d'accueil, ils sont téléchargés seulement quand on les ouvre.
+const QuoteRequestModal = lazy(() => import('./components/QuoteRequestModal'));
+const LaptopDetailModal = lazy(() => import('./components/LaptopDetailModal'));
+const CustomerAccountModal = lazy(() => import('./components/CustomerAccountModal'));
+const NotificationCenter = lazy(() => import('./components/NotificationCenter'));
+const AdminPanel = lazy(() => import('./components/admin/AdminPanel'));
 
 type AppErrorBoundaryProps = {
   children: React.ReactNode;
@@ -527,12 +530,20 @@ export default function App() {
   // SWITCH RENDER IF ROLE IS ADMIN
   if (role === 'admin') {
     return (
-      <AdminPanel 
-        onBackToPublic={() => {
-          setRole('client');
-          window.history.pushState({}, '', '/');
-        }} 
-      />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-warm-cream text-luxe-dark">
+            Chargement de l'administration…
+          </div>
+        }
+      >
+        <AdminPanel
+          onBackToPublic={() => {
+            setRole('client');
+            window.history.pushState({}, '', '/');
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -606,6 +617,9 @@ export default function App() {
       </main>
 
       {/* CUSTOM QUOTE REQUEST MODAL OVERLAY */}
+      {/* Fenêtres chargées à la demande : rien ne s'affiche pendant leur
+          téléchargement (quelques dixièmes de seconde). */}
+      <Suspense fallback={null}>
       {selectedLaptopForQuote && (
         <QuoteRequestModal
           laptop={selectedLaptopForQuote}
@@ -658,6 +672,7 @@ export default function App() {
       )}
 
       {/* LAPTOP SHOWCASE DETAIL MODAL */}
+      {selectedLaptopForDetails !== null && (
       <LaptopDetailModal
         laptop={selectedLaptopForDetails}
         isOpen={selectedLaptopForDetails !== null}
@@ -670,6 +685,8 @@ export default function App() {
         onRequireLogin={() => openAccountArea('overview')}
         whatsAppPhone={clientData?.contactCMS?.whatsAppPhone}
       />
+      )}
+      </Suspense>
 
       {isCartOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
