@@ -127,7 +127,7 @@ export default function AdminProducts({
       const cms = await API.getClientData();
       setCategories(cms.categories);
     } catch (err) {
-      onTriggerToast('Erreur serveur ❌', 'Impossible de récupérer l\'inventaire.', 'danger');
+      onTriggerToast('Erreur serveur ❌', `Impossible de récupérer l'inventaire : ${(err as Error).message}`, 'danger');
     } finally {
       setLoading(false);
     }

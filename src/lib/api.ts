@@ -2,6 +2,7 @@
 
 const AUTH_TOKEN_KEY = 'herve_eshop_admin_token';
 const AUTH_USER_KEY = 'herve_eshop_admin_user';
+const AUTH_REFRESH_TOKEN_KEY = 'herve_eshop_admin_refresh_token';
 
 const CUSTOMER_TOKEN_KEY = 'herve_eshop_customer_token';
 const CUSTOMER_REFRESH_TOKEN_KEY = 'herve_eshop_customer_refresh_token';
@@ -17,8 +18,24 @@ export function setAuthToken(token: string | null) {
   } else {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
+    localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
   }
 }
+
+function getAdminRefreshToken(): string | null {
+  return localStorage.getItem(AUTH_REFRESH_TOKEN_KEY);
+}
+
+function setAdminRefreshToken(token: string | null) {
+  if (token) {
+    localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+  }
+}
+
+/** Événement envoyé quand la session admin ne peut plus être renouvelée. */
+export const ADMIN_SESSION_EXPIRED_EVENT = 'herve-admin-session-expired';
 
 export function getCachedAdminUser() {
   const user = localStorage.getItem(AUTH_USER_KEY);
@@ -126,8 +143,47 @@ async function refreshCustomerSession() {
   return true;
 }
 
+// Renouvelle la session admin. Plusieurs requêtes peuvent échouer en même
+// temps : elles partagent alors un seul renouvellement.
+// 'ok' : session renouvelée ; 'rejected' : le serveur refuse (il faut se reconnecter) ;
+// 'network' : serveur injoignable (on ne déconnecte pas pour une simple coupure).
+type AdminRefreshResult = 'ok' | 'rejected' | 'network';
+let adminRefreshInFlight: Promise<AdminRefreshResult> | null = null;
+
+function refreshAdminSession(): Promise<AdminRefreshResult> {
+  if (adminRefreshInFlight) return adminRefreshInFlight;
+  adminRefreshInFlight = (async (): Promise<AdminRefreshResult> => {
+    const refreshToken = getAdminRefreshToken();
+    if (!refreshToken) return 'rejected';
+    let res: Response;
+    try {
+      res = await fetch(buildApiUrl('/api/auth/refresh'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+    } catch {
+      return 'network';
+    }
+    if (res.status === 401 || res.status === 403 || res.status === 400) return 'rejected';
+    if (!res.ok) return 'network';
+    const json = await res.json().catch(() => null);
+    if (!json?.success || !json?.token) return 'rejected';
+    localStorage.setItem(AUTH_TOKEN_KEY, json.token);
+    if (json.refreshToken) setAdminRefreshToken(json.refreshToken);
+    return 'ok';
+  })().finally(() => {
+    adminRefreshInFlight = null;
+  });
+  return adminRefreshInFlight;
+}
+
+function isAdminEndpoint(endpoint: string) {
+  return endpoint.startsWith('/api/admin/') || endpoint === '/api/auth/me' || endpoint === '/api/auth/change-password';
+}
+
 // Low-level fetcher
-async function apiFetch(endpoint: string, options: RequestInit = {}) {
+async function apiFetch(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<any> {
   const token = getAuthToken();
   const guestToken = getGuestToken();
   const headers = {
@@ -160,6 +216,23 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   }
 
   if (!response.ok) {
+    // Session admin expirée (jeton valable 1 h) : on la renouvelle puis on réessaie une fois.
+    if (response.status === 401 && typeof endpoint === 'string' && isAdminEndpoint(endpoint) && getAuthToken()) {
+      const refreshResult = isRetry ? 'rejected' : await refreshAdminSession();
+      if (refreshResult === 'ok') {
+        return apiFetch(endpoint, options, true);
+      }
+      if (refreshResult === 'network') {
+        throw new Error('Serveur injoignable pour le moment. Réessayez dans quelques secondes.');
+      }
+      setAuthToken(null);
+      if (typeof window !== 'undefined') {
+        // Mémorisé aussi pour l'écran admin s'il n'est pas encore affiché
+        try { sessionStorage.setItem(ADMIN_SESSION_EXPIRED_EVENT, '1'); } catch { /* stockage indisponible */ }
+        window.dispatchEvent(new Event(ADMIN_SESSION_EXPIRED_EVENT));
+      }
+      throw new Error('Votre session a expiré. Veuillez vous reconnecter.');
+    }
     if (
       response.status === 401 &&
       typeof endpoint === 'string' &&
@@ -267,6 +340,7 @@ export const API = {
     });
     if (res.success) {
       setAuthToken(res.token);
+      setAdminRefreshToken(res.refreshToken || null);
       setCachedAdminUser(res.user);
     }
     return res;
