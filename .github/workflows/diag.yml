@@ -1,0 +1,16 @@
+name: Diagnostic serveur
+on:
+  push:
+    branches: ['diag/**']
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          B=https://herve-eshop.onrender.com
+          for p in /api/version /api/client/data /api/admin/products; do
+            echo "=== $p"
+            curl -sS -m 90 -o body.txt -w "HTTP %{http_code}\n" -H "Origin: https://herve-e-shop.vercel.app" -D headers.txt "$B$p"
+            grep -i "access-control-allow-origin" headers.txt || echo "(pas d'en-tête CORS)"
+            head -c 600 body.txt; echo
+          done
