@@ -389,7 +389,7 @@ export default function CustomerAccountModal({
   return (
     <div className="fixed inset-0 bg-luxe-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div 
-        className="bg-warm-cream w-full max-w-5xl rounded-3xl border border-luxe-gold/30 shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
+        className={`bg-warm-cream w-full ${activeTab === 'dashboard' ? 'max-w-5xl' : 'max-w-lg'} rounded-3xl border border-luxe-gold/30 shadow-2xl flex flex-col overflow-hidden max-h-[90vh]`}
         id="customer-account-modal-container"
       >
         <div className="bg-gradient-to-r from-luxe-dark via-luxe-copper to-luxe-dark py-4 px-6 md:px-8 text-white flex justify-between items-center relative select-none">

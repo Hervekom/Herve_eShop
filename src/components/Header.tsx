@@ -133,7 +133,7 @@ export default function Header({
               {announcementText}
             </span>
           </div>
-          <div className="max-sm:hidden flex items-center gap-4 type-kicker text-white/90">
+          <div className="hidden xl:flex items-center gap-4 type-kicker text-white/90">
             <span className="flex items-center gap-1.5">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>

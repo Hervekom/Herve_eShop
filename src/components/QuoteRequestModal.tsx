@@ -377,7 +377,8 @@ export default function QuoteRequestModal({
               {/* Accessories Custom checkboxes */}
               <div className="space-y-1.5">
                 <label className="field-label text-luxe-dark">Pack accessoires</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Une option par ligne : sur 2 colonnes, les noms et les prix étaient coupés */}
+                <div className="grid grid-cols-1 gap-2">
                   {Object.keys(PRICING.accessories).map((acc) => {
                     const price = PRICING.accessories[acc];
                     const isSelected = selectedAccessories.includes(acc);
@@ -386,21 +387,21 @@ export default function QuoteRequestModal({
                         key={acc}
                         type="button"
                         onClick={() => toggleAccessory(acc)}
-                        className={`field-input flex items-center justify-between p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        className={`field-input flex items-center justify-between gap-3 p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-warm-cream-dark/50 border-luxe-copper text-luxe-dark shadow-xs'
                             : 'bg-white border-warm-cream-dark text-luxe-muted hover:bg-warm-cream'
                         }`}
                       >
-                        <div className="flex items-center gap-2 max-w-[180px]">
-                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center text-[8px] ${
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center text-[8px] ${
                             isSelected ? 'bg-luxe-copper text-white border-luxe-copper' : 'border-warm-cream-dark bg-white'
                           }`}>
                             {isSelected && '✓'}
                           </span>
-                          <span className="truncate">{acc}</span>
+                          <span className="min-w-0">{acc}</span>
                         </div>
-                        <span className="font-mono text-xs text-luxe-copper font-bold">+{formatPrice(price)}</span>
+                        <span className="shrink-0 whitespace-nowrap font-mono text-xs text-luxe-copper font-bold">+{formatPrice(price)}</span>
                       </button>
                     );
                   })}
@@ -410,7 +411,7 @@ export default function QuoteRequestModal({
 
             {/* Step 2: Customer Contact Info */}
             <div className="space-y-3.5 pt-4 border-t border-warm-cream-dark/50">
-              <h4 className="field-label text-luxe-gold">2. Vos coordonnées de prospects</h4>
+              <h4 className="field-label text-luxe-gold">2. Vos coordonnées</h4>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Full name input */}
