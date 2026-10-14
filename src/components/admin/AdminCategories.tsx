@@ -47,9 +47,10 @@ export default function AdminCategories({
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res = await API.getClientData();
+      // Route admin : renvoie aussi les catégories inactives, pour pouvoir les réactiver.
+      const res = await API.getCategories();
       // Sort by display order
-      const sorted = (res.categories || []).sort((a: any, b: any) => a.displayOrder - b.displayOrder);
+      const sorted = (Array.isArray(res) ? res : []).sort((a: any, b: any) => a.displayOrder - b.displayOrder);
       setCategories(sorted);
     } catch (err) {
       onTriggerToast('Erreur ❌', 'Impossible de récupérer les catégories.');
