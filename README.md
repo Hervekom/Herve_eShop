@@ -86,8 +86,8 @@ npm run start
 ## Architecture rapide
 
 - `src/` : frontend React
-- `server.ts` : point d'entree Express
-- `server/compatRoutes.ts` : adaptation entre le frontend et le schema Supabase courant
+- `server.ts` : point d'entree Express (CORS, clients Supabase, service des fichiers du frontend)
+- `server/compatRoutes.ts` : toutes les routes API (`/api/...`), adaptees au schema Supabase courant
 - `src/lib/api.ts` : client HTTP utilise par le frontend
 - `src/lib/supabase.ts` : client Supabase frontend
 - `types/supabase.ts` : types utilises par le projet
@@ -185,9 +185,7 @@ npm run start
 
 ## Limitations connues
 
-- Les modules `CMS`, `categories`, `banners`, `guides` et `audit logs` ne sont pas encore adosses a un schema Supabase complet.
 - Le bundle frontend est volumineux et Vite emet encore un avertissement de taille de chunk.
-- Le fichier `sql.txt` ne doit pas etre applique tel quel sur une base de production existante sans revue, car il peut contenir des operations destructives.
 
 ## Prochaine etape recommandee
 
