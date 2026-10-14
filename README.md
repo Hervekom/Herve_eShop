@@ -18,16 +18,12 @@ Cette couche permet de faire fonctionner l'application avec le schema Supabase r
 - `notifications`
 - `admin_users`
 
-Certaines parties de l'interface admin ne disposent pas encore de tables dediees dans la base actuelle. Elles fonctionnent donc en mode compatibilite, avec des structures stables cote serveur pour eviter les crashs :
-- categories
-- CMS site/contact/social
-- banners
-- guides
-- audit logs
+Les modules admin suivants sont persistes dans Supabase :
+- categories, CMS site/contact/social, bannieres, guides : table `site_settings` (une ligne cle/valeur JSON par module)
+- journal d'activite : table `admin_audit_logs`
 
-Important :
-- ces modules chargent correctement dans l'interface
-- mais leurs donnees ne sont pas toutes persistees dans Supabase tant que le schema cible n'est pas cree
+Ces deux tables sont creees par la migration `supabase/migrations/20261015000000_admin_content_persistence.sql`.
+A executer une fois dans Supabase (Dashboard > SQL Editor). Sans elle, les modifications de ces modules renvoient une erreur explicite au lieu d'etre perdues silencieusement.
 
 ## Prerequis
 

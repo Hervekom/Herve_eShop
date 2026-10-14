@@ -94,6 +94,11 @@ let bannersStore: any[] = [];
 let guidesStore: any[] = [];
 let auditLogsStore: any[] = [];
 
+// Client Supabase (service_role) utilisé pour persister le journal d'activité.
+// Renseigné dans registerCompatRoutes.
+let auditDb: SupabaseLike | null = null;
+const AUDIT_LOGS_TABLE = 'admin_audit_logs';
+
 function pushAuditLog(entry: {
   userEmail?: string;
   userRole?: string;
@@ -101,7 +106,7 @@ function pushAuditLog(entry: {
   entityId?: string;
   entityType?: string;
 }) {
-  auditLogsStore.unshift({
+  const log = {
     id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
     userEmail: entry.userEmail || 'system@herve-eshop.local',
@@ -109,8 +114,64 @@ function pushAuditLog(entry: {
     action: entry.action,
     entityId: entry.entityId || '-',
     entityType: entry.entityType || '-',
-  });
+  };
+  auditLogsStore.unshift(log);
   auditLogsStore = auditLogsStore.slice(0, 200);
+
+  // Écriture en base sans bloquer la requête : un échec du journal ne doit
+  // jamais faire échouer l'action de l'utilisateur.
+  if (auditDb) {
+    Promise.resolve(
+      auditDb.from(AUDIT_LOGS_TABLE).insert([
+        {
+          created_at: log.createdAt,
+          user_email: log.userEmail,
+          user_role: log.userRole,
+          action: log.action,
+          entity_id: log.entityId,
+          entity_type: log.entityType,
+        },
+      ]),
+    )
+      .then((result: any) => {
+        if (result?.error && !isMissingTableError(result.error)) {
+          console.error('[audit] insertion impossible :', result.error.message);
+        }
+      })
+      .catch((error: any) => console.error('[audit] insertion impossible :', error?.message || error));
+  }
+}
+
+async function loadAuditLogs(adminDb: SupabaseLike) {
+  const { data, error } = await adminDb
+    .from(AUDIT_LOGS_TABLE)
+    .select('id,created_at,user_email,user_role,action,entity_id,entity_type')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) {
+    if (isMissingTableError(error)) return auditLogsStore;
+    throw error;
+  }
+  return (data || []).map((row: any) => ({
+    id: String(row.id),
+    createdAt: row.created_at,
+    userEmail: row.user_email || 'system@herve-eshop.local',
+    userRole: row.user_role || 'System',
+    action: row.action,
+    entityId: row.entity_id || '-',
+    entityType: row.entity_type || '-',
+  }));
+}
+
+function auditFromRequest(req: Request, action: string, entityType: string, entityId?: string) {
+  const user = (req as any).user || {};
+  pushAuditLog({
+    userEmail: user.email,
+    userRole: user.role || user.dbRole || 'Admin',
+    action,
+    entityId,
+    entityType,
+  });
 }
 
 function extractToken(headerValue?: string | string[]) {
@@ -1064,7 +1125,7 @@ async function loadCmsFromDb(adminDb: SupabaseLike) {
     const { data, error } = await adminDb
       .from('site_settings')
       .select('key,value')
-      .in('key', ['site_cms', 'contact_cms', 'social_cms', 'banners_store', 'guides_store']);
+      .in('key', ['site_cms', 'contact_cms', 'social_cms', 'banners_store', 'guides_store', 'categories_store']);
 
     if (error) throw error;
 
@@ -1078,6 +1139,10 @@ async function loadCmsFromDb(adminDb: SupabaseLike) {
     socialCMSStore = { ...clone(DEFAULT_SOCIAL_CMS), ...(map.get('social_cms') || {}) };
     bannersStore = Array.isArray(map.get('banners_store')) ? map.get('banners_store') : [];
     guidesStore = Array.isArray(map.get('guides_store')) ? map.get('guides_store') : [];
+    // Tant qu'aucune catégorie n'a été enregistrée, on garde les catégories par défaut.
+    if (Array.isArray(map.get('categories_store'))) {
+      categoriesStore = map.get('categories_store');
+    }
   } catch (error) {
     if (!isMissingTableError(error)) {
       throw error;
@@ -1100,7 +1165,7 @@ async function persistCmsToDb(adminDb: SupabaseLike, key: string, value: any) {
     if (error) throw error;
   } catch (error) {
     if (isMissingTableError(error)) {
-      throw new Error("Table 'site_settings' introuvable dans Supabase. Créez-la pour conserver le CMS (site/contact/social/bannières) après redémarrage.");
+      throw new Error("Table 'site_settings' introuvable dans Supabase. Exécutez la migration supabase/migrations/20261015000000_admin_content_persistence.sql dans le SQL Editor de Supabase.");
     }
     throw error;
   }
@@ -1305,8 +1370,17 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   const adminDb = supabaseAdmin as SupabaseLike;
   const requireCompatAdmin = (req: Request, res: Response, next: NextFunction) =>
     compatAdminAuth(req, res, next, supabase, adminDb);
+  // Les éditeurs peuvent modifier le contenu, mais pas la structure du catalogue.
+  const forbidEditor = (req: Request, res: Response) => {
+    if ((req as any).user?.dbRole === 'editor') {
+      res.status(403).json({ error: 'Droits administrateur requis.' });
+      return true;
+    }
+    return false;
+  };
 
-  loadCmsFromDb(adminDb).catch(() => {});
+  auditDb = adminDb;
+  loadCmsFromDb(adminDb).catch((error) => console.error('[cms] chargement initial impossible :', error?.message || error));
 
   app.get('/api/visitor-increment', async (_req, res) => {
     res.json({ success: true, count: 0 });
@@ -2682,33 +2756,70 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
-  app.post('/api/admin/categories', requireCompatAdmin, async (req, res) => {
-    const user = (req as any).user;
-    if (user.dbRole === 'editor') {
-      return res.status(403).json({ error: 'Droits administrateur requis.' });
+  // Enregistre la liste en base AVANT de mettre à jour la mémoire, pour que
+  // l'interface ne montre jamais un changement qui n'a pas été sauvegardé.
+  const saveCategories = async (next: any[]) => {
+    await persistCmsToDb(adminDb, 'categories_store', next);
+    categoriesStore = next;
+  };
+
+  app.get('/api/admin/categories', requireCompatAdmin, async (_req, res) => {
+    try {
+      await loadCmsFromDb(adminDb);
+      res.json(categoriesStore);
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
     }
-    const category = {
-      id: `cat-${Date.now()}`,
-      name: req.body.name,
-      description: req.body.description || '',
-      image: req.body.image || '',
-      icon: req.body.icon || 'Laptop',
-      displayOrder: Number(req.body.displayOrder || categoriesStore.length + 1),
-      status: req.body.status || 'Actif',
-    };
-    categoriesStore.push(category);
-    res.json({ success: true, category });
+  });
+
+  app.post('/api/admin/categories', requireCompatAdmin, async (req, res) => {
+    if (forbidEditor(req, res)) return;
+    if (!String(req.body?.name || '').trim()) {
+      return res.status(400).json({ error: 'Le nom de la catégorie est obligatoire.' });
+    }
+    try {
+      const category = {
+        id: `cat-${Date.now()}`,
+        name: String(req.body.name).trim(),
+        description: req.body.description || '',
+        image: req.body.image || '',
+        icon: req.body.icon || 'Laptop',
+        displayOrder: Number(req.body.displayOrder || categoriesStore.length + 1),
+        status: req.body.status || 'Actif',
+      };
+      await saveCategories([...categoriesStore, category]);
+      auditFromRequest(req, 'Creation categorie', 'Category', category.id);
+      res.json({ success: true, category });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.put('/api/admin/categories/:id', requireCompatAdmin, async (req, res) => {
-    categoriesStore = categoriesStore.map((category) => category.id === req.params.id ? { ...category, ...req.body } : category);
-    const updated = categoriesStore.find((category) => category.id === req.params.id);
-    res.json({ success: true, category: updated });
+    if (forbidEditor(req, res)) return;
+    const existing = categoriesStore.find((category) => category.id === req.params.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Catégorie introuvable.' });
+    }
+    try {
+      const updated = { ...existing, ...req.body, id: existing.id };
+      await saveCategories(categoriesStore.map((category) => category.id === existing.id ? updated : category));
+      auditFromRequest(req, 'Modification categorie', 'Category', existing.id);
+      res.json({ success: true, category: updated });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.delete('/api/admin/categories/:id', requireCompatAdmin, async (req, res) => {
-    categoriesStore = categoriesStore.filter((category) => category.id !== req.params.id);
-    res.json({ success: true });
+    if (forbidEditor(req, res)) return;
+    try {
+      await saveCategories(categoriesStore.filter((category) => category.id !== req.params.id));
+      auditFromRequest(req, 'Suppression categorie', 'Category', req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.get('/api/admin/orders', requireCompatAdmin, async (_req, res) => {
@@ -3195,11 +3306,18 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
+  const mergeCms = (current: any, body: any) => {
+    const next = { ...current, ...(body || {}) };
+    delete next.key;
+    return next;
+  };
+
   app.put('/api/admin/cms/site', requireCompatAdmin, async (req, res) => {
     try {
-      siteCMSStore = { ...siteCMSStore, ...(req.body.key ? req.body : { key: 'site_cms', ...req.body }) };
-      delete (siteCMSStore as any).key;
-      await persistCmsToDb(adminDb, 'site_cms', siteCMSStore);
+      const next = mergeCms(siteCMSStore, req.body);
+      await persistCmsToDb(adminDb, 'site_cms', next);
+      siteCMSStore = next;
+      auditFromRequest(req, 'Modification CMS site', 'CMS', 'site_cms');
       res.json({ success: true, cms: siteCMSStore });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -3208,9 +3326,10 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.put('/api/admin/cms/contact', requireCompatAdmin, async (req, res) => {
     try {
-      contactCMSStore = { ...contactCMSStore, ...(req.body.key ? req.body : { key: 'contact_cms', ...req.body }) };
-      delete (contactCMSStore as any).key;
-      await persistCmsToDb(adminDb, 'contact_cms', contactCMSStore);
+      const next = mergeCms(contactCMSStore, req.body);
+      await persistCmsToDb(adminDb, 'contact_cms', next);
+      contactCMSStore = next;
+      auditFromRequest(req, 'Modification CMS contact', 'CMS', 'contact_cms');
       res.json({ success: true, cms: contactCMSStore });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -3219,9 +3338,10 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.put('/api/admin/cms/social', requireCompatAdmin, async (req, res) => {
     try {
-      socialCMSStore = { ...socialCMSStore, ...(req.body.key ? req.body : { key: 'social_cms', ...req.body }) };
-      delete (socialCMSStore as any).key;
-      await persistCmsToDb(adminDb, 'social_cms', socialCMSStore);
+      const next = mergeCms(socialCMSStore, req.body);
+      await persistCmsToDb(adminDb, 'social_cms', next);
+      socialCMSStore = next;
+      auditFromRequest(req, 'Modification CMS reseaux sociaux', 'CMS', 'social_cms');
       res.json({ success: true, cms: socialCMSStore });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -3289,13 +3409,27 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   });
 
   app.get('/api/admin/banners', requireCompatAdmin, async (_req, res) => {
-    res.json(bannersStore);
+    try {
+      await loadCmsFromDb(adminDb);
+      res.json(bannersStore);
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
+  const saveBanners = async (next: any[]) => {
+    await persistCmsToDb(adminDb, 'banners_store', next);
+    bannersStore = next;
+  };
+
   app.post('/api/admin/banners', requireCompatAdmin, async (req, res) => {
-    const banner = { id: `banner-${Date.now()}`, ...req.body };
-    bannersStore.unshift(banner);
-    await persistCmsToDb(adminDb, 'banners_store', bannersStore);
+    const banner = { ...req.body, id: `banner-${Date.now()}` };
+    try {
+      await saveBanners([banner, ...bannersStore]);
+      auditFromRequest(req, 'Creation banniere', 'Banner', banner.id);
+    } catch (error) {
+      return res.status(500).json({ error: (error as Error).message });
+    }
     try {
       const type = String(banner?.type || '').trim();
       if (String(banner?.status || '').trim() === 'Actif' && ['Advertisement Banner', 'Promo Banner', 'Announcement Banner', 'Homepage Banner'].includes(type)) {
@@ -3324,9 +3458,16 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.put('/api/admin/banners/:id', requireCompatAdmin, async (req, res) => {
     const previous = bannersStore.find((banner) => banner.id === req.params.id) || null;
-    bannersStore = bannersStore.map((banner) => banner.id === req.params.id ? { ...banner, ...req.body } : banner);
-    await persistCmsToDb(adminDb, 'banners_store', bannersStore);
-    const updatedBanner = bannersStore.find((banner) => banner.id === req.params.id);
+    if (!previous) {
+      return res.status(404).json({ error: 'Bannière introuvable.' });
+    }
+    const updatedBanner = { ...previous, ...req.body, id: previous.id };
+    try {
+      await saveBanners(bannersStore.map((banner) => banner.id === previous.id ? updatedBanner : banner));
+      auditFromRequest(req, 'Modification banniere', 'Banner', previous.id);
+    } catch (error) {
+      return res.status(500).json({ error: (error as Error).message });
+    }
     try {
       const type = String(updatedBanner?.type || '').trim();
       const becameActive = String(previous?.status || '').trim() !== 'Actif' && String(updatedBanner?.status || '').trim() === 'Actif';
@@ -3355,32 +3496,63 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   });
 
   app.delete('/api/admin/banners/:id', requireCompatAdmin, async (req, res) => {
-    bannersStore = bannersStore.filter((banner) => banner.id !== req.params.id);
-    await persistCmsToDb(adminDb, 'banners_store', bannersStore);
-    res.json({ success: true });
+    try {
+      await saveBanners(bannersStore.filter((banner) => banner.id !== req.params.id));
+      auditFromRequest(req, 'Suppression banniere', 'Banner', req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
+  const saveGuides = async (next: any[]) => {
+    await persistCmsToDb(adminDb, 'guides_store', next);
+    guidesStore = next;
+  };
+
   app.get('/api/admin/guides', requireCompatAdmin, async (_req, res) => {
-    res.json(guidesStore);
+    try {
+      await loadCmsFromDb(adminDb);
+      res.json(guidesStore);
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.post('/api/admin/guides', requireCompatAdmin, async (req, res) => {
-    const guide = { id: `guide-${Date.now()}`, ...req.body };
-    guidesStore.unshift(guide);
-    await persistCmsToDb(adminDb, 'guides_store', guidesStore);
-    res.json({ success: true, guide });
+    try {
+      const guide = { ...req.body, id: `guide-${Date.now()}` };
+      await saveGuides([guide, ...guidesStore]);
+      auditFromRequest(req, 'Creation guide', 'Guide', guide.id);
+      res.json({ success: true, guide });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.put('/api/admin/guides/:id', requireCompatAdmin, async (req, res) => {
-    guidesStore = guidesStore.map((guide) => guide.id === req.params.id ? { ...guide, ...req.body } : guide);
-    await persistCmsToDb(adminDb, 'guides_store', guidesStore);
-    res.json({ success: true, guide: guidesStore.find((guide) => guide.id === req.params.id) });
+    const existing = guidesStore.find((guide) => guide.id === req.params.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Guide introuvable.' });
+    }
+    try {
+      const updated = { ...existing, ...req.body, id: existing.id };
+      await saveGuides(guidesStore.map((guide) => guide.id === existing.id ? updated : guide));
+      auditFromRequest(req, 'Modification guide', 'Guide', existing.id);
+      res.json({ success: true, guide: updated });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.delete('/api/admin/guides/:id', requireCompatAdmin, async (req, res) => {
-    guidesStore = guidesStore.filter((guide) => guide.id !== req.params.id);
-    await persistCmsToDb(adminDb, 'guides_store', guidesStore);
-    res.json({ success: true });
+    try {
+      await saveGuides(guidesStore.filter((guide) => guide.id !== req.params.id));
+      auditFromRequest(req, 'Suppression guide', 'Guide', req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.get('/api/admin/blog', requireCompatAdmin, async (_req, res) => {
@@ -3522,7 +3694,11 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
   });
 
   app.get('/api/admin/logs', requireCompatAdmin, async (_req, res) => {
-    res.json(auditLogsStore);
+    try {
+      res.json(await loadAuditLogs(adminDb));
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.get('/api/admin/media', requireCompatAdmin, async (_req, res) => {
@@ -3583,6 +3759,8 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
 
   app.get('/api/admin/backup/export', requireCompatAdmin, async (_req, res) => {
     try {
+      await loadCmsFromDb(adminDb);
+      const auditLogs = await loadAuditLogs(adminDb);
       const [laptops, orders, blogPosts, notifications, admins] = await Promise.all([
         adminDb.from('laptops').select('*'),
         adminDb.from('orders').select('*'),
@@ -3602,7 +3780,7 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
         socialCMS: socialCMSStore,
         banners: bannersStore,
         guides: guidesStore,
-        audit_logs: auditLogsStore,
+        audit_logs: auditLogs,
       });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });

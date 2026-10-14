@@ -309,6 +309,8 @@ export const API = {
   }),
 
   // Categories CRUD
+  // Liste complète (y compris les catégories inactives), réservée à l'admin.
+  getCategories: () => apiFetch('/api/admin/categories'),
   createCategory: (data: any) => apiFetch('/api/admin/categories', {
     method: 'POST',
     body: JSON.stringify(data)
