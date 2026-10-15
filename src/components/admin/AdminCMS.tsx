@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Settings, Save, Globe, Phone, Share2, HelpCircle, FileText, 
-  RefreshCw, CheckCircle, Image, Smartphone, Sparkles, MapPin, Map
+  RefreshCw, CheckCircle, Image, Smartphone, Sparkles, MapPin, Map, ExternalLink
 } from 'lucide-react';
 import API from '../../lib/api';
 import ImageUploadField from './ImageUploadField';
@@ -13,6 +13,9 @@ import {
   getAdvertiserKind,
   parseBannerDate,
   formatBannerDate,
+  getAdCtaLabel,
+  getDisplayHost,
+  isValidRedirectUrl,
 } from '../../lib/promoSchedule';
 
 const createEmptyBanner = () => ({
@@ -43,6 +46,21 @@ const formatCtr = (clicks: number, impressions: number) =>
 const sumStats = (days: any[]) =>
   days.reduce((acc, d) => ({ impressions: acc.impressions + d.impressions, clicks: acc.clicks + d.clicks }), { impressions: 0, clicks: 0 });
 const formatCount = (n: number) => Number(n || 0).toLocaleString('fr-FR');
+
+// Bloc numéroté du formulaire de bannière. Défini hors du composant : sinon React
+// recréerait les champs à chaque frappe et le curseur sortirait du champ.
+function Section({ n, title, hint, children }: { n: number; title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="rounded-2xl border border-warm-cream-dark p-4 space-y-3">
+      <legend className="px-1.5 flex items-center gap-2">
+        <span className="w-6 h-6 rounded-full bg-luxe-copper text-white text-xs font-bold flex items-center justify-center">{n}</span>
+        <span className="font-serif font-bold text-sm text-luxe-dark">{title}</span>
+      </legend>
+      {hint && <p className="text-[11px] text-luxe-muted -mt-1">{hint}</p>}
+      {children}
+    </fieldset>
+  );
+}
 
 export default function AdminCMS({ 
   currentRole, 
@@ -178,7 +196,7 @@ export default function AdminCMS({
       onTriggerToast('Dates invalides', 'La fin de campagne doit être après le début.', 'warning');
       return;
     }
-    if (currentBanner.type === ADVERTISEMENT_TYPE && !/^https?:\/\/\S+\.\S+/i.test(String(currentBanner.link || '').trim())) {
+    if (currentBanner.type === ADVERTISEMENT_TYPE && !isValidRedirectUrl(currentBanner.link)) {
       onTriggerToast('Lien manquant', 'Indiquez l\'adresse du site vers lequel le visiteur sera redirigé (https://…).', 'warning');
       return;
     }
@@ -1016,238 +1034,177 @@ export default function AdminCMS({
               {/* Formulaire long : il défile, et occupe tout l'écran sur téléphone */}
               <div className="bg-white w-full max-w-2xl rounded-none sm:rounded-3xl border border-warm-cream-dark shadow-2xl p-5 text-left h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center border-b border-warm-cream pb-3 mb-4">
-                  <h4 className="font-serif font-bold text-sm text-luxe-dark">Éditer/Ajouter une Bannière</h4>
+                  <h4 className="font-serif font-bold text-base text-luxe-dark">{currentBanner.id ? 'Modifier la bannière' : 'Nouvelle bannière'}</h4>
                   <button onClick={() => setBannerFormOpen(false)} aria-label="Fermer" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-warm-cream text-luxe-muted hover:text-black font-serif text-2xl font-bold">&times;</button>
                 </div>
 
-                <form onSubmit={handleBannerSave} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="font-bold text-luxe-dark">Titre de l'Affiche *</label>
-                    <input
-                      type="text"
-                      required
-                      value={currentBanner.title}
-                      onChange={(e) => setCurrentBanner((p: any) => ({ ...p, title: e.target.value }))}
-                      placeholder="ex. : Soldes exceptionnels sur les arrivages USA 🇺🇸"
-                      className="w-full p-2 rounded-xl border border-warm-cream"
-                    />
-                  </div>
+                <form onSubmit={handleBannerSave} className="space-y-5">
+                  {(() => {
+                    const isAd = currentBanner.type === ADVERTISEMENT_TYPE;
+                    const set = (patch: any) => setCurrentBanner((p: any) => ({ ...p, ...patch }));
+                    const link = String(currentBanner.link || '').trim();
+                    const linkOk = isValidRedirectUrl(link);
+                    const input = "w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper";
+                    return (
+                      <>
+                        {/* 1. Type */}
+                        <Section n={1} title="Type de bannière">
+                          <select value={currentBanner.type} onChange={(e) => set({ type: e.target.value })} className={`${input} bg-white`}>
+                            <option value="Advertisement Banner">Publicité programmée (remplace les produits dans le carrousel)</option>
+                            <option value="Homepage Banner">Bannière d'accueil (si aucun produit à mettre en avant)</option>
+                            <option value="Promo Banner">Encadré promotionnel</option>
+                            <option value="Announcement Banner">Ruban d'annonce</option>
+                          </select>
+                          {isAd && (
+                            <>
+                              <div className="grid grid-cols-2 gap-2">
+                                {[
+                                  { value: 'own', label: 'Un de mes SaaS', hint: 'Affiché « Nos solutions »' },
+                                  { value: 'client', label: 'Un client annonceur', hint: 'Affiché « Sponsorisé »' },
+                                ].map((opt) => {
+                                  const selected = getAdvertiserKind(currentBanner) === opt.value;
+                                  return (
+                                    <button key={opt.value} type="button" onClick={() => set({ advertiserKind: opt.value })}
+                                      className={`p-3 rounded-xl border text-left ${selected ? 'border-luxe-copper bg-luxe-copper/10' : 'border-warm-cream-dark'}`}>
+                                      <span className="block font-bold text-sm text-luxe-dark">{opt.label}</span>
+                                      <span className="block text-[11px] text-luxe-muted">{opt.hint}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <div className="space-y-1">
+                                <label className="font-bold text-luxe-dark text-sm">{getAdvertiserKind(currentBanner) === 'own' ? 'Nom du SaaS' : "Nom de l'annonceur"} *</label>
+                                <input type="text" required value={currentBanner.advertiserName || ''} onChange={(e) => set({ advertiserName: e.target.value })}
+                                  placeholder={getAdvertiserKind(currentBanner) === 'own' ? 'ex. : Study In China' : 'ex. : Orange Cameroun'} className={input} />
+                              </div>
+                            </>
+                          )}
+                        </Section>
 
-                  <div className="space-y-1">
-                    <label className="font-bold text-luxe-dark">Sous-titre *</label>
-                    <textarea
-                      required
-                      rows={2}
-                      value={currentBanner.subtitle}
-                      onChange={(e) => setCurrentBanner((p: any) => ({ ...p, subtitle: e.target.value }))}
-                      placeholder="ex. : 15 % de remise sur tous les ThinkPad"
-                      className="w-full p-2 rounded-xl border border-warm-cream"
-                    />
-                  </div>
+                        {/* 2. Contenu */}
+                        <Section n={2} title="Contenu affiché">
+                          <div className="space-y-1">
+                            <label className="font-bold text-luxe-dark text-sm">Titre *</label>
+                            <input type="text" required value={currentBanner.title} onChange={(e) => set({ title: e.target.value })}
+                              placeholder="ex. : Soldes exceptionnels sur les arrivages USA 🇺🇸" className={input} />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="font-bold text-luxe-dark text-sm">Accroche *</label>
+                            <textarea required rows={2} value={currentBanner.subtitle} onChange={(e) => set({ subtitle: e.target.value })}
+                              placeholder="ex. : 15 % de remise sur tous les ThinkPad" className={input} />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="font-bold text-luxe-dark text-sm">Description (facultatif)</label>
+                            <textarea rows={2} value={currentBanner.description || ''} onChange={(e) => set({ description: e.target.value })}
+                              placeholder="Une ou deux phrases de plus, affichées sur ordinateur" className={input} />
+                          </div>
+                        </Section>
 
-                  <div className="space-y-1">
-                    <label className="font-bold text-luxe-dark">Description détaillée</label>
-                    <textarea
-                      rows={3}
-                      value={currentBanner.description || ''}
-                      onChange={(e) => setCurrentBanner((p: any) => ({ ...p, description: e.target.value }))}
-                      placeholder="Texte plus riche pour le bandeau principal"
-                      className="w-full p-2 rounded-xl border border-warm-cream"
-                    />
-                  </div>
+                        {/* 3. Images */}
+                        <Section n={3} title="Images">
+                          <ImageUploadField label="Image principale" required value={currentBanner.image || ''} onChange={(url) => set({ image: url })}
+                            hint="Format paysage conseillé (par exemple 1600 × 900)." onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')} />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <ImageUploadField label="Image pour téléphone (facultatif)" value={currentBanner.mobileImage || ''} onChange={(url) => set({ mobileImage: url })}
+                              hint="Sinon, l'image principale est utilisée." onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')} />
+                            {isAd && (
+                              <ImageUploadField label="Logo (facultatif)" value={currentBanner.logo || ''} onChange={(url) => set({ logo: url })}
+                                onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')} />
+                            )}
+                          </div>
+                        </Section>
 
-                  <div className="space-y-1">
-                    <ImageUploadField
-                      label="Image principale"
-                      required
-                      value={currentBanner.image || ''}
-                      onChange={(url) => setCurrentBanner((p: any) => ({ ...p, image: url }))}
-                      hint="Format paysage conseillé (par exemple 1600 × 900)."
-                      onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')}
-                    />
-                  </div>
+                        {/* 4. Redirection */}
+                        <Section n={4} title={isAd ? 'Redirection' : 'Lien du bouton'}
+                          hint={isAd ? 'Page où le visiteur arrive quand il clique sur la publicité.' : 'Facultatif : lien d\'une page ou d\'une section du site (ex. : #catalog-grid-anchor).'}>
+                          <div className="space-y-1">
+                            <label className="font-bold text-luxe-dark text-sm">{isAd ? 'Lien de redirection *' : 'Lien'}</label>
+                            <input type={isAd ? 'url' : 'text'} required={isAd} value={currentBanner.link || ''} onChange={(e) => set({ link: e.target.value })}
+                              placeholder={isAd ? 'https://www.site-de-l-annonceur.com/page' : '#catalog-grid-anchor'}
+                              className={`${input} font-mono text-sm ${isAd && link && !linkOk ? 'border-red-300' : ''}`} />
+                            {isAd && link && !linkOk && (
+                              <p className="text-[11px] text-red-600">Le lien doit commencer par https:// et contenir un nom de site (ex. : https://www.exemple.com).</p>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <label className="font-bold text-luxe-dark text-sm">Texte du bouton (facultatif)</label>
+                            <input type="text" value={currentBanner.ctaText || ''} onChange={(e) => set({ ctaText: e.target.value })}
+                              placeholder={isAd ? `Par défaut : Visiter ${currentBanner.advertiserName || 'le site'}` : 'ex. : Voir la sélection'} className={input} />
+                          </div>
+                          {isAd && (
+                            // Aperçu exact du bouton tel qu'il apparaîtra sur le site
+                            <div className="rounded-xl bg-luxe-dark p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                              <span className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-luxe-dark px-5 py-2.5 text-sm font-bold whitespace-nowrap">
+                                {getAdCtaLabel(currentBanner)} <ExternalLink className="w-4 h-4" />
+                              </span>
+                              <span className="text-xs text-white/60">
+                                {linkOk ? `Vous serez redirigé vers ${getDisplayHost(link)}` : 'Ajoutez un lien valide pour voir la destination'}
+                              </span>
+                              {linkOk && (
+                                <a href={link} target="_blank" rel="noopener noreferrer" className="sm:ml-auto text-xs font-bold text-luxe-gold underline underline-offset-2">
+                                  Tester le lien ↗
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </Section>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <ImageUploadField
-                        label="Image pour téléphone (facultatif)"
-                        value={currentBanner.mobileImage || ''}
-                        onChange={(url) => setCurrentBanner((p: any) => ({ ...p, mobileImage: url }))}
-                        hint="Sinon, l'image principale est utilisée."
-                        onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')}
-                      />
-                    </div>
+                        {/* 5. Programmation */}
+                        <Section n={5} title="Programmation" hint={isAd ? 'Pendant ces dates, la publicité remplace les produits du catalogue dans le carrousel.' : undefined}>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="font-bold text-luxe-dark text-sm">Début</label>
+                              <input type="date" value={currentBanner.startDate || ''} onChange={(e) => set({ startDate: e.target.value })} className={`${input} bg-white`} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="font-bold text-luxe-dark text-sm">Fin (jour inclus)</label>
+                              <input type="date" value={currentBanner.endDate || ''} onChange={(e) => set({ endDate: e.target.value })} className={`${input} bg-white`} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            {isAd && (
+                              <div className="space-y-1">
+                                <label className="font-bold text-luxe-dark text-sm">Priorité</label>
+                                <input type="number" min={1} value={currentBanner.priority ?? 1} onChange={(e) => set({ priority: Number(e.target.value || 1) })} className={input} />
+                                <p className="text-[11px] text-luxe-muted">1 passe avant 2 si deux campagnes se chevauchent.</p>
+                              </div>
+                            )}
+                            <div className="space-y-1">
+                              <label className="font-bold text-luxe-dark text-sm">Statut</label>
+                              <select value={currentBanner.status} onChange={(e) => set({ status: e.target.value })} className={`${input} bg-white`}>
+                                <option value="Actif">Actif</option>
+                                <option value="Inactif">Désactivé</option>
+                              </select>
+                            </div>
+                          </div>
+                          {!isAd && (
+                            <div className="space-y-1">
+                              <label className="font-bold text-luxe-dark text-sm">Ouverture du lien</label>
+                              <select value={currentBanner.targetType || 'external'} onChange={(e) => set({ targetType: e.target.value })} className={`${input} bg-white`}>
+                                <option value="external">Dans un nouvel onglet</option>
+                                <option value="internal">Dans la même page</option>
+                              </select>
+                            </div>
+                          )}
+                          <details className="text-sm">
+                            <summary className="cursor-pointer text-luxe-muted text-xs">Options avancées</summary>
+                            <div className="space-y-1 mt-2">
+                              <label className="font-bold text-luxe-dark text-sm">Référence interne de campagne</label>
+                              <input type="text" value={currentBanner.trackingCode || ''} onChange={(e) => set({ trackingCode: e.target.value })}
+                                placeholder="ex. : orange-oct-2026" className={`${input} font-mono text-xs`} />
+                            </div>
+                          </details>
+                        </Section>
+                      </>
+                    );
+                  })()}
 
-                    <div className="space-y-1">
-                      <ImageUploadField
-                        label="Logo de l'annonceur (facultatif)"
-                        value={currentBanner.logo || ''}
-                        onChange={(url) => setCurrentBanner((p: any) => ({ ...p, logo: url }))}
-                        onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-luxe-dark">Type de Bannière</label>
-                    <select
-                value={currentBanner.type}
-                onChange={(e) => setCurrentBanner((p: any) => ({ ...p, type: e.target.value }))}
-                className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
-              >
-                <option value="Advertisement Banner">Publicité programmée (remplace les produits dans le carrousel)</option>
-                <option value="Homepage Banner">Bannière d'accueil (si aucun produit à mettre en avant)</option>
-                <option value="Promo Banner">Encadré promotionnel</option>
-                <option value="Announcement Banner">Ruban d'annonce</option>
-              </select>
-                  </div>
-
-                  {currentBanner.type === ADVERTISEMENT_TYPE && (
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Qui fait la promotion ?</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { value: 'own', label: 'Un de mes SaaS', hint: 'Affiché « Nos solutions »' },
-                          { value: 'client', label: 'Un client annonceur', hint: 'Affiché « Sponsorisé »' },
-                        ].map((opt) => {
-                          const selected = getAdvertiserKind(currentBanner) === opt.value;
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              onClick={() => setCurrentBanner((p: any) => ({ ...p, advertiserKind: opt.value }))}
-                              className={`p-3 rounded-xl border text-left ${selected ? 'border-luxe-copper bg-luxe-copper/10' : 'border-warm-cream-dark'}`}
-                            >
-                              <span className="block font-bold text-sm text-luxe-dark">{opt.label}</span>
-                              <span className="block text-[11px] text-luxe-muted">{opt.hint}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <p className="text-[11px] text-luxe-muted">
-                        Pendant ses dates, la publicité remplace les produits du catalogue dans le carrousel. Ensuite, les produits reviennent automatiquement.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">{getAdvertiserKind(currentBanner) === 'own' ? 'Nom du SaaS' : "Nom de l'annonceur"}</label>
-                      <input
-                        type="text"
-                        value={currentBanner.advertiserName || ''}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, advertiserName: e.target.value }))}
-                        className="w-full p-2 rounded-xl border border-warm-cream"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Lien de redirection (site de l'annonceur)</label>
-                      <input
-                        type="text"
-                        value={currentBanner.link}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, link: e.target.value }))}
-                        className="w-full p-2 rounded-xl border border-warm-cream font-mono"
-                        placeholder="https://www.exemple.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Texte du bouton (facultatif)</label>
-                      <input
-                        type="text"
-                        value={currentBanner.ctaText || ''}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, ctaText: e.target.value }))}
-                        placeholder={`Par défaut : Visiter ${currentBanner.advertiserName || 'le site'}`}
-                        className="w-full p-2 rounded-xl border border-warm-cream"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Type de destination</label>
-                      <select
-                        value={currentBanner.targetType || 'external'}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, targetType: e.target.value }))}
-                        className="w-full p-2 rounded-xl border border-warm-cream bg-white text-xs"
-                      >
-                        <option value="external">Externe</option>
-                        <option value="internal">Interne</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Début de campagne</label>
-                      <input
-                        type="date"
-                        value={currentBanner.startDate || ''}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, startDate: e.target.value }))}
-                        className="w-full p-2 rounded-xl border border-warm-cream bg-white text-xs"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Fin de campagne (jour inclus)</label>
-                      <input
-                        type="date"
-                        value={currentBanner.endDate || ''}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, endDate: e.target.value }))}
-                        className="w-full p-2 rounded-xl border border-warm-cream bg-white text-xs"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark" title="Si plusieurs publicités sont en cours, seules celles au plus petit numéro s'affichent ; à égalité, elles défilent ensemble.">Priorité (1 = passe avant)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={currentBanner.priority ?? 1}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, priority: Number(e.target.value || 1) }))}
-                        className="w-full p-2 rounded-xl border border-warm-cream"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Tracking / Référence campagne</label>
-                      <input
-                        type="text"
-                        value={currentBanner.trackingCode || ''}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, trackingCode: e.target.value }))}
-                        placeholder="campaign-2026-q4"
-                        className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Statut</label>
-                      <select
-                        value={currentBanner.status}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, status: e.target.value }))}
-                        className="w-full p-2 rounded-xl border border-warm-cream bg-white text-xs"
-                      >
-                        <option value="Actif">Actif (En diffusion)</option>
-                        <option value="Inactif">Inactif (Désactivé)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 border-t border-warm-cream pt-3.5">
-                    <button
-                      type="button"
-                      onClick={() => setBannerFormOpen(false)}
-                      className="px-3.5 py-1.5 border border-grey rounded-xl font-bold font-sans"
-                    >
+                  {/* Boutons toujours visibles en bas du formulaire */}
+                  <div className="sticky bottom-0 -mx-5 px-5 py-3 bg-white border-t border-warm-cream flex justify-end gap-2">
+                    <button type="button" onClick={() => setBannerFormOpen(false)} className="px-4 py-2.5 border border-warm-cream-dark rounded-xl font-bold text-sm">
                       Annuler
                     </button>
-                    <button
-                      type="submit"
-                      className="px-4.5 py-1.5 bg-luxe-copper hover:bg-luxe-dark text-white rounded-xl font-bold font-sans"
-                    >
+                    <button type="submit" className="px-5 py-2.5 bg-luxe-copper hover:bg-luxe-dark text-white rounded-xl font-bold text-sm">
                       Enregistrer
                     </button>
                   </div>

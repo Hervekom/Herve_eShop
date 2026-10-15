@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SlidersHorizontal, Globe2, CheckCircle, ArrowUpDown, ChevronRight, Heart, ShoppingCart, ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Laptop, SourceCountry, LaptopStatus } from '../types';
-import { selectActiveAdvertisements, isBannerRunning, getBannerPriority, getAdvertiserKind, formatBannerDate } from '../lib/promoSchedule';
+import { selectActiveAdvertisements, isBannerRunning, getBannerPriority, getAdvertiserKind, formatBannerDate, getAdCtaLabel, getDisplayHost } from '../lib/promoSchedule';
 import { trackAdEvent } from '../lib/api';
 
 interface CatalogViewProps {
@@ -183,24 +183,6 @@ const getPromoImageFramePreset = (metrics: PromoImageMetrics, viewportWidth: num
       return { widthPercent: 54, maxHeight: 445, minHeight: 320 };
     default:
       return { widthPercent: 48, maxHeight: 470, minHeight: 340 };
-  }
-};
-
-// Bouton d'une publicité : le texte saisi par l'admin, sinon « Visiter <annonceur> ».
-// Les anciens libellés génériques (« Découvrir ») sont remplacés : ils n'indiquent
-// pas au visiteur qu'il va être redirigé vers le site de l'annonceur.
-const GENERIC_CTA = new Set(['découvrir', 'découvrir l’offre', "découvrir l'offre", 'en savoir plus']);
-const getAdCtaLabel = (banner: CmsBannerRecord) => {
-  const custom = String(banner.ctaText || '').trim();
-  if (custom && !GENERIC_CTA.has(custom.toLowerCase())) return custom;
-  const name = String(banner.advertiserName || '').trim();
-  return name ? `Visiter ${name}` : 'Visiter le site';
-};
-const getDisplayHost = (url?: string) => {
-  try {
-    return url && /^https?:\/\//i.test(url) ? new URL(url).hostname.replace(/^www\./, '') : '';
-  } catch {
-    return '';
   }
 };
 
