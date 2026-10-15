@@ -259,6 +259,39 @@ async function apiFetch(endpoint: string, options: RequestInit = {}, isRetry = f
   return response;
 }
 
+// Identifiant anonyme et aléatoire du navigateur, pour compter les personnes
+// différentes qui voient une publicité (aucune donnée personnelle).
+function getAnonymousVisitorId() {
+  const KEY = 'herve_eshop_visitor_id';
+  try {
+    let id = localStorage.getItem(KEY);
+    if (!id) {
+      id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+      localStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch {
+    return '';
+  }
+}
+
+/** Vue ou clic sur une publicité : envoi discret, sans jamais bloquer la page. */
+export function trackAdEvent(bannerId: string, type: 'impression' | 'click') {
+  try {
+    void fetch(buildApiUrl('/api/client/ad-event'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bannerId, type, visitorId: getAnonymousVisitorId() }),
+      // keepalive : le clic est enregistré même si la page s'ouvre ailleurs
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    /* statistiques facultatives */
+  }
+}
+
 export const API = {
   // Public client methods
   visitorIncrement: () => apiFetch('/api/visitor-increment'),
@@ -426,6 +459,8 @@ export const API = {
 
   // Banners CRUD
   getBanners: () => apiFetch('/api/admin/banners'),
+  getBannerStats: () => apiFetch('/api/admin/banners/stats'),
+  getBannerDailyStats: (id: string) => apiFetch(`/api/admin/banners/${encodeURIComponent(id)}/stats`),
   createBanner: (data: any) => apiFetch('/api/admin/banners', {
     method: 'POST',
     body: JSON.stringify(data)
