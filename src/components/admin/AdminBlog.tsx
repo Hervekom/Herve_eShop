@@ -144,7 +144,7 @@ export default function AdminBlog({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 text-left">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h3 className="font-serif text-xl font-bold text-luxe-dark flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-luxe-copper" />
@@ -157,7 +157,7 @@ export default function AdminBlog({
 
         <button
           onClick={handleOpenCreateForm}
-          className="bg-luxe-copper hover:bg-luxe-dark text-white active:scale-95 px-4.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
+          className="self-start sm:self-auto shrink-0 whitespace-nowrap bg-luxe-copper hover:bg-luxe-dark text-white active:scale-95 px-4.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Créer un Article</span>
@@ -199,10 +199,10 @@ export default function AdminBlog({
             <div className="relative h-40 bg-warm-cream/15">
               <img src={b.image} alt={b.title} className="w-full h-full object-cover" />
               <div className="absolute top-3 left-3 flex gap-1.5">
-                <span className="text-[8px] tracking-widest uppercase font-mono bg-luxe-dark text-white font-bold px-2 py-0.5 rounded">
+                <span className="text-[11px] tracking-widest uppercase font-mono bg-luxe-dark text-white font-bold px-2 py-0.5 rounded">
                   {b.category}
                 </span>
-                <span className={`text-[8px] tracking-widest uppercase font-mono font-bold px-2 py-0.5 rounded border border-white ${
+                <span className={`text-[11px] tracking-widest uppercase font-mono font-bold px-2 py-0.5 rounded border border-white ${
                   b.status === 'Publié' ? 'bg-emerald-500 text-white' : 'bg-orange-500 text-white'
                 }`}>
                   {b.status}
@@ -212,25 +212,25 @@ export default function AdminBlog({
 
             <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
               <div className="space-y-1">
-                <span className="text-[9px] text-luxe-muted font-mono">{new Date(b.createdAt).toLocaleDateString()}</span>
+                <span className="text-[11px] text-luxe-muted font-mono">{new Date(b.createdAt).toLocaleDateString()}</span>
                 <h4 className="font-serif font-bold text-sm text-luxe-dark line-clamp-2 leading-relaxed">{b.title}</h4>
                 <p className="text-[11px] text-luxe-muted line-clamp-3 leading-relaxed">{b.content.replace(/[#*`_]/g, '')}</p>
               </div>
 
-              <div className="pt-3 border-t border-warm-cream flex justify-between items-center text-[10px] text-luxe-muted">
+              <div className="pt-3 border-t border-warm-cream flex justify-between items-center text-[11px] text-luxe-muted">
                 <span className="truncate max-w-[155px] font-mono">Slug: {b.slug}</span>
                 <div className="flex gap-1.5 shrink-0">
                   <button
                     onClick={() => handleOpenEditForm(b)}
-                    className="px-2 py-1 border hover:bg-warm-cream text-luxe-dark rounded-lg font-bold transition-all"
+                    className="px-3.5 py-2 border hover:bg-warm-cream text-luxe-dark rounded-lg font-bold transition-all"
                   >
-                    Édite
+                    Modifier
                   </button>
                   <button
                     onClick={() => handleDelete(b.id, b.title)}
-                    className="px-2 py-1 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-bold transition-all"
+                    className="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-bold transition-all"
                   >
-                    Effacer
+                    Supprimer
                   </button>
                 </div>
               </div>

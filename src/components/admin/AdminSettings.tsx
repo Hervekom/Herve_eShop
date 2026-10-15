@@ -177,7 +177,7 @@ export default function AdminSettings({
       <div className="flex border-b border-warm-cream gap-2 cursor-pointer pb-px scrollbar-none overflow-x-auto">
         <button
           onClick={() => setActiveTab('users')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
             activeTab === 'users' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
           }`}
         >
@@ -187,7 +187,7 @@ export default function AdminSettings({
 
         <button
           onClick={() => setActiveTab('backup')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
             activeTab === 'backup' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
           }`}
         >
@@ -197,7 +197,7 @@ export default function AdminSettings({
 
         <button
           onClick={() => setActiveTab('logs')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
             activeTab === 'logs' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
           }`}
         >
@@ -209,15 +209,15 @@ export default function AdminSettings({
       {/* T1: OPERATORS LIST */}
       {activeTab === 'users' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center bg-white p-4.5 rounded-2xl border border-warm-cream-dark shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4.5 rounded-2xl border border-warm-cream-dark shadow-sm">
             <div>
               <h4 className="font-serif text-sm font-bold text-luxe-dark">Équipe Éditrice Actuelle ({adminsList.length})</h4>
-              <p className="text-[10px] text-luxe-muted mt-0.5">Comptes d'accès raccordés aux transactions de votre entrepôt.</p>
+              <p className="text-[11px] text-luxe-muted mt-0.5">Comptes d'accès raccordés aux transactions de votre entrepôt.</p>
             </div>
             {currentRole === 'Super Admin' && (
               <button
                 onClick={() => setUserModalOpen(true)}
-                className="px-3.5 py-1.5 bg-luxe-copper text-white rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95"
+                className="self-start sm:self-auto shrink-0 whitespace-nowrap px-4 py-2.5 bg-luxe-copper text-white rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Inviter Équipier</span>
@@ -228,7 +228,7 @@ export default function AdminSettings({
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {adminsList.map((adm) => (
               <div key={adm.id} className="bg-white border border-warm-cream-dark p-4 rounded-3xl relative shadow-xs text-left">
-                <span className={`absolute top-3 right-3 text-[8px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-sm border ${
+                <span className={`absolute top-3 right-3 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-sm border ${
                   adm.role === 'Super Admin' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                   adm.role === 'Admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-500 border-gray-200'
                 }`}>
@@ -236,17 +236,17 @@ export default function AdminSettings({
                 </span>
 
                 <div className="space-y-1 mt-1 block">
-                  <span className="text-[9px] text-luxe-muted uppercase tracking-wider block font-bold">Identifiant Unique</span>
+                  <span className="text-[11px] text-luxe-muted uppercase tracking-wider block font-bold">Identifiant Unique</span>
                   <h4 className="font-extrabold text-luxe-dark text-sm">{adm.username}</h4>
-                  <span className="text-[9px] text-luxe-muted block pt-1">Créé le : {new Date(adm.createdAt).toLocaleDateString()}</span>
+                  <span className="text-[11px] text-luxe-muted block pt-1">Créé le : {new Date(adm.createdAt).toLocaleDateString()}</span>
                 </div>
 
                 {currentRole === 'Super Admin' && adm.username !== currentUser && (
-                  <div className="pt-3 border-t border-warm-cream mt-4 flex justify-between items-center text-[10px]">
-                    <span className="text-luxe-muted italic font-mono text-[9px]">ID: {adm.id}</span>
+                  <div className="pt-3 border-t border-warm-cream mt-4 flex justify-between items-center text-[11px]">
+                    <span className="text-luxe-muted italic font-mono text-[11px]">ID: {adm.id}</span>
                     <button
                       onClick={() => handleDeleteAdmin(adm.id, adm.username)}
-                      className="px-2.5 py-1 border border-red-200 text-red-600 hover:bg-red-50 rounded"
+                      className="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-bold"
                     >
                       Bannir
                     </button>
@@ -280,7 +280,7 @@ export default function AdminSettings({
             <div className="border border-warm-cream rounded-2xl p-4 flex flex-col justify-between items-center gap-4 bg-warm-cream/5 lg:text-center">
               <div>
                 <span className="font-bold text-luxe-dark text-xs block">Exporter une Sauvegarde</span>
-                <p className="text-[10px] text-luxe-muted mt-1">Générez un fichier .json sécurisé et téléchargez-le sur votre ordinateur.</p>
+                <p className="text-[11px] text-luxe-muted mt-1">Générez un fichier .json sécurisé et téléchargez-le sur votre ordinateur.</p>
               </div>
               <button
                 onClick={downloadDatabaseBackup}
@@ -295,7 +295,7 @@ export default function AdminSettings({
             <div className="border border-warm-cream rounded-2xl p-4 flex flex-col justify-between items-center gap-4 bg-warm-cream/5 lg:text-center">
               <div>
                 <span className="font-bold text-luxe-dark text-xs block">Restaurer une Sauvegarde</span>
-                <p className="text-[10px] text-luxe-muted mt-1">Sélectionnez ou glissez un fichier JSON valide pour écraser et réinstaller la base.</p>
+                <p className="text-[11px] text-luxe-muted mt-1">Sélectionnez ou glissez un fichier JSON valide pour écraser et réinstaller la base.</p>
               </div>
               <label className="w-full py-2 bg-luxe-copper text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer hover:bg-luxe-dark transition-all text-center">
                 <Upload className="w-4 h-4" />
@@ -325,13 +325,13 @@ export default function AdminSettings({
       {/* T3: AUDIT HISTORY TRACKING */}
       {activeTab === 'logs' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-luxe-muted block">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            <span className="text-[11px] uppercase font-mono font-bold tracking-wider text-luxe-muted block">
               Traces de sécurité enregistrées en live (Logs système)
             </span>
             <button
               onClick={fetchSettingsData}
-              className="text-xs text-luxe-copper font-serif font-bold hover:underline"
+              className="self-start sm:self-auto shrink-0 whitespace-nowrap text-xs text-luxe-copper font-serif font-bold hover:underline"
             >
               Rafraîchir
             </button>
@@ -341,14 +341,14 @@ export default function AdminSettings({
             <div className="max-h-96 overflow-y-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[9px] uppercase tracking-wider text-left">
+                  <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[11px] uppercase tracking-wider text-left">
                     <th className="py-2.5 px-4 w-36">Horodateur</th>
                     <th className="py-2.5 px-4 w-28">Opérateur</th>
                     <th className="py-2.5 px-4 w-40">Action</th>
                     <th className="py-2.5 px-4">Paramètres / Détails de modification</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-warm-cream text-left font-mono text-[10.5px]">
+                <tbody className="divide-y divide-warm-cream text-left font-mono text-[11px]">
                   {logsList.map((log) => (
                     <tr key={log.id} className="hover:bg-warm-cream/10">
                       <td className="py-2.5 px-4 whitespace-nowrap text-luxe-muted">
@@ -357,7 +357,7 @@ export default function AdminSettings({
                       <td className="py-2.5 px-4 font-extrabold text-luxe-dark">
                         {log.operator}
                       </td>
-                      <td className="py-2.5 px-4 font-bold text-luxe-copper uppercase tracking-wider text-[9.5px]">
+                      <td className="py-2.5 px-4 font-bold text-luxe-copper uppercase tracking-wider text-[11px]">
                         {log.action}
                       </td>
                       <td className="py-2.5 px-4 text-luxe-muted truncate max-w-sm" title={log.details}>
@@ -423,7 +423,7 @@ export default function AdminSettings({
                 </select>
               </div>
 
-              <div className="p-3 bg-warm-cream/20 rounded-xl text-[9px] text-luxe-muted leading-relaxed">
+              <div className="p-3 bg-warm-cream/20 rounded-xl text-[11px] text-luxe-muted leading-relaxed">
                 📢 Rappel de sécurité : l'action d'ajout est consignée pour des raisons d'audit d'intégrité de la base.
               </div>
 

@@ -170,7 +170,7 @@ export default function AdminCMS({
       <div className="flex border-b border-warm-cream gap-2.5 scrollbar-none overflow-x-auto pb-px">
         <button
           onClick={() => setSubTab('site')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
             subTab === 'site' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
           }`}
         >
@@ -180,7 +180,7 @@ export default function AdminCMS({
 
         <button
           onClick={() => setSubTab('contact')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
             subTab === 'contact' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
           }`}
         >
@@ -190,7 +190,7 @@ export default function AdminCMS({
 
         <button
           onClick={() => setSubTab('social')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
             subTab === 'social' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
           }`}
         >
@@ -200,7 +200,7 @@ export default function AdminCMS({
 
         <button
           onClick={() => setSubTab('banners')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
             subTab === 'banners' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
           }`}
         >
@@ -210,7 +210,7 @@ export default function AdminCMS({
 
         <button
           onClick={() => setSubTab('reviews')}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
             subTab === 'reviews' ? 'border-luxe-copper text-luxe-copper font-serif font-extrabold' : 'border-transparent text-luxe-muted hover:text-luxe-dark'
           }`}
         >
@@ -493,7 +493,7 @@ export default function AdminCMS({
               value={contactData.googleMapsIframe}
               onChange={(e) => setContactData((p: any) => ({ ...p, googleMapsIframe: e.target.value }))}
               placeholder="Indiquez le lien https://www.google.com/maps/embed... provenant d'exporter carte"
-              className="w-full p-2.5 rounded-xl border border-warm-cream-dark font-mono text-[10px]"
+              className="w-full p-2.5 rounded-xl border border-warm-cream-dark font-mono text-[11px]"
             />
           </div>
 
@@ -519,8 +519,8 @@ export default function AdminCMS({
             {/* Facebook */}
             <div className="border border-warm-cream-dark rounded-2xl p-4 space-y-3 bg-warm-cream/5">
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[10px]">Facebook Link</span>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[10px] text-luxe-muted">
+                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[11px]">Facebook Link</span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[11px] text-luxe-muted">
                   <input
                     type="checkbox"
                     checked={socialData.facebook.active}
@@ -547,8 +547,8 @@ export default function AdminCMS({
             {/* Instagram */}
             <div className="border border-warm-cream-dark rounded-2xl p-4 space-y-3 bg-warm-cream/5">
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[10px]">Instagram Link</span>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[10px] text-luxe-muted">
+                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[11px]">Instagram Link</span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[11px] text-luxe-muted">
                   <input
                     type="checkbox"
                     checked={socialData.instagram.active}
@@ -575,8 +575,8 @@ export default function AdminCMS({
             {/* TikTok */}
             <div className="border border-warm-cream-dark rounded-2xl p-4 space-y-3 bg-warm-cream/5">
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[10px]">TikTok Link</span>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[10px] text-luxe-muted">
+                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[11px]">TikTok Link</span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[11px] text-luxe-muted">
                   <input
                     type="checkbox"
                     checked={socialData.tiktok.active}
@@ -603,8 +603,8 @@ export default function AdminCMS({
             {/* LinkedIn */}
             <div className="border border-warm-cream-dark rounded-2xl p-4 space-y-3 bg-warm-cream/5">
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[10px]">LinkedIn Link</span>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[10px] text-luxe-muted">
+                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[11px]">LinkedIn Link</span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[11px] text-luxe-muted">
                   <input
                     type="checkbox"
                     checked={socialData.linkedin.active}
@@ -631,8 +631,8 @@ export default function AdminCMS({
             {/* YouTube */}
             <div className="border border-warm-cream-dark rounded-2xl p-4 space-y-3 bg-warm-cream/5">
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[10px]">YouTube Link</span>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[10px] text-luxe-muted">
+                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[11px]">YouTube Link</span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[11px] text-luxe-muted">
                   <input
                     type="checkbox"
                     checked={socialData.youtube.active}
@@ -659,8 +659,8 @@ export default function AdminCMS({
             {/* X Twitter */}
             <div className="border border-warm-cream-dark rounded-2xl p-4 space-y-3 bg-warm-cream/5">
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[10px]">X (Twitter) Link</span>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[10px] text-luxe-muted">
+                <span className="font-extrabold text-luxe-dark uppercase tracking-wider text-[11px]">X (Twitter) Link</span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[11px] text-luxe-muted">
                   <input
                     type="checkbox"
                     checked={socialData.twitter.active}
@@ -702,14 +702,14 @@ export default function AdminCMS({
       {/* CMS 4: CAROUSELS BANNERS SCHEDULER */}
       {subTab === 'banners' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <span className="text-xs font-mono font-extrabold text-luxe-muted block">Affiches, Annonces et Offres temporaires programmées</span>
             <button
               onClick={() => {
                 setCurrentBanner(createEmptyBanner());
                 setBannerFormOpen(true);
               }}
-              className="px-3.5 py-1.5 bg-luxe-copper hover:bg-luxe-dark text-white rounded-lg font-bold uppercase tracking-wider text-[10px] cursor-pointer"
+              className="self-start sm:self-auto shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-luxe-copper hover:bg-luxe-dark text-white rounded-lg font-bold uppercase tracking-wider text-[11px] cursor-pointer"
             >
               Ajouter une affiche Banner
             </button>
@@ -720,7 +720,7 @@ export default function AdminCMS({
               <div key={ban.id} className="bg-white border border-warm-cream-dark rounded-2xl overflow-hidden flex flex-col justify-between shadow-xs">
                 <div className="relative h-28 bg-warm-cream/20">
                   <img src={ban.image} alt={ban.title} className="w-full h-full object-cover" />
-                  <span className={`absolute top-2 right-2 text-[8px] uppercase tracking-widest px-2 py-0.5 rounded-sm font-extrabold border bg-white ${
+                  <span className={`absolute top-2 right-2 text-[11px] uppercase tracking-widest px-2 py-0.5 rounded-sm font-extrabold border bg-white ${
                     ban.status === 'Actif' ? 'text-emerald-700 border-emerald-300' : 'text-gray-500 border-gray-300'
                   }`}>
                     {ban.status}
@@ -728,12 +728,12 @@ export default function AdminCMS({
                 </div>
                 <div className="p-4 space-y-3">
                   <div>
-                    <span className="text-[9px] uppercase tracking-wider bg-luxe-gold/25 text-luxe-copper font-bold px-1.5 py-0.5 rounded font-mono block w-fit">
+                    <span className="text-[11px] uppercase tracking-wider bg-luxe-gold/25 text-luxe-copper font-bold px-1.5 py-0.5 rounded font-mono block w-fit">
                       {ban.type}
                     </span>
                     <h5 className="font-serif font-bold text-sm text-luxe-dark mt-1">{ban.title}</h5>
                     <p className="text-[11px] text-luxe-muted leading-relaxed mt-0.5">{ban.subtitle}</p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-luxe-muted">
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-luxe-muted">
                       {ban.advertiserName && <span>Annonceur : {ban.advertiserName}</span>}
                       {ban.priority !== undefined && <span>Priorité : {ban.priority}</span>}
                       {ban.startDate && <span>Début : {ban.startDate}</span>}
@@ -741,20 +741,20 @@ export default function AdminCMS({
                     </div>
                   </div>
                   <div className="pt-2 border-t border-warm-cream flex justify-between items-center">
-                    <span className="text-[9px] text-luxe-muted font-mono">Action : {ban.link}</span>
+                    <span className="text-[11px] text-luxe-muted font-mono">Action : {ban.link}</span>
                     <div className="flex gap-1">
                       <button
                         onClick={() => {
                           setCurrentBanner(ban);
                           setBannerFormOpen(true);
                         }}
-                        className="p-1 px-2 border hover:bg-warm-cream rounded text-[10px]"
+                        className="p-1 px-2 border hover:bg-warm-cream rounded text-[11px]"
                       >
                         Modifier
                       </button>
                       <button
                         onClick={() => handleBannerDelete(ban.id)}
-                        className="p-1 px-2 border border-red-150 hover:bg-red-50 text-red-600 rounded text-[10px]"
+                        className="p-1 px-2 border border-red-150 hover:bg-red-50 text-red-600 rounded text-[11px]"
                       >
                         Retirer
                       </button>
@@ -990,11 +990,11 @@ export default function AdminCMS({
 
       {subTab === 'reviews' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <span className="text-xs font-mono font-extrabold text-luxe-muted block">Avis sur le service (page d’accueil)</span>
             <button
               onClick={fetchCMSData}
-              className="px-3.5 py-1.5 bg-warm-cream hover:bg-white text-luxe-dark rounded-lg font-bold uppercase tracking-wider text-[10px] cursor-pointer border border-warm-cream-dark flex items-center gap-2"
+              className="self-start sm:self-auto shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-warm-cream hover:bg-white text-luxe-dark rounded-lg font-bold uppercase tracking-wider text-[11px] cursor-pointer border border-warm-cream-dark flex items-center gap-2"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Actualiser
@@ -1014,14 +1014,14 @@ export default function AdminCMS({
                       <h5 className="font-serif font-bold text-sm text-luxe-dark truncate">
                         {String(rev.author || 'Client')}
                       </h5>
-                      <div className="text-[10px] text-luxe-muted font-mono mt-0.5">
+                      <div className="text-[11px] text-luxe-muted font-mono mt-0.5">
                         {String(rev.city || '—')} • {new Date(String(rev.createdAt || '')).toLocaleString('fr-FR')}
                       </div>
                     </div>
                     <button
                       onClick={() => handleServiceReviewDelete(String(rev.id))}
                       disabled={currentRole === 'Editor'}
-                      className="px-3 py-1.5 border border-red-150 hover:bg-red-50 text-red-600 rounded-xl text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                      className="px-3 py-1.5 border border-red-150 hover:bg-red-50 text-red-600 rounded-xl text-[11px] font-bold uppercase tracking-wider disabled:opacity-50"
                     >
                       Supprimer
                     </button>
@@ -1034,7 +1034,7 @@ export default function AdminCMS({
                         className={`w-3.5 h-3.5 ${i < Number(rev.rating || 5) ? 'text-luxe-orange' : 'text-warm-cream-dark/60'}`}
                       />
                     ))}
-                    <span className="text-[10px] text-luxe-muted font-mono ml-2">
+                    <span className="text-[11px] text-luxe-muted font-mono ml-2">
                       {Number(rev.rating || 5)}/5
                     </span>
                   </div>

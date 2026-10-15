@@ -205,17 +205,17 @@ export default function AdminMediaLibrary({
                     />
                     
                     {/* Size indicator overlay */}
-                    <span className="absolute bottom-1.5 left-1.5 text-[8.5px] font-mono text-white bg-black/60 px-1.5 py-0.5 rounded font-bold">
+                    <span className="absolute bottom-1.5 left-1.5 text-[11px] font-mono text-white bg-black/60 px-1.5 py-0.5 rounded font-bold">
                       {formatBytes(file.size)}
                     </span>
                   </div>
 
                   {/* Asset info */}
                   <div className="p-3 text-left">
-                    <h5 className="font-mono text-[10px] text-luxe-dark truncate font-bold" title={file.name}>
+                    <h5 className="font-mono text-[11px] text-luxe-dark truncate font-bold" title={file.name}>
                       {file.name}
                     </h5>
-                    <span className="text-[8.5px] text-luxe-muted block mt-0.5 font-mono">
+                    <span className="text-[11px] text-luxe-muted block mt-0.5 font-mono">
                       Ajouté le {new Date(file.createdAt).toLocaleDateString()}
                     </span>
 
@@ -224,7 +224,7 @@ export default function AdminMediaLibrary({
                       
                       <button
                         onClick={() => handleCopyLink(file.url, file.name)}
-                        className={`flex-1 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all active:scale-95 ${
+                        className={`flex-1 py-1.5 rounded-lg border text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all active:scale-95 ${
                           isCopied 
                             ? 'bg-emerald-50 text-emerald-600 border-emerald-300' 
                             : 'border-warm-cream hover:border-luxe-copper hover:bg-warm-cream/20 text-luxe-copper bg-white'

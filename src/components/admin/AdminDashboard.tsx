@@ -124,11 +124,11 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
             <DollarSign className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <span className="text-[10px] tracking-wider uppercase font-extrabold text-luxe-muted">Chiffre d'Affaire Estimé</span>
+            <span className="text-[11px] tracking-wider uppercase font-extrabold text-luxe-muted">Chiffre d'Affaire Estimé</span>
             <p className="text-xl font-bold text-luxe-dark font-mono mt-0.5">
               {formatFCFA(metrics?.totalRevenue || 0)}
             </p>
-            <span className="text-[9px] text-emerald-600 font-bold block mt-0.5">De l'ensemble des devis reçus</span>
+            <span className="text-[11px] text-emerald-600 font-bold block mt-0.5">De l'ensemble des devis reçus</span>
           </div>
         </div>
 
@@ -138,11 +138,11 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
             <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <span className="text-[10px] tracking-wider uppercase font-extrabold text-luxe-muted">Bons de Commande</span>
+            <span className="text-[11px] tracking-wider uppercase font-extrabold text-luxe-muted">Bons de Commande</span>
             <p className="text-xl font-bold text-luxe-dark font-mono mt-0.5">
               {metrics?.ordersCount}
             </p>
-            <span className="text-[9px] text-luxe-copper font-bold block mt-0.5">Suivi des demandes d'achat</span>
+            <span className="text-[11px] text-luxe-copper font-bold block mt-0.5">Suivi des demandes d'achat</span>
           </div>
         </div>
 
@@ -152,11 +152,11 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
             <Package className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <span className="text-[10px] tracking-wider uppercase font-extrabold text-luxe-muted">Laptops en stocks</span>
+            <span className="text-[11px] tracking-wider uppercase font-extrabold text-luxe-muted">Laptops en stocks</span>
             <p className="text-xl font-bold text-luxe-dark font-mono mt-0.5">
               {metrics?.activeProducts} <span className="text-xs text-luxe-muted font-normal">/ {metrics?.totalProducts}</span>
             </p>
-            <span className="text-[9px] text-sky-600 font-bold block mt-0.5">
+            <span className="text-[11px] text-sky-600 font-bold block mt-0.5">
               {metrics?.outOfStock} modèles actuellement épuisés
             </span>
           </div>
@@ -168,11 +168,11 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
             <Users className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <span className="text-[10px] tracking-wider uppercase font-extrabold text-luxe-muted">Visiteurs & Conversion</span>
+            <span className="text-[11px] tracking-wider uppercase font-extrabold text-luxe-muted">Visiteurs & Conversion</span>
             <p className="text-xl font-bold text-luxe-dark font-mono mt-0.5">
               {metrics?.visitorCount} <span className="text-xs text-luxe-muted font-normal">({metrics?.conversionRate})</span>
             </p>
-            <span className="text-[9px] text-purple-600 font-bold block mt-0.5">Taux de passation de devis</span>
+            <span className="text-[11px] text-purple-600 font-bold block mt-0.5">Taux de passation de devis</span>
           </div>
         </div>
 
@@ -188,7 +188,7 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
               <TrendingUp className="w-5 h-5 text-luxe-copper" />
               Historique des Ventes (FCFA)
             </h4>
-            <span className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted block mt-1">
+            <span className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted block mt-1">
               Rapports consolidés des flux générés mensuellement
             </span>
           </div>
@@ -250,7 +250,7 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
               <ShoppingCart className="w-5 h-5 text-luxe-copper" />
               Laptops Populaires
             </h4>
-            <span className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted block mt-1">
+            <span className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted block mt-1">
               Top 5 des demandes de devis d'Hervé
             </span>
           </div>
@@ -260,19 +260,19 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
               popular.map((item, idx) => (
                 <div key={idx} className="flex justify-between items-center bg-warm-cream/30 p-2.5 rounded-xl border border-warm-cream-dark/50">
                   <div className="text-left space-y-0.5">
-                    <span className="text-[9px] uppercase tracking-wider bg-luxe-gold/15 text-luxe-copper font-serif font-extrabold px-1.5 py-0.5 rounded-md">
+                    <span className="text-[11px] uppercase tracking-wider bg-luxe-gold/15 text-luxe-copper font-serif font-extrabold px-1.5 py-0.5 rounded-md">
                       #{idx + 1} {item.brand}
                     </span>
                     <h5 className="font-sans text-xs font-extrabold text-luxe-dark truncate max-w-[150px]">
                       {item.name}
                     </h5>
-                    <span className="text-[9px] text-luxe-muted font-mono">{item.count} demandes formelles</span>
+                    <span className="text-[11px] text-luxe-muted font-mono">{item.count} demandes formelles</span>
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-bold text-luxe-dark font-mono block">
                       {formatFCFA(item.revenue)}
                     </span>
-                    <span className="text-[8px] text-emerald-600 font-mono font-bold block">Chiffre engagé</span>
+                    <span className="text-[11px] text-emerald-600 font-mono font-bold block">Chiffre engagé</span>
                   </div>
                 </div>
               ))
@@ -302,7 +302,7 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
               <Activity className="w-5 h-5 text-luxe-copper" />
               Journal de Sécurité (Audit Logs)
             </h4>
-            <span className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted block mt-1">
+            <span className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted block mt-1">
               Rapport d'activité temps réel des administrateurs authentifiés
             </span>
           </div>
@@ -317,7 +317,7 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-warm-cream text-luxe-muted font-extrabold text-[10px] uppercase tracking-wider bg-warm-cream/20">
+              <tr className="border-b border-warm-cream text-luxe-muted font-extrabold text-[11px] uppercase tracking-wider bg-warm-cream/20">
                 <th className="py-2.5 px-3 text-left">Horodatage</th>
                 <th className="py-2.5 px-3 text-left">Utilsateur / Rôle</th>
                 <th className="py-2.5 px-3 text-left">Action effectuée</th>
@@ -333,17 +333,17 @@ export default function AdminDashboard({ onSelectTab }: { onSelectTab: (tab: Adm
                   </td>
                   <td className="py-3 px-3">
                     <span className="font-bold text-luxe-dark">{log.userEmail}</span>
-                    <span className="block text-[10px] text-luxe-muted">{log.userRole}</span>
+                    <span className="block text-[11px] text-luxe-muted">{log.userRole}</span>
                   </td>
                   <td className="py-3 px-3">
                     <span className="font-bold text-luxe-copper">{log.action}</span>
                   </td>
-                  <td className="py-3 px-3 font-mono text-[10px] text-luxe-muted">
+                  <td className="py-3 px-3 font-mono text-[11px] text-luxe-muted">
                     <span>{log.entityId}</span>
-                    <span className="block text-[8px] uppercase tracking-widest">{log.entityType}</span>
+                    <span className="block text-[11px] uppercase tracking-widest">{log.entityType}</span>
                   </td>
                   <td className="py-3 px-3 text-right">
-                    <span className="inline-flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-200 text-[8px] font-extrabold px-1.5 py-0.5 rounded-sm font-mono uppercase tracking-widest">
+                    <span className="inline-flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-200 text-[11px] font-extrabold px-1.5 py-0.5 rounded-sm font-mono uppercase tracking-widest">
                       Actif • Garanti
                     </span>
                   </td>
