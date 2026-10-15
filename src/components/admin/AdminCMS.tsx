@@ -22,8 +22,9 @@ const createEmptyBanner = () => ({
   image: '',
   mobileImage: '',
   logo: '',
-  link: '#catalog-grid-anchor',
-  ctaText: 'Découvrir',
+  link: '',
+  // Vide = « Visiter <nom de l'annonceur> » sur le site
+  ctaText: '',
   advertiserName: '',
   // 'own' : promotion d'un de vos SaaS ; 'client' : espace loué à un annonceur
   advertiserKind: 'client',
@@ -175,6 +176,10 @@ export default function AdminCMS({
     const end = parseBannerDate(currentBanner.endDate, 'end');
     if (start && end && end < start) {
       onTriggerToast('Dates invalides', 'La fin de campagne doit être après le début.', 'warning');
+      return;
+    }
+    if (currentBanner.type === ADVERTISEMENT_TYPE && !/^https?:\/\/\S+\.\S+/i.test(String(currentBanner.link || '').trim())) {
+      onTriggerToast('Lien manquant', 'Indiquez l\'adresse du site vers lequel le visiteur sera redirigé (https://…).', 'warning');
       return;
     }
     if (!String(currentBanner.image || '').trim()) {
@@ -1137,23 +1142,25 @@ export default function AdminCMS({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Lien d'Action (URL)</label>
+                      <label className="font-bold text-luxe-dark">Lien de redirection (site de l'annonceur)</label>
                       <input
                         type="text"
                         value={currentBanner.link}
                         onChange={(e) => setCurrentBanner((p: any) => ({ ...p, link: e.target.value }))}
                         className="w-full p-2 rounded-xl border border-warm-cream font-mono"
+                        placeholder="https://www.exemple.com"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Texte CTA</label>
+                      <label className="font-bold text-luxe-dark">Texte du bouton (facultatif)</label>
                       <input
                         type="text"
                         value={currentBanner.ctaText || ''}
                         onChange={(e) => setCurrentBanner((p: any) => ({ ...p, ctaText: e.target.value }))}
+                        placeholder={`Par défaut : Visiter ${currentBanner.advertiserName || 'le site'}`}
                         className="w-full p-2 rounded-xl border border-warm-cream"
                       />
                     </div>
