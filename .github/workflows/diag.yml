@@ -13,6 +13,5 @@ jobs:
         run: |
           B=https://herve-eshop.onrender.com
           echo "=== version" >> out.txt; curl -sS -m 90 "$B/api/version" >> out.txt; echo >> out.txt
-          echo "=== refresh (attendu 400)" >> out.txt; curl -sS -m 90 -o b.txt -w "HTTP %{http_code} " -X POST -H "Content-Type: application/json" -d '{}' "$B/api/auth/refresh" >> out.txt; cat b.txt >> out.txt; echo >> out.txt
-          echo "=== produits jeton bidon (attendu 401)" >> out.txt; curl -sS -m 90 -o b.txt -w "HTTP %{http_code} " -H "Authorization: Bearer bidon" "$B/api/admin/products" >> out.txt; cat b.txt >> out.txt
+          echo "=== ad-event invalide (attendu 400)" >> out.txt; curl -sS -m 90 -o b.txt -w "HTTP %{http_code} " -X POST -H "Content-Type: application/json" -d '{"bannerId":"x","type":"achat"}' "$B/api/client/ad-event" >> out.txt; cat b.txt >> out.txt
           gh api repos/${{ github.repository }}/commits/${{ github.sha }}/comments -F body=@out.txt
