@@ -263,7 +263,7 @@ export default function AdminBlog({
                     required
                     value={formData.title}
                     onChange={(e) => setFormData(p => ({ ...p, title: e.target.value }))}
-                    placeholder="e.g. Pourquoi de-cloner un MacBook en de-lestages ?"
+                    placeholder="ex. : Pourquoi de-cloner un MacBook en de-lestages ?"
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper font-serif font-extrabold text-sm"
                   />
                 </div>
@@ -364,7 +364,7 @@ export default function AdminBlog({
                         type="text"
                         value={formData.seoKeywords || ''}
                         onChange={(e) => setFormData(p => ({ ...p, seoKeywords: e.target.value }))}
-                        placeholder="e.g. ordi occasion cameroun, asus, rog, dual-core, douala"
+                        placeholder="ex. : ordi occasion cameroun, asus, rog, dual-core, douala"
                         className="w-full p-2 rounded-xl border border-warm-cream"
                       />
                     </div>

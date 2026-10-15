@@ -4,6 +4,7 @@ import {
   RefreshCw, Check, X, Upload, Download, Eye, Grid, List, AlertTriangle
 } from 'lucide-react';
 import API from '../../lib/api';
+import { prepareImage } from './ImageUploadField';
 
 interface Product {
   id: string;
@@ -58,15 +59,6 @@ function buildProductId(category?: string) {
 
 function getDefaultImage(category?: string) {
   return DEFAULT_PRODUCT_IMAGES[category || 'Laptop'] || DEFAULT_PRODUCT_IMAGES.Laptop;
-}
-
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
-    reader.readAsDataURL(file);
-  });
 }
 
 export default function AdminProducts({ 
@@ -264,8 +256,9 @@ export default function AdminProducts({
 
     try {
       setUploading(true);
-      const base64String = await readFileAsDataUrl(file);
-      const uploadRes = await API.uploadMedia(file.name, base64String, 'products');
+      // Photo allégée avant l'envoi (1920 px max) : plus rapide sur réseau mobile
+      const { name, dataUrl } = await prepareImage(file);
+      const uploadRes = await API.uploadMedia(name, dataUrl, 'products');
       if (uploadRes.success) {
         setFormData(prev => ({ ...prev, image: uploadRes.url }));
         onTriggerToast('Media associe 🎨', `Photo "${file.name}" importee avec succes sur le serveur.`, 'success');
@@ -667,7 +660,7 @@ export default function AdminProducts({
                     required
                     value={formData.brand}
                     onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-                    placeholder="e.g. Apple, Dell, Lenovo"
+                    placeholder="ex. : Apple, Dell, Lenovo"
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
                   />
                 </div>
@@ -679,7 +672,7 @@ export default function AdminProducts({
                     required
                     value={formData.model}
                     onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
-                    placeholder="e.g. MacBook Pro M3, ThinkPad T14"
+                    placeholder="ex. : MacBook Pro M3, ThinkPad T14"
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
                   />
                 </div>
@@ -846,7 +839,7 @@ export default function AdminProducts({
                     type="text"
                     value={formData.skuByAdmin || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, skuByAdmin: e.target.value }))}
-                    placeholder="e.g. AAPL-M3-14"
+                    placeholder="ex. : AAPL-M3-14"
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper font-mono"
                   />
                 </div>
@@ -897,7 +890,7 @@ export default function AdminProducts({
                     type="text"
                     value={formData.shortDescription || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, shortDescription: e.target.value }))}
-                    placeholder="e.g. Un monstre de puissance autonome dans un écrin aluminium brossé."
+                    placeholder="ex. : Un monstre de puissance autonome dans un écrin aluminium brossé."
                     className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
                   />
                 </div>

@@ -187,7 +187,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
                   <input
                     type="text"
                     required
-                    placeholder="e.g. herve_admin"
+                    placeholder="ex. : herve_admin"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full bg-white/5 border border-white/15 focus:border-luxe-copper focus:outline-none p-2.5 pl-10 rounded-xl text-white font-sans text-xs"
@@ -245,7 +245,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
                 <input
                   type="text"
                   required
-                  placeholder="e.g. herve_admin"
+                  placeholder="ex. : herve_admin"
                   value={resetUsername}
                   onChange={(e) => setResetUsername(e.target.value)}
                   className="w-full bg-white/5 border border-white/15 focus:border-luxe-copper focus:outline-none p-2.5 rounded-xl text-white font-sans text-xs"

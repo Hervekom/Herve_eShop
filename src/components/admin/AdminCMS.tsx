@@ -5,6 +5,7 @@ import {
   RefreshCw, CheckCircle, Image, Smartphone, Sparkles, MapPin, Map
 } from 'lucide-react';
 import API from '../../lib/api';
+import ImageUploadField from './ImageUploadField';
 import {
   ADVERTISEMENT_TYPE,
   getBannerScheduleState,
@@ -176,8 +177,8 @@ export default function AdminCMS({
       onTriggerToast('Dates invalides', 'La fin de campagne doit être après le début.', 'warning');
       return;
     }
-    if (currentBanner.type === ADVERTISEMENT_TYPE && !String(currentBanner.image || '').trim()) {
-      onTriggerToast('Image manquante', 'Une publicité doit avoir une image pour être affichée dans le carrousel.', 'warning');
+    if (!String(currentBanner.image || '').trim()) {
+      onTriggerToast('Image manquante', 'Ajoutez une image principale (depuis la galerie ou par un lien).', 'warning');
       return;
     }
     try {
@@ -1022,7 +1023,7 @@ export default function AdminCMS({
                       required
                       value={currentBanner.title}
                       onChange={(e) => setCurrentBanner((p: any) => ({ ...p, title: e.target.value }))}
-                      placeholder="e.g. Soldes Exceptionnels d'USA 🇺🇸"
+                      placeholder="ex. : Soldes exceptionnels sur les arrivages USA 🇺🇸"
                       className="w-full p-2 rounded-xl border border-warm-cream"
                     />
                   </div>
@@ -1034,7 +1035,7 @@ export default function AdminCMS({
                       rows={2}
                       value={currentBanner.subtitle}
                       onChange={(e) => setCurrentBanner((p: any) => ({ ...p, subtitle: e.target.value }))}
-                      placeholder="e.g. 15% de reise sur tous les ThinkPads"
+                      placeholder="ex. : 15 % de remise sur tous les ThinkPad"
                       className="w-full p-2 rounded-xl border border-warm-cream"
                     />
                   </div>
@@ -1051,37 +1052,33 @@ export default function AdminCMS({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-bold text-luxe-dark">URL Image de fond *</label>
-                    <input
-                      type="text"
+                    <ImageUploadField
+                      label="Image principale"
                       required
-                      value={currentBanner.image}
-                      onChange={(e) => setCurrentBanner((p: any) => ({ ...p, image: e.target.value }))}
-                      placeholder="Lien d'image de fond"
-                      className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
+                      value={currentBanner.image || ''}
+                      onChange={(url) => setCurrentBanner((p: any) => ({ ...p, image: url }))}
+                      hint="Format paysage conseillé (par exemple 1600 × 900)."
+                      onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')}
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Image mobile</label>
-                      <input
-                        type="text"
+                      <ImageUploadField
+                        label="Image pour téléphone (facultatif)"
                         value={currentBanner.mobileImage || ''}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, mobileImage: e.target.value }))}
-                        placeholder="Image dédiée au mobile"
-                        className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
+                        onChange={(url) => setCurrentBanner((p: any) => ({ ...p, mobileImage: url }))}
+                        hint="Sinon, l'image principale est utilisée."
+                        onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')}
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Logo annonceur</label>
-                      <input
-                        type="text"
+                      <ImageUploadField
+                        label="Logo de l'annonceur (facultatif)"
                         value={currentBanner.logo || ''}
-                        onChange={(e) => setCurrentBanner((p: any) => ({ ...p, logo: e.target.value }))}
-                        placeholder="Logo du partenaire"
-                        className="w-full p-2 rounded-xl border border-warm-cream font-mono text-[11px]"
+                        onChange={(url) => setCurrentBanner((p: any) => ({ ...p, logo: url }))}
+                        onError={(msg) => onTriggerToast('Image non envoyée ❌', msg, 'danger')}
                       />
                     </div>
                   </div>

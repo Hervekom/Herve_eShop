@@ -287,7 +287,7 @@ export default function AdminCategories({
                   required
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g. Ultrabook, Gaming, Bureautique"
+                  placeholder="ex. : Ultrabook, Gaming, Bureautique"
                   className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
                 />
               </div>

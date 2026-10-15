@@ -391,7 +391,7 @@ export default function AdminSettings({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. herve_editor"
+                  placeholder="ex. : herve_editor"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   className="w-full p-2.5 border border-warm-cream rounded-xl focus:outline-none"
