@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Settings, Save, Globe, Phone, Share2, HelpCircle, FileText, 
   RefreshCw, CheckCircle, Image, Smartphone, Sparkles, MapPin, Map
@@ -34,6 +35,13 @@ const createEmptyBanner = () => ({
   trackingCode: '',
 });
 
+// Taux de clic en %, avec une décimale (« 2,9 »)
+const formatCtr = (clicks: number, impressions: number) =>
+  impressions > 0 ? (Math.round((clicks / impressions) * 1000) / 10).toLocaleString('fr-FR') : '0';
+const sumStats = (days: any[]) =>
+  days.reduce((acc, d) => ({ impressions: acc.impressions + d.impressions, clicks: acc.clicks + d.clicks }), { impressions: 0, clicks: 0 });
+const formatCount = (n: number) => Number(n || 0).toLocaleString('fr-FR');
+
 export default function AdminCMS({ 
   currentRole, 
   onTriggerToast 
@@ -55,6 +63,48 @@ export default function AdminCMS({
   const [bannerFormOpen, setBannerFormOpen] = useState(false);
   const [currentBanner, setCurrentBanner] = useState<any>(createEmptyBanner());
 
+  // Statistiques des publicités (vues / clics)
+  const [adStats, setAdStats] = useState<{ available: boolean; totals: Record<string, any> }>({ available: true, totals: {} });
+  const [statsBanner, setStatsBanner] = useState<any | null>(null);
+  const [statsDays, setStatsDays] = useState<any[] | null>(null);
+
+  const fetchAdStats = async () => {
+    try {
+      const res = await API.getBannerStats();
+      setAdStats({ available: res?.available !== false, totals: res?.totals || {} });
+    } catch {
+      /* les statistiques sont facultatives */
+    }
+  };
+
+  const openBannerReport = async (banner: any) => {
+    setStatsBanner(banner);
+    setStatsDays(null);
+    try {
+      const res = await API.getBannerDailyStats(String(banner.id));
+      setStatsDays(Array.isArray(res?.days) ? res.days : []);
+    } catch (err) {
+      setStatsDays([]);
+      onTriggerToast('Statistiques indisponibles', (err as Error).message, 'warning');
+    }
+  };
+
+  const downloadBannerReportCsv = () => {
+    if (!statsBanner || !statsDays) return;
+    const header = 'Jour;Vues;Personnes différentes;Clics;Taux de clic (%)';
+    const rows = statsDays.map((d) => [d.day, d.impressions, d.uniqueVisitors, d.clicks, formatCtr(d.clicks, d.impressions)].join(';'));
+    const total = sumStats(statsDays);
+    rows.push(['TOTAL', total.impressions, '', total.clicks, formatCtr(total.clicks, total.impressions)].join(';'));
+    // BOM pour qu'Excel affiche correctement les accents
+    const blob = new Blob(['\ufeff' + [header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rapport-${String(statsBanner.advertiserName || statsBanner.title || 'publicite').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const fetchCMSData = async () => {
     try {
       setLoading(true);
@@ -65,6 +115,7 @@ export default function AdminCMS({
       
       const bannersList = await API.getBanners();
       setBanners(bannersList);
+      fetchAdStats();
 
       try {
         const reviews = await API.getAdminServiceReviews();
@@ -800,10 +851,37 @@ export default function AdminCMS({
                       {ban.startDate && <span>Début : {formatBannerDate(ban.startDate, 'start')}</span>}
                       {ban.endDate && <span>Fin : {formatBannerDate(ban.endDate, 'end')} (inclus)</span>}
                     </div>
+                    {ban.type === ADVERTISEMENT_TYPE && (() => {
+                      const t = adStats.totals[String(ban.id)] || { impressions: 0, clicks: 0, uniqueVisitors: 0 };
+                      return (
+                        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-lg bg-warm-cream/50 py-2">
+                            <div className="font-mono font-bold text-sm text-luxe-dark">{formatCount(t.impressions)}</div>
+                            <div className="text-[11px] text-luxe-muted">vues</div>
+                          </div>
+                          <div className="rounded-lg bg-warm-cream/50 py-2">
+                            <div className="font-mono font-bold text-sm text-luxe-dark">{formatCount(t.clicks)}</div>
+                            <div className="text-[11px] text-luxe-muted">clics</div>
+                          </div>
+                          <div className="rounded-lg bg-warm-cream/50 py-2">
+                            <div className="font-mono font-bold text-sm text-luxe-dark">{formatCtr(t.clicks, t.impressions)} %</div>
+                            <div className="text-[11px] text-luxe-muted">taux de clic</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="pt-2 border-t border-warm-cream flex justify-between items-center">
                     <span className="text-[11px] text-luxe-muted font-mono">Action : {ban.link}</span>
                     <div className="flex gap-1">
+                      {ban.type === ADVERTISEMENT_TYPE && (
+                        <button
+                          onClick={() => openBannerReport(ban)}
+                          className="px-3 py-2 border border-luxe-copper/40 text-luxe-copper hover:bg-luxe-copper/10 rounded-lg text-xs font-bold"
+                        >
+                          Rapport
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setCurrentBanner(ban);
@@ -825,6 +903,106 @@ export default function AdminCMS({
               </div>
             ))}
           </div>
+
+          {!adStats.available && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-900">
+              Les statistiques des publicités ne sont pas encore activées : exécutez la migration
+              <span className="font-mono"> supabase/migrations/20261015120000_ad_stats.sql</span> dans le SQL Editor de Supabase.
+            </div>
+          )}
+
+          {/* Rapport d'une publicité (à présenter à l'annonceur) */}
+          {/* Affiché directement dans <body> : à l'impression, on masque tout le reste */}
+          {statsBanner && createPortal(
+            <div className="ad-report-portal fixed inset-0 z-50 bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4" onClick={() => setStatsBanner(null)}>
+              <div
+                className="ad-report-print bg-white w-full max-w-2xl rounded-none sm:rounded-3xl border border-warm-cream-dark shadow-2xl p-5 text-left h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start gap-3 border-b border-warm-cream pb-3 mb-4">
+                  <div className="min-w-0">
+                    <div className="text-[11px] uppercase tracking-wider font-bold text-luxe-muted">Rapport de campagne</div>
+                    <h4 className="font-serif font-bold text-base text-luxe-dark">{statsBanner.title}</h4>
+                    <div className="text-xs text-luxe-muted mt-0.5">
+                      {statsBanner.advertiserName ? `${statsBanner.advertiserName} · ` : ''}
+                      {statsBanner.startDate ? `du ${formatBannerDate(statsBanner.startDate, 'start')} ` : ''}
+                      {statsBanner.endDate ? `au ${formatBannerDate(statsBanner.endDate, 'end')}` : ''}
+                    </div>
+                  </div>
+                  <button onClick={() => setStatsBanner(null)} aria-label="Fermer" className="no-print shrink-0 w-10 h-10 flex items-center justify-center rounded-full hover:bg-warm-cream text-luxe-muted hover:text-black text-2xl font-bold">&times;</button>
+                </div>
+
+                {statsDays === null ? (
+                  <div className="py-10 text-center text-sm text-luxe-muted">Chargement des statistiques…</div>
+                ) : (() => {
+                  const total = sumStats(statsDays);
+                  const people = (adStats.totals[String(statsBanner.id)] || {}).uniqueVisitors || 0;
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        {[
+                          { v: formatCount(total.impressions), l: 'vues' },
+                          { v: formatCount(people), l: 'personnes différentes' },
+                          { v: formatCount(total.clicks), l: 'clics' },
+                          { v: `${formatCtr(total.clicks, total.impressions)} %`, l: 'taux de clic' },
+                        ].map((k) => (
+                          <div key={k.l} className="rounded-xl bg-warm-cream/50 py-3">
+                            <div className="font-mono font-bold text-lg text-luxe-dark">{k.v}</div>
+                            <div className="text-[11px] text-luxe-muted">{k.l}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {statsDays.length === 0 ? (
+                        <div className="py-6 text-center text-sm text-luxe-muted">
+                          Aucune vue enregistrée pour l'instant. Les chiffres apparaissent dès que la publicité est affichée sur le site.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto rounded-xl border border-warm-cream-dark">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-warm-cream/40 text-[11px] uppercase tracking-wider text-luxe-muted">
+                                <th className="py-2 px-3 text-left">Jour</th>
+                                <th className="py-2 px-3 text-right">Vues</th>
+                                <th className="py-2 px-3 text-right">Personnes</th>
+                                <th className="py-2 px-3 text-right">Clics</th>
+                                <th className="py-2 px-3 text-right">Taux</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-warm-cream">
+                              {statsDays.map((d) => (
+                                <tr key={d.day}>
+                                  <td className="py-2 px-3 whitespace-nowrap">{formatBannerDate(d.day, 'start')}</td>
+                                  <td className="py-2 px-3 text-right font-mono">{formatCount(d.impressions)}</td>
+                                  <td className="py-2 px-3 text-right font-mono">{formatCount(d.uniqueVisitors)}</td>
+                                  <td className="py-2 px-3 text-right font-mono">{formatCount(d.clicks)}</td>
+                                  <td className="py-2 px-3 text-right font-mono">{formatCtr(d.clicks, d.impressions)} %</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      <p className="text-[11px] text-luxe-muted">
+                        Une vue = la publicité est restée au moins 1 seconde à l'écran d'un visiteur (une fois par visite).
+                        « Personnes différentes » est compté à partir d'un identifiant anonyme du navigateur.
+                      </p>
+
+                      <div className="no-print flex flex-wrap justify-end gap-2 pt-2 border-t border-warm-cream">
+                        <button onClick={downloadBannerReportCsv} disabled={!statsDays.length} className="px-4 py-2.5 rounded-xl border border-warm-cream-dark font-bold text-sm disabled:opacity-40">
+                          Télécharger (Excel / CSV)
+                        </button>
+                        <button onClick={() => window.print()} className="px-4 py-2.5 rounded-xl bg-luxe-copper hover:bg-luxe-dark text-white font-bold text-sm">
+                          Imprimer / PDF
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          , document.body)}
 
           {/* Banner creation slide */}
           {bannerFormOpen && (

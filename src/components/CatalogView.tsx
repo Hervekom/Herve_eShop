@@ -3,6 +3,7 @@ import { SlidersHorizontal, Globe2, CheckCircle, ArrowUpDown, ChevronRight, Hear
 import { motion, AnimatePresence } from 'motion/react';
 import { Laptop, SourceCountry, LaptopStatus } from '../types';
 import { selectActiveAdvertisements, isBannerRunning, getBannerPriority, getAdvertiserKind, formatBannerDate } from '../lib/promoSchedule';
+import { trackAdEvent } from '../lib/api';
 
 interface CatalogViewProps {
   laptops: Laptop[];
@@ -477,6 +478,30 @@ export default function CatalogView({
     });
   }, [activePromoIndex, currentPromoSlide?.id]);
 
+  // Statistiques publicitaires : une « vue » = la publicité a réellement été à l'écran
+  // (carrousel visible, onglet au premier plan), comptée une fois par visite.
+  const heroSectionRef = useRef<HTMLElement | null>(null);
+  const trackedAdViewsRef = useRef<Set<string>>(new Set());
+  const [isHeroVisible, setIsHeroVisible] = useState(true);
+  useEffect(() => {
+    const el = heroSectionRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => setIsHeroVisible(entry.intersectionRatio >= 0.5), { threshold: [0, 0.5, 1] });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!currentPromoSlide || currentPromoSlide.kind !== 'advertisement' || !isHeroVisible) return;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    // Il faut que la publicité reste affichée au moins 1 seconde
+    const timer = window.setTimeout(() => {
+      if (trackedAdViewsRef.current.has(currentPromoSlide.id)) return;
+      trackedAdViewsRef.current.add(currentPromoSlide.id);
+      trackAdEvent(currentPromoSlide.id, 'impression');
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [currentPromoSlide?.id, currentPromoSlide?.kind, isHeroVisible]);
+
   useEffect(() => {
     if (isPromoPaused || promoSlides.length <= 1) return;
     const interval = window.setInterval(() => {
@@ -575,6 +600,7 @@ export default function CatalogView({
     emitPromoEvent(slide.kind === 'advertisement' ? 'advertisement_click' : 'editorial_click', slide, {
       targetUrl,
     });
+    if (slide.kind === 'advertisement') trackAdEvent(slide.id, 'click');
 
     if (!targetUrl) {
       document.getElementById('catalog-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -656,7 +682,7 @@ export default function CatalogView({
         Herve_eShop
       </div>
 
-      <section className="relative py-4 md:py-6 border-b border-warm-cream-dark/60 z-10">
+      <section ref={heroSectionRef} className="relative py-4 md:py-6 border-b border-warm-cream-dark/60 z-10">
         <div
           className="relative overflow-hidden rounded-[1.75rem] border border-luxe-dark/8 bg-luxe-dark text-white shadow-[0_22px_65px_rgba(33,24,18,0.16)]"
           onMouseEnter={() => handlePromoHover(true)}

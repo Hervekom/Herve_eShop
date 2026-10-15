@@ -220,3 +220,26 @@ select {
   background: var(--color-luxe-copper);
 }
 
+
+/* Impression du rapport de campagne publicitaire : seul le rapport est imprimé */
+@media print {
+  body:has(> .ad-report-portal) > :not(.ad-report-portal) {
+    display: none !important;
+  }
+  .ad-report-portal {
+    position: static !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    display: block !important;
+  }
+  .ad-report-print {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .ad-report-print .no-print {
+    display: none !important;
+  }
+}

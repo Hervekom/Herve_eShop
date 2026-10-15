@@ -3438,6 +3438,106 @@ export function registerCompatRoutes(app: express.Express, supabase: SupabaseLik
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // Statistiques de l'espace publicitaire (vues et clics des publicités)
+  // ---------------------------------------------------------------------------
+  const AD_EVENT_TYPES = new Set(['impression', 'click']);
+  // Limite simple anti-abus : 60 événements par minute et par adresse IP.
+  const adEventHits = new Map<string, { count: number; resetAt: number }>();
+  const isAdEventRateLimited = (req: Request) => {
+    const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const ip = forwarded || req.socket.remoteAddress || 'inconnu';
+    const nowMs = Date.now();
+    const entry = adEventHits.get(ip);
+    if (!entry || entry.resetAt < nowMs) {
+      adEventHits.set(ip, { count: 1, resetAt: nowMs + 60_000 });
+      if (adEventHits.size > 5000) adEventHits.clear();
+      return false;
+    }
+    entry.count += 1;
+    return entry.count > 60;
+  };
+
+  // Appelé par le site public : une vue ou un clic sur une publicité.
+  app.post('/api/client/ad-event', async (req, res) => {
+    const bannerId = String(req.body?.bannerId || '').slice(0, 100);
+    const eventType = String(req.body?.type || '');
+    const visitorId = String(req.body?.visitorId || '').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 64) || null;
+    if (!bannerId || !AD_EVENT_TYPES.has(eventType)) {
+      return res.status(400).json({ error: 'Événement invalide.' });
+    }
+    if (isAdEventRateLimited(req)) {
+      return res.status(429).json({ error: 'Trop de requêtes.' });
+    }
+    try {
+      if (!bannersStore.length) await loadCmsFromDb(adminDb);
+      const banner = bannersStore.find((item) => String(item.id) === bannerId);
+      // On ne compte que les vraies publicités existantes
+      if (!banner || String(banner.type || '').trim() !== 'Advertisement Banner') {
+        return res.status(204).end();
+      }
+      const { error } = await adminDb.from('ad_events').insert([{ banner_id: bannerId, event_type: eventType, visitor_id: visitorId }]);
+      if (error && !isMissingTableError(error)) throw error;
+      res.status(204).end();
+    } catch (error) {
+      // Les statistiques ne doivent jamais gêner la navigation du visiteur
+      console.error('[ad-event]', (error as Error).message);
+      res.status(204).end();
+    }
+  });
+
+  // Admin : totaux de toutes les publicités
+  app.get('/api/admin/banners/stats', requireCompatAdmin, async (_req, res) => {
+    try {
+      const { data, error } = await adminDb.from('ad_stats_total').select('*');
+      if (error) {
+        if (isMissingTableError(error)) {
+          return res.json({ available: false, totals: {} });
+        }
+        throw error;
+      }
+      const totals: Record<string, any> = {};
+      (data || []).forEach((row: any) => {
+        totals[String(row.banner_id)] = {
+          impressions: Number(row.impressions || 0),
+          clicks: Number(row.clicks || 0),
+          uniqueVisitors: Number(row.unique_visitors || 0),
+          firstDay: row.first_day,
+          lastDay: row.last_day,
+        };
+      });
+      res.json({ available: true, totals });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  // Admin : détail jour par jour d'une publicité (rapport client)
+  app.get('/api/admin/banners/:id/stats', requireCompatAdmin, async (req, res) => {
+    try {
+      const { data, error } = await adminDb
+        .from('ad_stats_daily')
+        .select('*')
+        .eq('banner_id', req.params.id)
+        .order('day', { ascending: true });
+      if (error) {
+        if (isMissingTableError(error)) return res.json({ available: false, days: [] });
+        throw error;
+      }
+      res.json({
+        available: true,
+        days: (data || []).map((row: any) => ({
+          day: row.day,
+          impressions: Number(row.impressions || 0),
+          clicks: Number(row.clicks || 0),
+          uniqueVisitors: Number(row.unique_visitors || 0),
+        })),
+      });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   app.get('/api/admin/banners', requireCompatAdmin, async (_req, res) => {
     try {
       await loadCmsFromDb(adminDb);
