@@ -319,7 +319,7 @@ export default function AdminOrders({
         
         <button
           onClick={exportOrdersCSV}
-          className="px-4.5 py-2.5 rounded-xl bg-luxe-copper hover:bg-luxe-dark text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
+          className="whitespace-nowrap px-4.5 py-2.5 rounded-xl bg-luxe-copper hover:bg-luxe-dark text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
         >
           <Download className="w-4 h-4" />
           <span>Extraire le Registre (CSV)</span>
@@ -371,12 +371,65 @@ export default function AdminOrders({
         </div>
       </div>
 
-      {/* Orders Table list */}
-      <div className="bg-white rounded-2xl border border-warm-cream-dark shadow-sm overflow-hidden">
+      {/* Téléphone : une carte par commande, actions visibles avec leur nom */}
+      <div className="md:hidden space-y-3">
+        {filteredOrders.map((order) => {
+          const items = resolveOrderItems(order);
+          const first = items[0] || {};
+          const machine = items.length > 1
+            ? `Commande panier (${items.length} articles)`
+            : `${String(first.brand || first.laptopBrand || order.laptopBrand || '').trim()} ${String(first.model || first.laptopModel || order.laptopModel || '').trim()}`.trim();
+          return (
+            <div key={order.id} className="bg-white rounded-2xl border border-warm-cream-dark shadow-sm p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-extrabold text-luxe-dark text-sm">{order.clientName}</div>
+                  <div className="text-xs text-luxe-muted mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                    <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{order.clientCity}</span>
+                    <a href={`tel:${order.clientPhone}`} className="inline-flex items-center gap-1 underline underline-offset-2"><Phone className="w-3 h-3" />{order.clientPhone}</a>
+                  </div>
+                </div>
+                <span className={`shrink-0 text-[11px] uppercase tracking-wider font-extrabold px-2 py-1 rounded-md border ${getStatusBadgeClass(order.status)}`}>
+                  {order.status}
+                </span>
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold text-luxe-dark break-words">{machine}</div>
+                <div className="flex items-baseline justify-between gap-3 mt-1">
+                  <span className="text-xs font-mono text-luxe-muted">{order.orderNumber}</span>
+                  <span className="font-mono font-extrabold text-luxe-dark">{formatFCFA(getOrderTotal(order))}</span>
+                </div>
+                {order.additionalNotes && (
+                  <div className="text-xs italic text-red-600 bg-red-50 px-2 py-1 rounded-lg mt-2 break-words">💡 {order.additionalNotes}</div>
+                )}
+              </div>
+              <div className={`grid gap-2 ${currentRole === 'Super Admin' ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                <button onClick={() => { setActiveOrder(order); setDetailsOpen(true); }} className="min-h-11 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-warm-cream-dark text-luxe-dark text-[11px] font-semibold active:scale-95">
+                  <Eye className="w-4 h-4" />Détails
+                </button>
+                <button onClick={() => { setActiveOrder(order); setPrintInvoiceOpen(true); }} className="min-h-11 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-warm-cream-dark text-luxe-dark text-[11px] font-semibold active:scale-95">
+                  <Printer className="w-4 h-4" />Facture
+                </button>
+                <button onClick={() => handleOpenStatusEdit(order)} className="min-h-11 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-blue-200 text-blue-700 text-[11px] font-semibold active:scale-95">
+                  <Edit className="w-4 h-4" />Statut
+                </button>
+                {currentRole === 'Super Admin' && (
+                  <button onClick={() => handleDeleteOrder(order)} className="min-h-11 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-red-200 text-red-600 text-[11px] font-semibold active:scale-95">
+                    <Trash2 className="w-4 h-4" />Supprimer
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Orders Table list (tablette et ordinateur) */}
+      <div className="max-md:hidden bg-white rounded-2xl border border-warm-cream-dark shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[10px] uppercase tracking-wider">
+              <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[11px] uppercase tracking-wider">
                 <th className="py-3.5 px-4 text-left">Réf Devis</th>
                 <th className="py-3.5 px-4 text-left">Facture ID</th>
                 <th className="py-3.5 px-4 text-left">Client & Coordonnées</th>
@@ -397,11 +450,11 @@ export default function AdminOrders({
                   </td>
                   <td className="py-3.5 px-4">
                     <div className="font-extrabold text-luxe-dark text-xs">{order.clientName}</div>
-                    <div className="text-[10px] text-luxe-muted font-mono mt-0.5 flex items-center gap-1">
+                    <div className="text-[11px] text-luxe-muted font-mono mt-0.5 flex items-center gap-1">
                       <MapPin className="w-2.5 h-2.5" />
                       <span>{order.clientCity}</span>
                     </div>
-                    <div className="text-[10px] text-luxe-muted font-mono flex items-center gap-1 mt-0.5">
+                    <div className="text-[11px] text-luxe-muted font-mono flex items-center gap-1 mt-0.5">
                       <Phone className="w-2.5 h-2.5" />
                       <span>{order.clientPhone}</span>
                     </div>
@@ -419,11 +472,11 @@ export default function AdminOrders({
                               {label}
                             </div>
                             {specs ? (
-                              <div className="text-[10px] text-luxe-copper mt-1">
+                              <div className="text-[11px] text-luxe-copper mt-1">
                                 {specs}
                               </div>
                             ) : (
-                              <div className="text-[10px] text-luxe-copper mt-1">
+                              <div className="text-[11px] text-luxe-copper mt-1">
                                 RAM : {(order.customizations as any)?.ramUpgrade || '—'} | SD : {(order.customizations as any)?.storageUpgrade || '—'} | OS : {(order.customizations as any)?.osOption || '—'}
                               </div>
                             )}
@@ -437,7 +490,7 @@ export default function AdminOrders({
                           <div className="font-extrabold text-luxe-dark">
                             Commande panier <span className="font-normal">({items.length} articles)</span>
                           </div>
-                          <div className="text-[10px] text-luxe-copper mt-1 space-y-0.5">
+                          <div className="text-[11px] text-luxe-copper mt-1 space-y-0.5">
                             {firstTwo.map((it, idx) => {
                               const label = `${String(it.brand || it.laptopBrand || '').trim()} ${String(it.model || it.laptopModel || '').trim()}`.trim();
                               const specs = describeItemSpecs(it);
@@ -449,14 +502,14 @@ export default function AdminOrders({
                               );
                             })}
                             {items.length > 2 && (
-                              <div className="text-[10px] text-luxe-muted">+ {items.length - 2} autre(s)</div>
+                              <div className="text-[11px] text-luxe-muted">+ {items.length - 2} autre(s)</div>
                             )}
                           </div>
                         </>
                       );
                     })()}
                     {order.additionalNotes && (
-                      <div className="text-[10px] italic text-red-500 bg-red-50 px-2 py-0.5 rounded-lg inline-block mt-1 max-w-[220px] truncate">
+                      <div className="text-[11px] italic text-red-500 bg-red-50 px-2 py-0.5 rounded-lg inline-block mt-1 max-w-[220px] truncate">
                         💡 {order.additionalNotes}
                       </div>
                     )}
@@ -465,7 +518,7 @@ export default function AdminOrders({
                     {formatFCFA(getOrderTotal(order))}
                   </td>
                   <td className="py-3.5 px-4 whitespace-nowrap text-center">
-                    <span className={`text-[8.5px] uppercase tracking-widest font-extrabold px-2.5 py-1 rounded-sm border ${getStatusBadgeClass(order.status)}`}>
+                    <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-md border ${getStatusBadgeClass(order.status)}`}>
                       {order.status}
                     </span>
                   </td>
@@ -477,9 +530,9 @@ export default function AdminOrders({
                           setDetailsOpen(true);
                         }}
                         title="Voir détails"
-                        className="p-1.5 hover:bg-warm-cream text-luxe-muted hover:text-black border border-warm-cream rounded-lg transition-all active:scale-90"
+                        className="shrink-0 p-2 hover:bg-warm-cream text-luxe-muted hover:text-black border border-warm-cream-dark rounded-lg transition-all active:scale-90"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => {
@@ -487,26 +540,26 @@ export default function AdminOrders({
                           setPrintInvoiceOpen(true);
                         }}
                         title="Imprimer / Facturer"
-                        className="p-1.5 hover:bg-warm-cream text-luxe-muted hover:text-black border border-warm-cream rounded-lg transition-all active:scale-90"
+                        className="shrink-0 p-2 hover:bg-warm-cream text-luxe-muted hover:text-black border border-warm-cream-dark rounded-lg transition-all active:scale-90"
                       >
-                        <Printer className="w-3.5 h-3.5" />
+                        <Printer className="w-4 h-4" />
                       </button>
                       
                       <button
                         onClick={() => handleOpenStatusEdit(order)}
                         title="Changer Statut / Prix"
-                        className="p-1.5 hover:bg-blue-50 text-luxe-muted hover:text-blue-600 border border-warm-cream rounded-lg transition-all active:scale-90"
+                        className="shrink-0 p-2 hover:bg-blue-50 text-luxe-muted hover:text-blue-600 border border-warm-cream-dark rounded-lg transition-all active:scale-90"
                       >
-                        <Edit className="w-3.5 h-3.5" />
+                        <Edit className="w-4 h-4" />
                       </button>
 
                       {currentRole === 'Super Admin' && (
                         <button
                           onClick={() => handleDeleteOrder(order)}
                           title="Supprimer Définitivement"
-                          className="p-1.5 hover:bg-red-50 text-luxe-muted hover:text-red-600 border border-warm-cream rounded-lg transition-all active:scale-90"
+                          className="shrink-0 p-2 hover:bg-red-50 text-luxe-muted hover:text-red-600 border border-warm-cream-dark rounded-lg transition-all active:scale-90"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -529,12 +582,12 @@ export default function AdminOrders({
             
             <form onSubmit={handleUpdateStatusAndPrice} className="p-5 space-y-4">
               <div className="space-y-1">
-                <span className="text-[10px] text-luxe-muted block uppercase tracking-wider font-extrabold">Client / Ville</span>
+                <span className="text-[11px] text-luxe-muted block uppercase tracking-wider font-extrabold">Client / Ville</span>
                 <p className="font-bold text-luxe-dark">{activeOrder.clientName} ({activeOrder.clientCity})</p>
               </div>
 
               <div className="space-y-1">
-                <span className="text-[10px] text-luxe-muted block uppercase tracking-wider font-extrabold">Machine de Référence</span>
+                <span className="text-[11px] text-luxe-muted block uppercase tracking-wider font-extrabold">Machine de Référence</span>
                 <p className="font-medium text-luxe-dark">{activeOrder.laptopBrand} {activeOrder.laptopModel}</p>
               </div>
 
@@ -562,7 +615,7 @@ export default function AdminOrders({
                   onChange={(e) => setEditPrice(Number(e.target.value))}
                   className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none font-mono font-bold"
                 />
-                <span className="text-[9px] text-luxe-muted block">Inclus les éventuelles reconfigurations RAM, SSD ou accessoires.</span>
+                <span className="text-[11px] text-luxe-muted block">Inclus les éventuelles reconfigurations RAM, SSD ou accessoires.</span>
               </div>
 
               <div className="flex justify-end gap-2.5 border-t border-warm-cream pt-4">
@@ -591,7 +644,7 @@ export default function AdminOrders({
             <div className="bg-luxe-dark text-warm-cream p-4 flex justify-between items-center border-b border-luxe-gold/30">
               <div className="space-y-0.5">
                 <h4 className="font-serif font-bold text-sm">Détails commande</h4>
-                <div className="text-[10px] text-warm-cream/80 font-mono">
+                <div className="text-[11px] text-warm-cream/80 font-mono">
                   {activeOrder.orderNumber || activeOrder.id}
                 </div>
               </div>
@@ -607,18 +660,18 @@ export default function AdminOrders({
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="bg-warm-cream/25 border border-warm-cream-dark/60 rounded-2xl p-3 space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Client</div>
+                  <div className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted">Client</div>
                   <div className="font-extrabold text-luxe-dark">{resolveShipping(activeOrder).name}</div>
-                  <div className="text-[10px] text-luxe-muted flex items-center gap-1">
+                  <div className="text-[11px] text-luxe-muted flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
                     <span>{resolveShipping(activeOrder).city}</span>
                   </div>
-                  <div className="text-[10px] text-luxe-muted flex items-center gap-1">
+                  <div className="text-[11px] text-luxe-muted flex items-center gap-1">
                     <Phone className="w-3 h-3" />
                     <span>{resolveShipping(activeOrder).phone}</span>
                   </div>
                   {resolveShipping(activeOrder).email && (
-                    <div className="text-[10px] text-luxe-muted flex items-center gap-1">
+                    <div className="text-[11px] text-luxe-muted flex items-center gap-1">
                       <Mail className="w-3 h-3" />
                       <span className="truncate">{resolveShipping(activeOrder).email}</span>
                     </div>
@@ -626,27 +679,27 @@ export default function AdminOrders({
                 </div>
 
                 <div className="bg-warm-cream/25 border border-warm-cream-dark/60 rounded-2xl p-3 space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Livraison</div>
+                  <div className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted">Livraison</div>
                   <div className="font-bold text-luxe-dark">
                     {resolveDelivery(activeOrder).method ? resolveDelivery(activeOrder).method : 'Non précisé'}
                   </div>
                   {resolveShipping(activeOrder).address && (
-                    <div className="text-[10px] text-luxe-muted">
+                    <div className="text-[11px] text-luxe-muted">
                       <span className="font-bold">Adresse:</span> {resolveShipping(activeOrder).address}
                     </div>
                   )}
                   {resolveDelivery(activeOrder).notes && (
-                    <div className="text-[10px] text-luxe-muted">
+                    <div className="text-[11px] text-luxe-muted">
                       <span className="font-bold">Notes:</span> {resolveDelivery(activeOrder).notes}
                     </div>
                   )}
                 </div>
 
                 <div className="bg-warm-cream/25 border border-warm-cream-dark/60 rounded-2xl p-3 space-y-1">
-                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Montant</div>
+                  <div className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted">Montant</div>
                   <div className="font-mono font-extrabold text-luxe-dark text-base">{formatFCFA(getOrderTotal(activeOrder))}</div>
-                  <div className="text-[10px] text-luxe-muted">
-                    <span className={`text-[9px] uppercase tracking-widest font-extrabold px-2.5 py-1 rounded-sm border ${getStatusBadgeClass(activeOrder.status)}`}>
+                  <div className="text-[11px] text-luxe-muted">
+                    <span className={`text-[11px] uppercase tracking-widest font-extrabold px-2.5 py-1 rounded-sm border ${getStatusBadgeClass(activeOrder.status)}`}>
                       {activeOrder.status}
                     </span>
                   </div>
@@ -655,15 +708,15 @@ export default function AdminOrders({
 
               <div className="bg-white rounded-2xl border border-warm-cream-dark shadow-sm overflow-hidden">
                 <div className="px-4 py-3 bg-warm-cream/20 border-b border-warm-cream-dark/60 flex items-center justify-between">
-                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-luxe-muted">Articles</div>
-                  <div className="text-[10px] text-luxe-muted font-mono">
+                  <div className="text-[11px] uppercase tracking-wider font-extrabold text-luxe-muted">Articles</div>
+                  <div className="text-[11px] text-luxe-muted font-mono">
                     {resolveOrderItems(activeOrder).length} item(s)
                   </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[10px] uppercase tracking-wider">
+                      <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[11px] uppercase tracking-wider">
                         <th className="py-3 px-4 text-left">Produit</th>
                         <th className="py-3 px-4 text-center">Qté</th>
                         <th className="py-3 px-4 text-right">PU</th>
@@ -683,22 +736,22 @@ export default function AdminOrders({
                             <td className="py-3 px-4">
                               <div className="font-extrabold text-luxe-dark">{label || 'Article'}</div>
                               {specs && (
-                                <div className="text-[10px] text-luxe-copper mt-0.5">
+                                <div className="text-[11px] text-luxe-copper mt-0.5">
                                   {specs}
                                 </div>
                               )}
                               {options && (
-                                <div className="text-[10px] text-luxe-muted mt-0.5">
+                                <div className="text-[11px] text-luxe-muted mt-0.5">
                                   {options}
                                 </div>
                               )}
                               {(it.productId || it.laptopId) && (
-                                <div className="text-[10px] text-luxe-muted font-mono mt-0.5">
+                                <div className="text-[11px] text-luxe-muted font-mono mt-0.5">
                                   ID: {String(it.productId || it.laptopId)}
                                 </div>
                               )}
                               {it.additionalNotes && (
-                                <div className="text-[10px] text-red-500 mt-0.5">
+                                <div className="text-[11px] text-red-500 mt-0.5">
                                   {it.additionalNotes}
                                 </div>
                               )}
@@ -769,8 +822,8 @@ export default function AdminOrders({
               <div className="flex justify-between items-start border-b border-warm-cream-dark pb-5">
                 <div className="space-y-1">
                   <h1 className="font-serif text-xl font-bold tracking-tight text-luxe-copper">Herve_eShop</h1>
-                  <p className="text-[10px] text-luxe-muted">Importateur d'ordinateurs d'exception</p>
-                  <p className="text-[9px] text-luxe-muted leading-relaxed max-w-xs">
+                  <p className="text-[11px] text-luxe-muted">Importateur d'ordinateurs d'exception</p>
+                  <p className="text-[11px] text-luxe-muted leading-relaxed max-w-xs">
                     Akwa Showroom - Face Boulangerie Zépol, Douala <br />
                     Tél : +237 699 00 11 22 | +237 677 88 99 00 <br />
                     Email : contact@herve-eshop.cm
@@ -779,35 +832,35 @@ export default function AdminOrders({
                 <div className="text-right space-y-1">
                   <h2 className="text-base font-extrabold uppercase text-luxe-dark">FACTURE COMMERCIALE</h2>
                   <p className="font-mono text-luxe-copper font-bold text-xs">{activeOrder.orderNumber}</p>
-                  <p className="text-[10px] text-luxe-muted">Date Émission : {new Date(activeOrder.createdAt).toLocaleDateString('fr-FR')}</p>
-                  <p className="text-[10px] text-luxe-muted font-bold">Statut : <span className="text-emerald-600 uppercase font-mono font-bold">{activeOrder.status}</span></p>
+                  <p className="text-[11px] text-luxe-muted">Date Émission : {new Date(activeOrder.createdAt).toLocaleDateString('fr-FR')}</p>
+                  <p className="text-[11px] text-luxe-muted font-bold">Statut : <span className="text-emerald-600 uppercase font-mono font-bold">{activeOrder.status}</span></p>
                 </div>
               </div>
 
               {/* Addresses section */}
               <div className="grid grid-cols-2 gap-6 bg-warm-cream/15 p-4 rounded-xl border border-warm-cream-dark/60">
                 <div className="space-y-1 text-left">
-                  <span className="text-[9px] text-luxe-muted block uppercase font-extrabold tracking-wider">EXPÉDITEUR</span>
+                  <span className="text-[11px] text-luxe-muted block uppercase font-extrabold tracking-wider">EXPÉDITEUR</span>
                   <p className="font-bold text-luxe-dark">Hervé Boutique d'Atelier</p>
-                  <p className="text-[10px] text-luxe-muted">Service Commande Clients Cameroon</p>
-                  <p className="text-[10px] text-luxe-muted">Importations directes des États-Unis et d'Europe.</p>
+                  <p className="text-[11px] text-luxe-muted">Service Commande Clients Cameroon</p>
+                  <p className="text-[11px] text-luxe-muted">Importations directes des États-Unis et d'Europe.</p>
                 </div>
                 
                 <div className="space-y-1 text-left">
-                  <span className="text-[9px] text-luxe-muted block uppercase font-extrabold tracking-wider">CLIENT RECEPTIOMNAIRE</span>
+                  <span className="text-[11px] text-luxe-muted block uppercase font-extrabold tracking-wider">CLIENT RECEPTIOMNAIRE</span>
                   <p className="font-bold text-luxe-dark">{activeOrder.clientName}</p>
-                  <p className="text-[10px] text-luxe-muted">Emplacement : {activeOrder.clientCity}, Cameroun</p>
-                  <p className="text-[10px] text-luxe-muted">Tél : {activeOrder.clientPhone}</p>
-                  {activeOrder.clientEmail && <p className="text-[10px] text-luxe-muted">Email : {activeOrder.clientEmail}</p>}
+                  <p className="text-[11px] text-luxe-muted">Emplacement : {activeOrder.clientCity}, Cameroun</p>
+                  <p className="text-[11px] text-luxe-muted">Tél : {activeOrder.clientPhone}</p>
+                  {activeOrder.clientEmail && <p className="text-[11px] text-luxe-muted">Email : {activeOrder.clientEmail}</p>}
                 </div>
               </div>
 
               {/* Items tables detail */}
               <div className="space-y-2 text-left">
-                <span className="text-[9px] text-luxe-muted block uppercase font-extrabold tracking-wider">LIGNE DE COMMANDE</span>
+                <span className="text-[11px] text-luxe-muted block uppercase font-extrabold tracking-wider">LIGNE DE COMMANDE</span>
                 <table className="w-full border-collapse border border-warm-cream-dark">
                   <thead>
-                    <tr className="bg-warm-cream/35 border-b border-warm-cream-dark font-bold text-[10px] text-luxe-muted">
+                    <tr className="bg-warm-cream/35 border-b border-warm-cream-dark font-bold text-[11px] text-luxe-muted">
                       <th className="py-2.5 px-3 border border-warm-cream-dark text-left">Désignaton de la Configuration</th>
                       <th className="py-2.5 px-3 border border-warm-cream-dark text-center w-12">Qté</th>
                       <th className="py-2.5 px-3 border border-warm-cream-dark text-right w-28">Prix Unitaire</th>
@@ -820,7 +873,7 @@ export default function AdminOrders({
                         <div className="font-extrabold text-luxe-dark">
                           {activeOrder.laptopBrand} - {activeOrder.laptopModel}
                         </div>
-                        <div className="text-[10px] text-luxe-copper mt-1">
+                        <div className="text-[11px] text-luxe-copper mt-1">
                           Options intégrées :
                           <ul className="list-disc list-inside mt-0.5 space-y-0.5 text-luxe-muted">
                             <li>Recharge RAM : {(activeOrder.customizations as any)?.ramUpgrade || '—'}</li>
@@ -843,8 +896,8 @@ export default function AdminOrders({
               {/* Invoice Calculations Summary totals */}
               <div className="flex justify-between items-start pt-3">
                 <div className="max-w-xs space-y-1">
-                  <p className="text-[9px] text-luxe-muted font-bold uppercase tracking-wider">CONDITIONS DE GARANTIE TECHNIQUE</p>
-                  <p className="text-[9.5px] text-luxe-muted leading-relaxed">
+                  <p className="text-[11px] text-luxe-muted font-bold uppercase tracking-wider">CONDITIONS DE GARANTIE TECHNIQUE</p>
+                  <p className="text-[11px] text-luxe-muted leading-relaxed">
                     Ce reçu donne droit à **6 mois de garantie pièces et main d'œuvre** en nos ateliers de Douala (ou Yaoundé). Les pannes d'origine électrique subites ou casse/liquides ne sont pas couvertes.
                   </p>
                 </div>
@@ -867,14 +920,14 @@ export default function AdminOrders({
               {/* Corporate signatures stamp visual */}
               <div className="flex justify-between items-center pt-8 border-t border-dashed border-warm-cream-dark">
                 <div className="text-left">
-                  <p className="text-[9px] text-luxe-muted uppercase font-bold">Client signature</p>
+                  <p className="text-[11px] text-luxe-muted uppercase font-bold">Client signature</p>
                   <div className="w-36 h-12 border-b border-warm-cream-dark mt-2"></div>
                 </div>
                 <div className="text-center space-y-1 shrink-0 bg-luxe-dark text-white p-3 rounded-2xl relative w-48 shadow-lg overflow-hidden border border-luxe-gold/30">
                   <div className="absolute inset-0 bg-radial-gradient from-luxe-gold/20 via-transparent pointer-events-none"></div>
-                  <span className="text-[7.5px] uppercase font-bold tracking-widest text-luxe-gold block">CACHET D'ATELIER CERTIFIÉ</span>
-                  <p className="font-serif font-bold text-[10px] mt-1">Herve_eShop Cameroon</p>
-                  <span className="text-[7px] font-mono hover:text-luxe-gold">Douala - Yaoundé • Direct Import</span>
+                  <span className="text-[11px] uppercase font-bold tracking-widest text-luxe-gold block">CACHET D'ATELIER CERTIFIÉ</span>
+                  <p className="font-serif font-bold text-[11px] mt-1">Herve_eShop Cameroon</p>
+                  <span className="text-[11px] font-mono hover:text-luxe-gold">Douala - Yaoundé • Direct Import</span>
                 </div>
               </div>
 

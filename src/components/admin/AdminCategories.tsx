@@ -158,7 +158,7 @@ export default function AdminCategories({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 text-left">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h3 className="font-serif text-xl font-bold text-luxe-dark flex items-center gap-2">
             <FolderTree className="w-5 h-5 text-luxe-copper" />
@@ -171,7 +171,7 @@ export default function AdminCategories({
         <button
           onClick={handleOpenCreateForm}
           disabled={currentRole === 'Editor'}
-          className="bg-luxe-copper hover:bg-luxe-dark text-white active:scale-95 px-4.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+          className="self-start sm:self-auto shrink-0 whitespace-nowrap bg-luxe-copper hover:bg-luxe-dark text-white active:scale-95 px-4.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Nouvelle Catégorie</span>
@@ -181,13 +181,13 @@ export default function AdminCategories({
       <div className="bg-white rounded-2xl border border-warm-cream-dark shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[10px] uppercase tracking-wider">
-              <th className="py-3.5 px-4 text-center w-16">Ordre</th>
-              <th className="py-3.5 px-4 text-center w-14">Icône</th>
+            <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[11px] uppercase tracking-wider">
+              <th className="py-3.5 px-2 text-center w-28">Ordre</th>
+              <th className="py-3.5 px-4 text-center w-14 max-md:hidden">Icône</th>
               <th className="py-3.5 px-4 text-left">Nom de la Catégorie</th>
-              <th className="py-3.5 px-4 text-left">Description du Rayon</th>
-              <th className="py-3.5 px-4 text-center w-24">Statut</th>
-              <th className="py-3.5 px-4 text-right w-36">Actions</th>
+              <th className="py-3.5 px-4 text-left max-md:hidden">Description du Rayon</th>
+              <th className="py-3.5 px-4 text-center w-24 max-sm:hidden">Statut</th>
+              <th className="py-3.5 px-4 text-right w-28">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-warm-cream">
@@ -195,38 +195,44 @@ export default function AdminCategories({
               const IconComp = getIconComponent(cat.icon);
               return (
                 <tr key={cat.id} className="hover:bg-warm-cream/15 transition-all text-left">
-                  <td className="py-3.5 px-4 text-center font-mono font-bold text-luxe-dark">
+                  <td className="py-3.5 px-2 text-center font-mono font-bold text-luxe-dark">
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={() => handleMoveOrder(idx, 'up')}
                         disabled={idx === 0 || currentRole === 'Editor'}
-                        className="p-1 text-luxe-muted hover:text-luxe-copper active:scale-90 disabled:opacity-30"
+                        aria-label="Monter"
+                        className="shrink-0 p-2 text-luxe-muted hover:text-luxe-copper active:scale-90 disabled:opacity-30"
                       >
-                        <ArrowUp className="w-3 h-3" />
+                        <ArrowUp className="w-4 h-4" />
                       </button>
                       <span>{cat.displayOrder}</span>
                       <button
                         onClick={() => handleMoveOrder(idx, 'down')}
                         disabled={idx === categories.length - 1 || currentRole === 'Editor'}
-                        className="p-1 text-luxe-muted hover:text-luxe-copper active:scale-90 disabled:opacity-30"
+                        aria-label="Descendre"
+                        className="shrink-0 p-2 text-luxe-muted hover:text-luxe-copper active:scale-90 disabled:opacity-30"
                       >
-                        <ArrowDown className="w-3 h-3" />
+                        <ArrowDown className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-center">
+                  <td className="py-3.5 px-4 text-center max-md:hidden">
                     <div className="w-8 h-8 rounded-lg bg-warm-cream/50 flex items-center justify-center text-luxe-copper border border-warm-cream mx-auto">
                       <IconComp className="w-4 h-4" />
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 font-extrabold text-luxe-dark">
+                  <td className="py-3.5 px-4 font-extrabold text-luxe-dark text-sm">
                     {cat.name}
+                    {/* Téléphone : statut sous le nom (colonne masquée) */}
+                    <span className={`sm:hidden ml-2 align-middle text-[11px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                      cat.status === 'Actif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-100'
+                    }`}>{cat.status}</span>
                   </td>
-                  <td className="py-3.5 px-4 text-luxe-muted leading-relaxed">
+                  <td className="py-3.5 px-4 text-luxe-muted leading-relaxed max-md:hidden">
                     {cat.description || 'N/A'}
                   </td>
-                  <td className="py-3.5 px-4 text-center">
-                    <span className={`text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-sm border ${
+                  <td className="py-3.5 px-4 text-center max-sm:hidden">
+                    <span className={`text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
                       cat.status === 'Actif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-100'
                     }`}>
                       {cat.status}
@@ -237,16 +243,18 @@ export default function AdminCategories({
                       <button
                         onClick={() => handleOpenEditForm(cat)}
                         disabled={currentRole === 'Editor'}
-                        className="p-1.5 hover:bg-warm-cream/50 border border-warm-cream rounded-lg text-luxe-muted hover:text-blue-600 transition-all active:scale-90 disabled:opacity-50"
+                        aria-label="Modifier"
+                        className="p-2.5 hover:bg-warm-cream/50 border border-warm-cream-dark rounded-lg text-luxe-muted hover:text-blue-600 transition-all active:scale-90 disabled:opacity-50"
                       >
-                        <Edit className="w-3.5 h-3.5" />
+                        <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(cat.id, cat.name)}
                         disabled={currentRole === 'Editor'}
-                        className="p-1.5 hover:bg-warm-cream/50 border border-warm-cream rounded-lg text-luxe-muted hover:text-red-600 transition-all active:scale-90 disabled:opacity-50"
+                        aria-label="Supprimer"
+                        className="p-2.5 hover:bg-warm-cream/50 border border-warm-cream-dark rounded-lg text-luxe-muted hover:text-red-600 transition-all active:scale-90 disabled:opacity-50"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

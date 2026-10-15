@@ -21,6 +21,18 @@ interface AdminUser {
   role: 'Super Admin' | 'Admin' | 'Editor';
 }
 
+// Titre affiché dans la barre du haut sur téléphone
+const MOBILE_TAB_TITLES: Record<string, string> = {
+  dashboard: "Rapport d'activité",
+  products: 'Ordinateurs & Stocks',
+  categories: 'Rayons & Catégories',
+  orders: 'Commandes',
+  cms: 'Paramètres du site',
+  blog: "Guides d'achat & Blog",
+  media: 'Médiathèque',
+  settings: 'Sécurité & Accès',
+};
+
 export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => void }) {
   // Authentication & Session
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -169,7 +181,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
               )}
 
               <div className="space-y-1.5">
-                <label className="font-bold text-warm-cream-dark/80 block uppercase tracking-wider text-[10px]">Identifiant Opérateur</label>
+                <label className="font-bold text-warm-cream-dark/80 block uppercase tracking-wider text-[11px]">Identifiant Opérateur</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-cream-dark/40" />
                   <input
@@ -184,7 +196,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-warm-cream-dark/80 block uppercase tracking-wider text-[10px]">Clé Secrète (Mot de passe)</label>
+                <label className="font-bold text-warm-cream-dark/80 block uppercase tracking-wider text-[11px]">Clé Secrète (Mot de passe)</label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-cream-dark/40" />
                   <input
@@ -205,7 +217,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
                 <span>Accéder aux Commandes & Stocks</span>
               </button>
 
-              <div className="flex justify-between items-center text-[10px] pt-3 text-warm-cream-dark/45">
+              <div className="flex justify-between items-center text-[11px] pt-3 text-warm-cream-dark/45">
                 <button
                   type="button"
                   onClick={() => setShowPasswordReset(true)}
@@ -229,7 +241,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-warm-cream-dark/80 block uppercase tracking-wider text-[10px]">Nom de l'opérateur à mettre à jour</label>
+                <label className="font-bold text-warm-cream-dark/80 block uppercase tracking-wider text-[11px]">Nom de l'opérateur à mettre à jour</label>
                 <input
                   type="text"
                   required
@@ -241,7 +253,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-warm-cream-dark/80 block uppercase tracking-wider text-[10px]">Nouveau mot de passe secret</label>
+                <label className="font-bold text-warm-cream-dark/80 block uppercase tracking-wider text-[11px]">Nouveau mot de passe secret</label>
                 <input
                   type="password"
                   required
@@ -262,7 +274,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
               <button
                 type="button"
                 onClick={() => setShowPasswordReset(false)}
-                className="w-full text-center hover:text-white mt-1 pt-1 text-[10px] text-warm-cream-dark/45 block cursor-pointer"
+                className="w-full text-center hover:text-white mt-1 pt-1 text-[11px] text-warm-cream-dark/45 block cursor-pointer"
               >
                 Retournez à l'écran de connexion standard
               </button>
@@ -289,21 +301,29 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
         </div>
       )}
 
-      {/* MOBILE HEADER NAVIGATION */}
-      <div className="md:hidden bg-luxe-dark text-warm-cream px-4 py-3 flex justify-between items-center border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <span className="font-serif font-bold text-sm tracking-tight text-white uppercase">Hervé Administration</span>
-          <span className="text-[7.5px] uppercase bg-luxe-copper font-mono font-bold px-1.5 py-0.5 rounded text-white">{currentUser?.role}</span>
+      {/* MOBILE HEADER NAVIGATION — reste visible en haut, indique la section ouverte */}
+      <div className="md:hidden sticky top-0 z-30 bg-luxe-dark text-warm-cream px-4 py-2.5 flex justify-between items-center gap-3 border-b border-white/5">
+        <div className="min-w-0 text-left">
+          <div className="flex items-center gap-2">
+            <span className="font-serif font-bold text-xs tracking-tight text-white/70 uppercase">Hervé Admin</span>
+            <span className="text-[11px] uppercase bg-luxe-copper font-mono font-bold px-1.5 py-0.5 rounded text-white">{currentUser?.role}</span>
+          </div>
+          <div className="text-sm font-bold text-white truncate">{MOBILE_TAB_TITLES[activeTab]}</div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 px-2 border border-white/10 rounded-lg text-white"
-          >
-            <Menu className="w-4.5 h-4.5" />
-          </button>
-        </div>
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Ouvrir le menu"
+          aria-expanded={sidebarOpen}
+          className="shrink-0 w-11 h-11 flex items-center justify-center border border-white/15 rounded-xl text-white active:scale-95"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       </div>
+
+      {/* Fond sombre derrière le menu ouvert : un toc dessus le referme */}
+      {sidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setSidebarOpen(false)} />
+      )}
 
       {/* MASTER RETRACTABLE NAVIGATION SIDEBAR */}
       <aside className={`w-64 bg-luxe-dark text-warm-cream shrink-0 flex flex-col justify-between p-5 border-r border-white/5 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 md:relative md:translate-x-0 ${
@@ -315,13 +335,14 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
           <div className="flex justify-between items-center border-b border-white/10 pb-4">
             <div className="text-left">
               <h2 className="font-serif text-base font-bold tracking-tight text-white leading-tight">Herve_eShop</h2>
-              <p className="text-[10px] text-warm-cream-dark/50 mt-0.5 uppercase tracking-widest font-mono">Panel Atelier Pro</p>
+              <p className="text-[11px] text-warm-cream-dark/50 mt-0.5 uppercase tracking-widest font-mono">Panel Atelier Pro</p>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="md:hidden text-white/60 hover:text-white"
+              aria-label="Fermer le menu"
+              className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/10"
             >
-              <X className="w-4.5 h-4.5" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -332,7 +353,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
             </div>
             <div className="block truncate">
               <h4 className="font-bold truncate">{currentUser?.username}</h4>
-              <span className="text-[9px] text-luxe-gold font-mono uppercase font-extrabold">{currentUser?.role}</span>
+              <span className="text-[11px] text-luxe-gold font-mono uppercase font-extrabold">{currentUser?.role}</span>
             </div>
           </div>
 
@@ -341,7 +362,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
             
             <button
               onClick={() => { setActiveTab('dashboard'); setSidebarOpen(false); }}
-              className={`w-full py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
+              className={`w-full py-3 md:py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
                 activeTab === 'dashboard' ? 'bg-luxe-copper text-white font-bold' : 'text-warm-cream-dark/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -351,7 +372,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
 
             <button
               onClick={() => { setActiveTab('products'); setSidebarOpen(false); }}
-              className={`w-full py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
+              className={`w-full py-3 md:py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
                 activeTab === 'products' ? 'bg-luxe-copper text-white font-bold' : 'text-warm-cream-dark/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -361,7 +382,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
 
             <button
               onClick={() => { setActiveTab('categories'); setSidebarOpen(false); }}
-              className={`w-full py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
+              className={`w-full py-3 md:py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
                 activeTab === 'categories' ? 'bg-luxe-copper text-white font-bold' : 'text-warm-cream-dark/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -371,7 +392,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
 
             <button
               onClick={() => { setActiveTab('orders'); setSidebarOpen(false); }}
-              className={`w-full py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
+              className={`w-full py-3 md:py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
                 activeTab === 'orders' ? 'bg-luxe-copper text-white font-bold' : 'text-warm-cream-dark/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -381,7 +402,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
 
             <button
               onClick={() => { setActiveTab('cms'); setSidebarOpen(false); }}
-              className={`w-full py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
+              className={`w-full py-3 md:py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
                 activeTab === 'cms' ? 'bg-luxe-copper text-white font-bold' : 'text-warm-cream-dark/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -391,7 +412,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
 
             <button
               onClick={() => { setActiveTab('blog'); setSidebarOpen(false); }}
-              className={`w-full py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
+              className={`w-full py-3 md:py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
                 activeTab === 'blog' ? 'bg-luxe-copper text-white font-bold' : 'text-warm-cream-dark/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -401,7 +422,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
 
             <button
               onClick={() => { setActiveTab('media'); setSidebarOpen(false); }}
-              className={`w-full py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
+              className={`w-full py-3 md:py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
                 activeTab === 'media' ? 'bg-luxe-copper text-white font-bold' : 'text-warm-cream-dark/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -411,7 +432,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
 
             <button
               onClick={() => { setActiveTab('settings'); setSidebarOpen(false); }}
-              className={`w-full py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
+              className={`w-full py-3 md:py-2.5 px-3 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer ${
                 activeTab === 'settings' ? 'bg-luxe-copper text-white font-bold' : 'text-warm-cream-dark/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -426,7 +447,7 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
         <div className="pt-4 border-t border-white/5 space-y-2.5 text-xs text-left">
           <button
             onClick={onBackToPublic}
-            className="w-full py-2 px-3 text-left hover:text-white font-bold flex items-center gap-3- text-xs text-warm-cream-dark/70 hover:bg-white/5 rounded-xl cursor-pointer"
+            className="w-full py-2.5 px-3 text-left hover:text-white font-bold flex items-center gap-3 text-xs text-warm-cream-dark/70 hover:bg-white/5 rounded-xl cursor-pointer"
           >
             &larr; Revenir à l'Accueil Public
           </button>
@@ -443,7 +464,8 @@ export default function AdminPanel({ onBackToPublic }: { onBackToPublic: () => v
       </aside>
 
       {/* PRIMARY CONTROLLER LAYER FOR SUB-COMPONENTS VIEWPORTS */}
-      <main className="flex-1 p-5 md:p-8 overflow-y-auto max-h-screen">
+      {/* Téléphone : la page défile normalement ; ordinateur : seul le contenu défile, le menu reste fixe */}
+      <main className="flex-1 min-w-0 p-4 sm:p-5 md:p-8 md:overflow-y-auto md:max-h-screen">
         
         {activeTab === 'dashboard' && currentUser && (
           <AdminDashboard onSelectTab={setActiveTab} />

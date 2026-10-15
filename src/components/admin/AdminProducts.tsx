@@ -86,7 +86,10 @@ export default function AdminProducts({
   const [selectedStatus, setSelectedStatus] = useState('');
   const [sortBy, setSortBy] = useState<'price' | 'stock' | 'name'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [layout, setLayout] = useState<'list' | 'grid'>('list');
+  // Téléphone : cartes par défaut (le tableau est trop large pour l'écran)
+  const [layout, setLayout] = useState<'list' | 'grid'>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 'grid' : 'list'
+  );
 
   // Modal / Form state
   const [formOpen, setFormOpen] = useState(false);
@@ -373,7 +376,7 @@ export default function AdminProducts({
         <div className="flex gap-2.5">
           <button
             onClick={exportStockCSV}
-            className="px-3 py-1.5 rounded-xl border border-warm-cream-dark hover:border-luxe-copper text-xs font-bold text-luxe-copper uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer bg-white"
+            className="whitespace-nowrap px-3 py-1.5 rounded-xl border border-warm-cream-dark hover:border-luxe-copper text-xs font-bold text-luxe-copper uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer bg-white"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
@@ -381,7 +384,7 @@ export default function AdminProducts({
           
           <button
             onClick={handleOpenCreateForm}
-            className="bg-luxe-copper hover:bg-luxe-dark text-white active:scale-95 px-4.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
+            className="whitespace-nowrap bg-luxe-copper hover:bg-luxe-dark text-white active:scale-95 px-4.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Nouvel article</span>
@@ -445,13 +448,15 @@ export default function AdminProducts({
         <div className="md:col-span-1 flex items-center justify-end gap-1">
           <button
             onClick={() => setLayout('list')}
-            className={`p-2 rounded-lg border ${layout === 'list' ? 'bg-warm-cream stroke-luxe-copper text-luxe-copper' : 'bg-transparent text-luxe-muted'} transition-all`}
+            aria-label="Affichage en tableau"
+            className={`p-2.5 rounded-lg border ${layout === 'list' ? 'bg-warm-cream stroke-luxe-copper text-luxe-copper' : 'bg-transparent text-luxe-muted'} transition-all`}
           >
             <List className="w-4 h-4" />
           </button>
           <button
             onClick={() => setLayout('grid')}
-            className={`p-2 rounded-lg border ${layout === 'grid' ? 'bg-warm-cream stroke-luxe-copper text-luxe-copper' : 'bg-transparent text-luxe-muted'} transition-all`}
+            aria-label="Affichage en cartes"
+            className={`p-2.5 rounded-lg border ${layout === 'grid' ? 'bg-warm-cream stroke-luxe-copper text-luxe-copper' : 'bg-transparent text-luxe-muted'} transition-all`}
           >
             <Grid className="w-4 h-4" />
           </button>
@@ -464,7 +469,7 @@ export default function AdminProducts({
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[10px] uppercase tracking-wider select-none">
+                <tr className="border-b border-warm-cream bg-warm-cream/20 text-luxe-muted font-bold text-[11px] uppercase tracking-wider select-none">
                   <th className="py-3.5 px-4 text-left">Visuel</th>
                   <th className="py-3.5 px-4 text-left cursor-pointer" onClick={() => triggerSort('name')}>
                     Produit <ArrowUpDown className="w-3 h-3 inline ml-0.5 text-luxe-muted" />
@@ -495,14 +500,14 @@ export default function AdminProducts({
                       <div className="font-extrabold text-luxe-dark leading-relaxed">
                         {item.brand} <span className="font-normal font-sans text-[11px] text-luxe-muted">{item.model}</span>
                       </div>
-                      <div className="text-[10px] text-luxe-muted font-mono truncate max-w-[200px] mt-0.5">
+                      <div className="text-[11px] text-luxe-muted font-mono truncate max-w-[200px] mt-0.5">
                         {item.processor}
                       </div>
                       <div className="flex gap-1.5 mt-1">
-                        <span className="text-[8px] uppercase tracking-widest bg-warm-cream text-luxe-copper font-bold px-1.5 py-0.5 rounded-sm">
+                        <span className="text-[11px] uppercase tracking-widest bg-warm-cream text-luxe-copper font-bold px-1.5 py-0.5 rounded-sm">
                           {item.condition}
                         </span>
-                        <span className="text-[8px] uppercase tracking-widest bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded-sm font-mono">
+                        <span className="text-[11px] uppercase tracking-widest bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded-sm font-mono">
                           {item.source}
                         </span>
                       </div>
@@ -513,7 +518,7 @@ export default function AdminProducts({
                     <td className="py-3.5 px-4 whitespace-nowrap font-mono font-bold text-luxe-dark">
                       {formatFCFA(item.price)}
                       {item.oldPrice && (
-                        <span className="block text-[9px] line-through text-red-400 font-extrabold">
+                        <span className="block text-[11px] line-through text-red-400 font-extrabold">
                           {formatFCFA(item.oldPrice)}
                         </span>
                       )}
@@ -528,7 +533,7 @@ export default function AdminProducts({
                         type="button"
                         disabled={currentRole === 'Editor'}
                         onClick={() => handleStatusToggle(item)}
-                        className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-sm border cursor-pointer select-none ${
+                        className={`text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-sm border cursor-pointer select-none ${
                           item.status === 'Disponible' 
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                             : item.status === 'Arrivage imminent'
@@ -574,42 +579,52 @@ export default function AdminProducts({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 text-left">
           {processed.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl border border-warm-cream-dark overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all">
-              <div className="relative h-44 bg-warm-cream/20">
+            // Téléphone : carte horizontale compacte (photo à gauche) ; ordinateur : carte verticale
+            <div key={item.id} className="bg-white rounded-2xl border border-warm-cream-dark overflow-hidden flex flex-row sm:flex-col shadow-sm hover:shadow-md transition-all">
+              <div className="relative w-28 shrink-0 sm:w-auto sm:h-44 bg-warm-cream/20">
                 <img src={item.image} alt={item.model} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                <span className={`absolute top-3 right-3 text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-sm border font-extrabold ${
-                  item.status === 'Disponible' ? 'bg-emerald-500 border-none text-white' : 'bg-red-500 border-none text-white'
+                <span className={`max-sm:hidden absolute top-3 right-3 text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-md font-extrabold ${
+                  item.status === 'Disponible' ? 'bg-emerald-500 text-white' : item.status === 'Arrivage imminent' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
                 }`}>
                   {item.status}
                 </span>
               </div>
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                <div className="space-y-1.5">
-                  <span className="text-[10px] tracking-widest uppercase font-mono text-luxe-muted">{item.category}</span>
-                  <h4 className="font-serif font-bold text-sm text-luxe-dark">{item.brand} {item.model}</h4>
-                  <p className="text-[11px] text-luxe-muted truncate font-mono">{item.processor}</p>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t border-warm-cream-dark">
-                  <div>
-                    <span className="text-[10px] text-luxe-muted font-mono">Stock • {item.stockQuantity} pcs</span>
-                    <span className="block font-mono font-bold text-xs text-luxe-dark">{formatFCFA(item.price)}</span>
+              <div className="p-3 sm:p-4 flex-1 min-w-0 flex flex-col justify-between gap-2 sm:gap-4">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] tracking-wider uppercase font-mono text-luxe-muted">{item.category}</span>
+                    <span className={`sm:hidden text-[11px] uppercase tracking-wider px-1.5 py-0.5 rounded-md font-extrabold ${
+                      item.status === 'Disponible' ? 'bg-emerald-100 text-emerald-700' : item.status === 'Arrivage imminent' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {item.status}
+                    </span>
                   </div>
-                  <div className="flex gap-1.5">
+                  <h4 className="font-serif font-bold text-sm text-luxe-dark line-clamp-2">{item.brand} {item.model}</h4>
+                  <p className="text-xs text-luxe-muted truncate font-mono">{item.processor}</p>
+                </div>
+                <div className="flex justify-between items-end gap-2 pt-2 border-t border-warm-cream-dark">
+                  <div className="min-w-0">
+                    <span className="text-xs text-luxe-muted font-mono">Stock : {item.stockQuantity}</span>
+                    <span className="block font-mono font-bold text-sm text-luxe-dark">{formatFCFA(item.price)}</span>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
                     <button
                       onClick={() => handleOpenEditForm(item)}
                       disabled={currentRole === 'Editor'}
-                      className="p-2 hover:bg-warm-cream/40 rounded-lg text-luxe-muted hover:text-blue-600 border border-warm-cream-dark disabled:opacity-50"
+                      aria-label="Modifier"
+                      className="w-10 h-10 flex items-center justify-center hover:bg-warm-cream/40 rounded-lg text-luxe-muted hover:text-blue-600 border border-warm-cream-dark disabled:opacity-50"
                     >
-                      <Edit className="w-3.5 h-3.5" />
+                      <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(item.id, `${item.brand} ${item.model}`)}
                       disabled={currentRole === 'Editor'}
-                      className="p-2 hover:bg-warm-cream/40 rounded-lg text-luxe-muted hover:text-red-500 border border-warm-cream-dark disabled:opacity-50"
+                      aria-label="Supprimer"
+                      className="w-10 h-10 flex items-center justify-center hover:bg-warm-cream/40 rounded-lg text-luxe-muted hover:text-red-500 border border-warm-cream-dark disabled:opacity-50"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -621,8 +636,9 @@ export default function AdminProducts({
 
       {/* MODAL EDIT / FORM */}
       {formOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-3xl rounded-3xl border-2 border-luxe-gold/30 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4">
+          {/* Téléphone : formulaire en plein écran */}
+          <div className="bg-white w-full max-w-3xl rounded-none sm:rounded-3xl border-0 sm:border-2 border-luxe-gold/30 shadow-2xl overflow-hidden flex flex-col h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh]">
             
             {/* Modal Header */}
             <div className="bg-luxe-dark text-warm-cream p-5 flex justify-between items-center border-b border-luxe-gold/30">
@@ -632,7 +648,8 @@ export default function AdminProducts({
               </h4>
               <button
                 onClick={() => setFormOpen(false)}
-                className="text-warm-cream-dark/60 hover:text-white font-serif text-xl cursor-pointer"
+                aria-label="Fermer"
+                className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-warm-cream-dark/70 hover:text-white font-serif text-2xl cursor-pointer"
               >
                 &times;
               </button>
@@ -864,7 +881,7 @@ export default function AdminProducts({
                           className="hidden"
                         />
                       </label>
-                      <span className="text-[10px] text-luxe-muted italic">Formats acceptes: JPG, PNG, WEBP</span>
+                      <span className="text-[11px] text-luxe-muted italic">Formats acceptes: JPG, PNG, WEBP</span>
                     </div>
 
                   </div>
