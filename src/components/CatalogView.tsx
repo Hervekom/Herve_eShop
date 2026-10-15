@@ -63,6 +63,7 @@ type PromoSlide =
       advertiserName: string;
       priority: number;
       targetType: string;
+      validUntil?: string;
       trackingCode?: string;
     })
   | (BasePromoSlide & {
@@ -182,6 +183,24 @@ const getPromoImageFramePreset = (metrics: PromoImageMetrics, viewportWidth: num
       return { widthPercent: 54, maxHeight: 445, minHeight: 320 };
     default:
       return { widthPercent: 48, maxHeight: 470, minHeight: 340 };
+  }
+};
+
+// Bouton d'une publicité : le texte saisi par l'admin, sinon « Visiter <annonceur> ».
+// Les anciens libellés génériques (« Découvrir ») sont remplacés : ils n'indiquent
+// pas au visiteur qu'il va être redirigé vers le site de l'annonceur.
+const GENERIC_CTA = new Set(['découvrir', 'découvrir l’offre', "découvrir l'offre", 'en savoir plus']);
+const getAdCtaLabel = (banner: CmsBannerRecord) => {
+  const custom = String(banner.ctaText || '').trim();
+  if (custom && !GENERIC_CTA.has(custom.toLowerCase())) return custom;
+  const name = String(banner.advertiserName || '').trim();
+  return name ? `Visiter ${name}` : 'Visiter le site';
+};
+const getDisplayHost = (url?: string) => {
+  try {
+    return url && /^https?:\/\//i.test(url) ? new URL(url).hostname.replace(/^www\./, '') : '';
+  } catch {
+    return '';
   }
 };
 
@@ -373,7 +392,7 @@ export default function CatalogView({
     image: String(banner.image || '').trim(),
     mobileImage: String(banner.mobileImage || '').trim() || undefined,
     logo: String(banner.logo || '').trim() || undefined,
-    ctaText: String(banner.ctaText || 'Découvrir l’offre').trim(),
+    ctaText: getAdCtaLabel(banner),
     ctaUrl: String(banner.link || '').trim(),
     // Vos SaaS : « Nos solutions » ; espace loué à un client : « Sponsorisé »
     badge: getAdvertiserKind(banner) === 'own' ? 'Nos solutions' : 'Sponsorisé',
@@ -383,8 +402,9 @@ export default function CatalogView({
     trackingCode: String(banner.trackingCode || '').trim() || undefined,
     imageFit: normalizeImageFit(banner.imageFit) || 'cover',
     imagePosition: normalizeImagePosition(banner.imagePosition) || 'center center',
-    // Pas de priorité ni de « sans date de fin » : ce sont des informations internes
-    meta: banner.endDate ? [`Offre valable jusqu'au ${formatBannerDate(banner.endDate, 'end')}`] : [],
+    // Aucune information interne (priorité…) n'est montrée aux visiteurs
+    meta: [],
+    validUntil: banner.endDate ? formatBannerDate(banner.endDate, 'end') : undefined,
   }));
 
   const productSlides: PromoSlide[] = eligiblePromotedProducts.map((laptop) => ({
@@ -762,7 +782,7 @@ export default function CatalogView({
                   )}
 
                   <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-3">
-                    <div className="hidden sm:inline-flex flex-col gap-2">
+                    <div className={`${currentPromoSlide?.kind === 'advertisement' ? 'hidden' : 'hidden sm:inline-flex'} flex-col gap-2`}>
                       <span className="type-kicker text-white/70">
                         {isShowingAdvertisements ? currentPromoSlide?.badge : isShowingProductFallback ? 'Sélection du moment' : 'À la une'}
                       </span>
@@ -854,24 +874,75 @@ export default function CatalogView({
                 </div>
               </div>
 
-              <div className={`${promoTextColumnClass} order-2 lg:order-2 flex flex-col justify-between text-left`}>
+              {currentPromoSlide?.kind === 'advertisement' ? (
+              // ---- Publicité (vos SaaS ou un annonceur) : un message, une action ----
+              <div className={`${promoTextColumnClass} order-2 lg:order-2 flex flex-col justify-center text-left`}>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <span className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-2 py-0.5 type-badge text-white/85 tracking-wider uppercase">
+                    {currentPromoSlide.badge}
+                  </span>
+                  <span className="inline-flex items-center gap-2 text-white/75 type-meta min-w-0">
+                    {currentPromoLogo && (
+                      <img
+                        src={currentPromoLogo}
+                        alt=""
+                        className="w-6 h-6 rounded-md object-cover bg-white shrink-0"
+                        referrerPolicy="no-referrer"
+                        onError={() => handlePromoAssetError(currentPromoLogo)}
+                      />
+                    )}
+                    <span className="truncate">Proposé par <span className="font-semibold text-white">{currentPromoSlide.advertiserName}</span></span>
+                  </span>
+                </div>
+
+                <h2 className="mt-4 max-w-[18ch] text-white text-[clamp(1.6rem,6.8vw,3rem)] leading-[1.05] font-extrabold tracking-[-0.03em]">
+                  {promoDisplayTitle}
+                </h2>
+
+                {promoDisplaySubtitle && (
+                  <p className="mt-3 max-w-xl text-white/85 text-[0.98rem] md:text-[1.08rem] leading-relaxed font-medium line-clamp-3">
+                    {promoDisplaySubtitle}
+                  </p>
+                )}
+
+                {promoDisplayDescription && promoDisplayDescription !== promoDisplaySubtitle && (
+                  <p className="type-body mt-2 max-w-xl text-white/62 hidden sm:block sm:line-clamp-3">
+                    {promoDisplayDescription}
+                  </p>
+                )}
+
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handlePromoAction(currentPromoSlide)}
+                    className="type-button inline-flex w-full sm:w-auto shrink-0 whitespace-nowrap items-center justify-center gap-2 rounded-full bg-white text-luxe-dark px-6 py-3.5 hover:bg-luxe-gold transition-colors shadow-lg"
+                  >
+                    {currentPromoSlide.ctaText}
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                  {getDisplayHost(currentPromoSlide.ctaUrl) && (
+                    <span className="type-meta text-white/55 text-center sm:text-left">
+                      Vous serez redirigé vers {getDisplayHost(currentPromoSlide.ctaUrl)}
+                    </span>
+                  )}
+                </div>
+
+                {currentPromoSlide.validUntil && (
+                  <p className="mt-4 type-meta text-white/50">Offre valable jusqu'au {currentPromoSlide.validUntil}</p>
+                )}
+              </div>
+              ) : (
+                <div className={`${promoTextColumnClass} order-2 lg:order-2 flex flex-col justify-between text-left`}>
                 <div>
                   <div className="mb-2.5 flex flex-wrap items-center gap-2">
                     <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${
-                      currentPromoSlide?.kind === 'advertisement'
-                        ? 'bg-white/8 border-white/15 text-white'
-                        : currentPromoSlide?.kind === 'product'
-                          ? 'bg-luxe-copper/20 border-luxe-copper/30 text-luxe-gold'
-                          : 'bg-white/8 border-white/15 text-white'
+                      currentPromoSlide?.kind === 'product'
+                        ? 'bg-luxe-copper/20 border-luxe-copper/30 text-luxe-gold'
+                        : 'bg-white/8 border-white/15 text-white'
                     }`}>
                       <span className="w-2 h-2 rounded-full bg-current opacity-80" />
                       <span className="type-badge text-current">{currentPromoSlide?.badge}</span>
                     </span>
-                    {currentPromoSlide?.kind === 'advertisement' && (
-                      <span className="type-meta text-white/68 sm:hidden">
-                        {currentPromoSlide.advertiserName}
-                      </span>
-                    )}
                   </div>
 
                   <h2 className="max-w-[15ch] text-white text-[clamp(1.45rem,6.8vw,3rem)] leading-[1.05] font-extrabold tracking-[-0.03em]">
@@ -933,6 +1004,7 @@ export default function CatalogView({
                   </button>
                 </div>
               </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
