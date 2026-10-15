@@ -94,3 +94,29 @@ export function formatBannerDate(value: unknown, edge: 'start' | 'end') {
   if (!date) return '';
   return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'Africa/Douala' }).format(date);
 }
+
+// Bouton d'une publicité : le texte saisi par l'admin, sinon « Visiter <annonceur> ».
+// Les anciens libellés génériques (« Découvrir ») sont remplacés : ils n'indiquent
+// pas au visiteur qu'il va être redirigé vers le site de l'annonceur.
+const GENERIC_CTA = new Set(['découvrir', 'découvrir l’offre', "découvrir l'offre", 'en savoir plus']);
+
+export function getAdCtaLabel(banner: { ctaText?: string; advertiserName?: string }) {
+  const custom = String(banner.ctaText || '').trim();
+  if (custom && !GENERIC_CTA.has(custom.toLowerCase())) return custom;
+  const name = String(banner.advertiserName || '').trim();
+  return name ? `Visiter ${name}` : 'Visiter le site';
+}
+
+/** Lien de redirection valide (https://site.tld/…) */
+export function isValidRedirectUrl(url?: string) {
+  return /^https?:\/\/[^\s/]+\.[^\s]+/i.test(String(url || '').trim());
+}
+
+/** « studyinchina.cm » à partir de « https://www.studyinchina.cm/drone » */
+export function getDisplayHost(url?: string) {
+  try {
+    return isValidRedirectUrl(url) ? new URL(String(url).trim()).hostname.replace(/^www\./, '') : '';
+  } catch {
+    return '';
+  }
+}

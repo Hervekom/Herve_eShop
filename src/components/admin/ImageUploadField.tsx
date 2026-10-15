@@ -124,10 +124,10 @@ export default function ImageUploadField({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="min-h-11 px-3.5 rounded-xl border border-luxe-copper bg-white hover:bg-warm-cream text-luxe-copper font-bold text-xs flex items-center justify-center gap-2 disabled:opacity-60"
+            className="min-h-11 px-3.5 rounded-xl border border-luxe-copper bg-white hover:bg-warm-cream text-luxe-copper font-bold text-xs whitespace-nowrap flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            {uploading ? 'Envoi en cours…' : hasImage ? 'Changer l\'image' : 'Choisir depuis la galerie'}
+            {uploading ? 'Envoi en cours…' : hasImage ? 'Changer l\'image' : 'Ajouter une photo'}
           </button>
           <button
             type="button"
