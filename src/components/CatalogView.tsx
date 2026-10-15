@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SlidersHorizontal, Globe2, CheckCircle, ArrowUpDown, ChevronRight, Heart, ShoppingCart, ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Laptop, SourceCountry, LaptopStatus } from '../types';
+import { selectActiveAdvertisements, isBannerRunning, getBannerPriority, getAdvertiserKind, formatBannerDate } from '../lib/promoSchedule';
 
 interface CatalogViewProps {
   laptops: Laptop[];
@@ -28,6 +29,7 @@ type CmsBannerRecord = {
   link?: string;
   ctaText?: string;
   advertiserName?: string;
+  advertiserKind?: string;
   startDate?: string;
   endDate?: string;
   priority?: number | string;
@@ -86,16 +88,7 @@ const DEFAULT_BANNER_IMAGE = 'https://images.unsplash.com/photo-1517336714731-48
 
 const hasText = (value: unknown) => Boolean(String(value ?? '').trim());
 
-const toValidDate = (value: unknown) => {
-  if (!hasText(value)) return null;
-  const parsed = new Date(String(value));
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
 
-const getBannerPriority = (banner: CmsBannerRecord) => {
-  const raw = Number(banner.priority);
-  return Number.isFinite(raw) ? raw : 999;
-};
 
 const normalizeImageFit = (value: unknown): 'cover' | 'contain' | undefined => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -191,14 +184,8 @@ const getPromoImageFramePreset = (metrics: PromoImageMetrics, viewportWidth: num
   }
 };
 
-const isScheduledBannerActive = (banner: CmsBannerRecord, now: Date) => {
-  if (String(banner.status || '').trim() !== 'Actif') return false;
-  const start = toValidDate(banner.startDate);
-  const end = toValidDate(banner.endDate);
-  if (start && now < start) return false;
-  if (end && now > end) return false;
-  return true;
-};
+// Règles de programmation partagées avec l'admin (src/lib/promoSchedule.ts)
+const isScheduledBannerActive = (banner: CmsBannerRecord, now: Date) => isBannerRunning(banner, now);
 
 export default function CatalogView({
   laptops,
@@ -216,20 +203,8 @@ export default function CatalogView({
   const heroSubtitle = siteCMS.heroSubtitle || "Découvrez le summum des ordinateurs portables de seconde main premium.";
   const cmsBanners: CmsBannerRecord[] = Array.isArray(cms?.banners) ? cms.banners : [];
   const now = new Date();
-  const activeAdvertisementCandidates = cmsBanners
-    .filter((banner) => String(banner?.type || '').trim() === 'Advertisement Banner')
-    .filter((banner) => isScheduledBannerActive(banner, now))
-    .sort((a, b) => {
-      const priorityDiff = getBannerPriority(a) - getBannerPriority(b);
-      if (priorityDiff !== 0) return priorityDiff;
-      const aStart = toValidDate(a.startDate)?.getTime() || 0;
-      const bStart = toValidDate(b.startDate)?.getTime() || 0;
-      return bStart - aStart;
-    });
-  const highestPriority = activeAdvertisementCandidates[0] ? getBannerPriority(activeAdvertisementCandidates[0]) : null;
-  const activeAdvertisements = highestPriority === null
-    ? []
-    : activeAdvertisementCandidates.filter((banner) => getBannerPriority(banner) === highestPriority);
+  // Publicité programmée en cours (vos SaaS ou un client annonceur) ; sinon, produits du catalogue.
+  const activeAdvertisements = selectActiveAdvertisements(cmsBanners, now);
   const homepageBanners = cmsBanners.filter(
     (banner) => String(banner?.type || '').trim() === 'Homepage Banner' && isScheduledBannerActive(banner, now),
   );
@@ -392,24 +367,23 @@ export default function CatalogView({
     id: String(banner.id),
     kind: 'advertisement',
     title: String(banner.title || banner.advertiserName || 'Promotion partenaire').trim(),
-    subtitle: String(banner.subtitle || banner.advertiserName || 'Campagne sponsorisée').trim(),
+    subtitle: String(banner.subtitle || banner.advertiserName || '').trim(),
     description: String(banner.description || banner.subtitle || '').trim(),
     image: String(banner.image || '').trim(),
     mobileImage: String(banner.mobileImage || '').trim() || undefined,
     logo: String(banner.logo || '').trim() || undefined,
     ctaText: String(banner.ctaText || 'Découvrir l’offre').trim(),
     ctaUrl: String(banner.link || '').trim(),
-    badge: 'Campagne sponsorisée',
+    // Vos SaaS : « Nos solutions » ; espace loué à un client : « Sponsorisé »
+    badge: getAdvertiserKind(banner) === 'own' ? 'Nos solutions' : 'Sponsorisé',
     advertiserName: String(banner.advertiserName || 'Partenaire').trim(),
     priority: getBannerPriority(banner),
     targetType: String(banner.targetType || 'external').trim(),
     trackingCode: String(banner.trackingCode || '').trim() || undefined,
     imageFit: normalizeImageFit(banner.imageFit) || 'cover',
     imagePosition: normalizeImagePosition(banner.imagePosition) || 'center center',
-    meta: [
-      `Priorité ${getBannerPriority(banner)}`,
-      toValidDate(banner.endDate) ? `Jusqu'au ${new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(toValidDate(banner.endDate) as Date)}` : 'Sans date de fin',
-    ],
+    // Pas de priorité ni de « sans date de fin » : ce sont des informations internes
+    meta: banner.endDate ? [`Offre valable jusqu'au ${formatBannerDate(banner.endDate, 'end')}`] : [],
   }));
 
   const productSlides: PromoSlide[] = eligiblePromotedProducts.map((laptop) => ({
@@ -671,7 +645,7 @@ export default function CatalogView({
     currentPromoSlide?.kind === 'product'
       ? 'Produit du catalogue disponible immédiatement'
       : currentPromoSlide?.kind === 'advertisement'
-        ? currentPromoSlide?.meta?.[0] || 'Campagne sponsorisée'
+        ? currentPromoSlide?.meta?.[0] || ''
         : currentPromoSlide?.meta?.[1] || '';
 
   return (
@@ -764,7 +738,7 @@ export default function CatalogView({
                   <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-3">
                     <div className="hidden sm:inline-flex flex-col gap-2">
                       <span className="type-kicker text-white/70">
-                        {isShowingAdvertisements ? 'Annonce' : isShowingProductFallback ? 'Sélection du moment' : 'À la une'}
+                        {isShowingAdvertisements ? currentPromoSlide?.badge : isShowingProductFallback ? 'Sélection du moment' : 'À la une'}
                       </span>
                       {currentPromoSlide?.kind === 'advertisement' && (
                         <div className="inline-flex items-center gap-2 rounded-full bg-white/12 backdrop-blur-md px-2.5 py-1.5 border border-white/10">

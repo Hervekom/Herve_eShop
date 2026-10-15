@@ -4,6 +4,14 @@ import {
   RefreshCw, CheckCircle, Image, Smartphone, Sparkles, MapPin, Map
 } from 'lucide-react';
 import API from '../../lib/api';
+import {
+  ADVERTISEMENT_TYPE,
+  getBannerScheduleState,
+  selectActiveAdvertisements,
+  getAdvertiserKind,
+  parseBannerDate,
+  formatBannerDate,
+} from '../../lib/promoSchedule';
 
 const createEmptyBanner = () => ({
   title: '',
@@ -15,6 +23,8 @@ const createEmptyBanner = () => ({
   link: '#catalog-grid-anchor',
   ctaText: 'Découvrir',
   advertiserName: '',
+  // 'own' : promotion d'un de vos SaaS ; 'client' : espace loué à un annonceur
+  advertiserKind: 'client',
   startDate: '',
   endDate: '',
   type: 'Advertisement Banner',
@@ -109,6 +119,16 @@ export default function AdminCMS({
   // Banner operators
   const handleBannerSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const start = parseBannerDate(currentBanner.startDate, 'start');
+    const end = parseBannerDate(currentBanner.endDate, 'end');
+    if (start && end && end < start) {
+      onTriggerToast('Dates invalides', 'La fin de campagne doit être après le début.', 'warning');
+      return;
+    }
+    if (currentBanner.type === ADVERTISEMENT_TYPE && !String(currentBanner.image || '').trim()) {
+      onTriggerToast('Image manquante', 'Une publicité doit avoir une image pour être affichée dans le carrousel.', 'warning');
+      return;
+    }
     try {
       if (currentBanner.id) {
         await API.updateBanner(currentBanner.id, currentBanner);
@@ -715,29 +735,70 @@ export default function AdminCMS({
             </button>
           </div>
 
+          {/* Ce que voient les visiteurs en ce moment dans le carrousel */}
+          {(() => {
+            const live = selectActiveAdvertisements(banners);
+            return (
+              <div className={`rounded-2xl border p-4 text-left ${live.length ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                <div className="text-[11px] uppercase tracking-wider font-bold text-luxe-muted">En ce moment dans le carrousel</div>
+                {live.length ? (
+                  <div className="mt-1 text-sm text-luxe-dark">
+                    <span className="font-bold">{live.length > 1 ? `${live.length} publicités` : 'Publicité'}</span>
+                    {' : '}
+                    {live.map((b: any) => `${b.title}${b.advertiserName ? ` (${b.advertiserName})` : ''}`).join(' · ')}
+                    <div className="text-xs text-luxe-muted mt-1">
+                      Les produits du catalogue reviendront automatiquement à la fin de la campagne.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-1 text-sm text-luxe-dark">
+                    <span className="font-bold">Produits du catalogue</span> — aucune publicité programmée n'est en cours.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
             {banners.map((ban) => (
               <div key={ban.id} className="bg-white border border-warm-cream-dark rounded-2xl overflow-hidden flex flex-col justify-between shadow-xs">
                 <div className="relative h-28 bg-warm-cream/20">
                   <img src={ban.image} alt={ban.title} className="w-full h-full object-cover" />
-                  <span className={`absolute top-2 right-2 text-[11px] uppercase tracking-widest px-2 py-0.5 rounded-sm font-extrabold border bg-white ${
-                    ban.status === 'Actif' ? 'text-emerald-700 border-emerald-300' : 'text-gray-500 border-gray-300'
-                  }`}>
-                    {ban.status}
-                  </span>
+                  {(() => {
+                    const state = getBannerScheduleState(ban);
+                    const label = {
+                      running: 'En cours',
+                      scheduled: ban.startDate ? `Programmée · ${formatBannerDate(ban.startDate, 'start')}` : 'Programmée',
+                      ended: 'Terminée',
+                      disabled: 'Désactivée',
+                    }[state];
+                    const color = {
+                      running: 'text-emerald-700 border-emerald-300',
+                      scheduled: 'text-blue-700 border-blue-300',
+                      ended: 'text-gray-500 border-gray-300',
+                      disabled: 'text-gray-500 border-gray-300',
+                    }[state];
+                    return (
+                      <span className={`absolute top-2 right-2 text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-md font-extrabold border bg-white ${color}`}>
+                        {label}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="p-4 space-y-3">
                   <div>
                     <span className="text-[11px] uppercase tracking-wider bg-luxe-gold/25 text-luxe-copper font-bold px-1.5 py-0.5 rounded font-mono block w-fit">
-                      {ban.type}
+                      {ban.type === ADVERTISEMENT_TYPE
+                        ? (getAdvertiserKind(ban) === 'own' ? 'Publicité · Mes SaaS' : 'Publicité · Client annonceur')
+                        : ({ 'Homepage Banner': 'Bannière d\'accueil', 'Promo Banner': 'Encadré promo', 'Announcement Banner': 'Ruban d\'annonce' } as Record<string, string>)[ban.type] || ban.type}
                     </span>
                     <h5 className="font-serif font-bold text-sm text-luxe-dark mt-1">{ban.title}</h5>
                     <p className="text-[11px] text-luxe-muted leading-relaxed mt-0.5">{ban.subtitle}</p>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-luxe-muted">
                       {ban.advertiserName && <span>Annonceur : {ban.advertiserName}</span>}
                       {ban.priority !== undefined && <span>Priorité : {ban.priority}</span>}
-                      {ban.startDate && <span>Début : {ban.startDate}</span>}
-                      {ban.endDate && <span>Fin : {ban.endDate}</span>}
+                      {ban.startDate && <span>Début : {formatBannerDate(ban.startDate, 'start')}</span>}
+                      {ban.endDate && <span>Fin : {formatBannerDate(ban.endDate, 'end')} (inclus)</span>}
                     </div>
                   </div>
                   <div className="pt-2 border-t border-warm-cream flex justify-between items-center">
@@ -748,13 +809,13 @@ export default function AdminCMS({
                           setCurrentBanner(ban);
                           setBannerFormOpen(true);
                         }}
-                        className="p-1 px-2 border hover:bg-warm-cream rounded text-[11px]"
+                        className="px-3 py-2 border hover:bg-warm-cream rounded-lg text-xs font-bold"
                       >
                         Modifier
                       </button>
                       <button
                         onClick={() => handleBannerDelete(ban.id)}
-                        className="p-1 px-2 border border-red-150 hover:bg-red-50 text-red-600 rounded text-[11px]"
+                        className="px-3 py-2 border border-red-200 hover:bg-red-50 text-red-600 rounded-lg text-xs font-bold"
                       >
                         Retirer
                       </button>
@@ -767,11 +828,12 @@ export default function AdminCMS({
 
           {/* Banner creation slide */}
           {bannerFormOpen && (
-            <div className="fixed inset-0 z-50 bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-sm rounded-3xl border border-warm-cream-dark shadow-2xl p-5 text-left">
+            <div className="fixed inset-0 z-50 bg-luxe-dark/45 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4">
+              {/* Formulaire long : il défile, et occupe tout l'écran sur téléphone */}
+              <div className="bg-white w-full max-w-2xl rounded-none sm:rounded-3xl border border-warm-cream-dark shadow-2xl p-5 text-left h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center border-b border-warm-cream pb-3 mb-4">
                   <h4 className="font-serif font-bold text-sm text-luxe-dark">Éditer/Ajouter une Bannière</h4>
-                  <button onClick={() => setBannerFormOpen(false)} className="text-luxe-muted hover:text-black font-serif text-lg font-bold">&times;</button>
+                  <button onClick={() => setBannerFormOpen(false)} aria-label="Fermer" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-warm-cream text-luxe-muted hover:text-black font-serif text-2xl font-bold">&times;</button>
                 </div>
 
                 <form onSubmit={handleBannerSave} className="space-y-4">
@@ -853,16 +915,44 @@ export default function AdminCMS({
                 onChange={(e) => setCurrentBanner((p: any) => ({ ...p, type: e.target.value }))}
                 className="w-full p-2.5 rounded-xl border border-warm-cream-dark focus:outline-none focus:border-luxe-copper"
               >
-                <option value="Homepage Banner">Homepage Banner (Slider principal)</option>
-                <option value="Promo Banner">Promo Banner (Encadré promotionnel)</option>
-                <option value="Announcement Banner">Announcement Banner (Ruban haut de page)</option>
-                <option value="Advertisement Banner">Advertisement Banner (Publicité programmée)</option>
+                <option value="Advertisement Banner">Publicité programmée (remplace les produits dans le carrousel)</option>
+                <option value="Homepage Banner">Bannière d'accueil (si aucun produit à mettre en avant)</option>
+                <option value="Promo Banner">Encadré promotionnel</option>
+                <option value="Announcement Banner">Ruban d'annonce</option>
               </select>
                   </div>
 
+                  {currentBanner.type === ADVERTISEMENT_TYPE && (
+                    <div className="space-y-1">
+                      <label className="font-bold text-luxe-dark">Qui fait la promotion ?</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { value: 'own', label: 'Un de mes SaaS', hint: 'Affiché « Nos solutions »' },
+                          { value: 'client', label: 'Un client annonceur', hint: 'Affiché « Sponsorisé »' },
+                        ].map((opt) => {
+                          const selected = getAdvertiserKind(currentBanner) === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setCurrentBanner((p: any) => ({ ...p, advertiserKind: opt.value }))}
+                              className={`p-3 rounded-xl border text-left ${selected ? 'border-luxe-copper bg-luxe-copper/10' : 'border-warm-cream-dark'}`}
+                            >
+                              <span className="block font-bold text-sm text-luxe-dark">{opt.label}</span>
+                              <span className="block text-[11px] text-luxe-muted">{opt.hint}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[11px] text-luxe-muted">
+                        Pendant ses dates, la publicité remplace les produits du catalogue dans le carrousel. Ensuite, les produits reviennent automatiquement.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Nom de l'annonceur</label>
+                      <label className="font-bold text-luxe-dark">{getAdvertiserKind(currentBanner) === 'own' ? 'Nom du SaaS' : "Nom de l'annonceur"}</label>
                       <input
                         type="text"
                         value={currentBanner.advertiserName || ''}
@@ -918,7 +1008,7 @@ export default function AdminCMS({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Fin de campagne</label>
+                      <label className="font-bold text-luxe-dark">Fin de campagne (jour inclus)</label>
                       <input
                         type="date"
                         value={currentBanner.endDate || ''}
@@ -928,7 +1018,7 @@ export default function AdminCMS({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="font-bold text-luxe-dark">Priorité</label>
+                      <label className="font-bold text-luxe-dark" title="Si plusieurs publicités sont en cours, seules celles au plus petit numéro s'affichent ; à égalité, elles défilent ensemble.">Priorité (1 = passe avant)</label>
                       <input
                         type="number"
                         min={1}
